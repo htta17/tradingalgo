@@ -357,8 +357,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
 		}
-		
-		bool NearNewsTime(int time, int newsTime)
+
+        
+
+        bool NearNewsTime(int time, int newsTime)
 		{
 			// newsTime format: 0700,0830,1300
 			var minute = newsTime % 100; 
@@ -934,7 +936,19 @@ namespace NinjaTrader.NinjaScript.Strategies
 			*/			
 		}
 
-		/*
+        protected override void OnPositionUpdate(Position position, double averagePrice, int quantity, MarketPosition marketPosition)
+        {
+			//base.OnPositionUpdate(position, averagePrice, quantity, marketPosition);
+			LocalPrint($"OnPositionUpdate: {marketPosition}, {quantity}");
+        }
+
+        protected override void OnExecutionUpdate(Execution execution, string executionId, double price, int quantity, MarketPosition marketPosition, string orderId, DateTime time)
+        {
+            //base.OnExecutionUpdate(execution, executionId, price, quantity, marketPosition, orderId, time);
+            LocalPrint($"OnExecutionUpdate: {price}, {orderId} ,IsEntryStrategy: {execution.IsEntryStrategy}, IsEntry:{execution.IsEntry}");
+        }
+
+        /*
 		protected override void OnOrderUpdate(
 			Order order, 
 			double limitPrice, 
@@ -953,8 +967,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 	    }
 		*/
 
-	    /*
+        /*
 		* End of this class
 		*/
-  }
+    }
 }

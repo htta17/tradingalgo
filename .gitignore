@@ -1,0 +1,16 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/obj/NinjaTrader.Custom.csproj.nuget.dgspec.json
+/obj/NinjaTrader.Custom.csproj.nuget.g.props
+/obj/project.assets.json
+/obj/project.nuget.cache
+/obj/x64/Debug/NinjaTrader.Custom.assets.cache
+/obj/x64/Debug/NinjaTrader.Custom.csproj.AssemblyReference.cache
+/obj/x64/Debug/NinjaTrader.Custom.GeneratedMSBuildEditorConfig.editorconfig
+/.vs/NinjaTrader.Custom/DesignTimeBuild/.dtbcache.v2
+/CopierLog.txt
+/.vs/NinjaTrader.Custom/FileContentIndex/5e83d814-30d4-459a-9ae0-8b2575a1a97b.vsidx
+*.vsidx
+/.vs/NinjaTrader.Custom/v17/.suo

@@ -62,7 +62,7 @@
       <HintPath>C:\Program Files\NinjaTrader 8\bin\SharpDX.Direct2D1.dll</HintPath>
     </Reference>
     <Reference Include="NinjaTrader.Vendor">
-      <HintPath>C:\Users\14242\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Vendor.dll</HintPath>
+      <HintPath>C:\Users\Phuong\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Vendor.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase">
       <HintPath>C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll</HintPath>
@@ -355,13 +355,6 @@
     <Compile Include="ShareServices\%40StockTwits.cs" />
     <Compile Include="ShareServices\%40TextMessage.cs" />
     <Compile Include="ShareServices\%40Twitter.cs" />
-    <Compile Include="Strategies\%40SampleAtmStrategy.cs" />
-    <Compile Include="Strategies\%40SampleMACrossOver.cs" />
-    <Compile Include="Strategies\%40SampleMultiInstrument.cs" />
-    <Compile Include="Strategies\%40SampleMultiTimeFrame.cs" />
-    <Compile Include="Strategies\%40Strategy.cs" />
-    <Compile Include="Strategies\ATMStrategyConverter.cs" />
-    <Compile Include="Strategies\Chiken.cs" />
     <Compile Include="SuperDomColumns\%40APQ.cs" />
     <Compile Include="SuperDomColumns\%40Notes.cs" />
     <Compile Include="SuperDomColumns\%40ProfitLoss.cs" />
@@ -370,10 +363,7 @@
     <Compile Include="SuperDomColumns\%40PullingStacking.cs" />
     <Compile Include="Indicators\Gemify\OrderLineDecorator\OrderLineDecorator.cs" />
     <Compile Include="Indicators\Prop_Trader_Tools\SimpleTradeCopier.cs" />
-    <Compile Include="Strategies\Duck.cs" />
-    <Compile Include="Strategies\TestStopLossGainMoving.cs" />
     <Compile Include="obj\x64\Debug\.NETFramework,Version=v4.8.AssemblyAttributes.cs" />
-    <Compile Include="Strategies\RSIDivergence.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

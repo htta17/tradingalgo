@@ -362,10 +362,7 @@
     <Compile Include="Strategies\%40Strategy.cs" />
     <Compile Include="Strategies\Chicken.cs" />
     <Compile Include="Strategies\Duck.cs" />
-    <Compile Include="Strategies\zDoubleBBRegular.cs" />
-    <Compile Include="Strategies\zDoubleBBRSI.cs" />
     <Compile Include="Strategies\zTestMovingStop.cs" />
-    <Compile Include="Strategies\zTrending.cs" />
     <Compile Include="SuperDomColumns\%40APQ.cs" />
     <Compile Include="SuperDomColumns\%40Notes.cs" />
     <Compile Include="SuperDomColumns\%40ProfitLoss.cs" />

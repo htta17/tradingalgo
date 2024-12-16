@@ -22,3 +22,6 @@
 /obj/project.assets.json
 /obj/project.nuget.cache
 /.vs/NinjaTrader.Custom/v17/DocumentLayout.json
+/NinjaTrader.Custom.csproj.Backup (1).tmp
+/NinjaTrader.Custom.csproj.Backup.tmp
+/NinjaTrader.Custom.xml

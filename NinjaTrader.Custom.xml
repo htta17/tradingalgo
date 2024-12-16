@@ -4006,14 +4006,9 @@
             The ZLEMA (Zero-Lag Exponential Moving Average) is an EMA variant that attempts to adjust for lag.
             </summary>
         </member>
-        <member name="P:NinjaTrader.NinjaScript.Strategies.Chicken.FullATMName">
+        <member name="P:NinjaTrader.NinjaScript.Strategies.Chicken.ATMName">
             <summary>
             ATM name for live trade. 
-            </summary>
-        </member>
-        <member name="P:NinjaTrader.NinjaScript.Strategies.Chicken.HalfATMName">
-            <summary>
-            ATM name for live trade.
             </summary>
         </member>
         <member name="P:NinjaTrader.NinjaScript.Strategies.Chicken.MaximumDayLoss">
@@ -4053,12 +4048,7 @@
             Kiếm tra giờ trade(8:00-15:00)
             </summary>
         </member>
-        <member name="P:NinjaTrader.NinjaScript.Strategies.Duck.FullATMName">
-            <summary>
-            ATM name for live trade.
-            </summary>
-        </member>
-        <member name="P:NinjaTrader.NinjaScript.Strategies.Duck.HalfATMName">
+        <member name="P:NinjaTrader.NinjaScript.Strategies.Duck.ATMName">
             <summary>
             ATM name for live trade.
             </summary>
@@ -4071,6 +4061,21 @@
         </member>
         <member name="M:NinjaTrader.NinjaScript.Strategies.Duck.ShouldTrade(NinjaTrader.Cbi.OrderAction)">
             Hàm này chỉ làm việc khi DuckStatus là Idle
+        </member>
+        <member name="P:NinjaTrader.NinjaScript.Strategies.zDoubleBBRegular.ATMName">
+            <summary>
+            ATM name for live trade. 
+            </summary>
+        </member>
+        <member name="P:NinjaTrader.NinjaScript.Strategies.zDoubleBBRegular.MaximumDayLoss">
+            <summary>
+            If loss is more than [MaximumDayLoss], won't trade for that day 
+            </summary>
+        </member>
+        <member name="P:NinjaTrader.NinjaScript.Strategies.zDoubleBBRegular.StopWhenGain">
+            <summary>
+            If gain is more than [StopWhenGain], won't trade for that day 
+            </summary>
         </member>
         <member name="M:NinjaTrader.NinjaScript.Optimizers.DefaultOptimizer.Iterate(System.Int32)">
             <summary>

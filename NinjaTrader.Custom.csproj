@@ -355,6 +355,17 @@
     <Compile Include="ShareServices\%40StockTwits.cs" />
     <Compile Include="ShareServices\%40TextMessage.cs" />
     <Compile Include="ShareServices\%40Twitter.cs" />
+    <Compile Include="Strategies\%40SampleAtmStrategy.cs" />
+    <Compile Include="Strategies\%40SampleMACrossOver.cs" />
+    <Compile Include="Strategies\%40SampleMultiInstrument.cs" />
+    <Compile Include="Strategies\%40SampleMultiTimeFrame.cs" />
+    <Compile Include="Strategies\%40Strategy.cs" />
+    <Compile Include="Strategies\Chicken.cs" />
+    <Compile Include="Strategies\Duck.cs" />
+    <Compile Include="Strategies\zDoubleBBRegular.cs" />
+    <Compile Include="Strategies\zDoubleBBRSI.cs" />
+    <Compile Include="Strategies\zTestMovingStop.cs" />
+    <Compile Include="Strategies\zTrending.cs" />
     <Compile Include="SuperDomColumns\%40APQ.cs" />
     <Compile Include="SuperDomColumns\%40Notes.cs" />
     <Compile Include="SuperDomColumns\%40ProfitLoss.cs" />

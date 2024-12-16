@@ -2,15 +2,23 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
+/.vs/NinjaTrader.Custom/FileContentIndex/d48aaa66-8cab-4c45-866b-c761b1e537f9.vsidx
+/.vs/NinjaTrader.Custom/FileContentIndex
+/.vs/NinjaTrader.Custom/v17
+/de-DE/NinjaTrader.Custom.resources.dll
+/es-ES/NinjaTrader.Custom.resources.dll
+/fr-FR/NinjaTrader.Custom.resources.dll
+/it-IT/NinjaTrader.Custom.resources.dll
+/ko-KR/NinjaTrader.Custom.resources.dll
+/NinjaTrader.Custom.dll
+/NinjaTrader.Custom.pdb
+/pt-PT/NinjaTrader.Custom.resources.dll
+/ru-RU/NinjaTrader.Custom.resources.dll
+/zh-Hans/NinjaTrader.Custom.resources.dll
+/obj/x64/Debug
+/.vs/NinjaTrader.Custom/DesignTimeBuild/.dtbcache.v2
 /obj/NinjaTrader.Custom.csproj.nuget.dgspec.json
 /obj/NinjaTrader.Custom.csproj.nuget.g.props
 /obj/project.assets.json
 /obj/project.nuget.cache
-/obj/x64/Debug/NinjaTrader.Custom.assets.cache
-/obj/x64/Debug/NinjaTrader.Custom.csproj.AssemblyReference.cache
-/obj/x64/Debug/NinjaTrader.Custom.GeneratedMSBuildEditorConfig.editorconfig
-/.vs/NinjaTrader.Custom/DesignTimeBuild/.dtbcache.v2
-/CopierLog.txt
-/.vs/NinjaTrader.Custom/FileContentIndex/5e83d814-30d4-459a-9ae0-8b2575a1a97b.vsidx
-*.vsidx
-/.vs/NinjaTrader.Custom/v17/.suo
+/.vs/NinjaTrader.Custom/v17/DocumentLayout.json

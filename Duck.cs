@@ -21,6 +21,8 @@ using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
 using System.IO;
+using System.Threading;
+using NinjaTrader.Custom.Strategies;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it.
@@ -55,7 +57,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		/// <summary>
 		/// Khoảng cách đảm bảo cho việc giá của stock chạy đúng hướng.
 		/// </summary>
-	    private double WarranteeFee = -1;	
+	    private double WarranteeFee = 3.0;	
 		
 		/// <summary>
 		/// Nếu EMA và OPEN khung 1 phút < 
@@ -87,9 +89,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[Display(Name = "Check Trading Hour", Order = 8, GroupName = "Parameters")]
 	    public bool CheckTradingHour { get; set; } = true;
 		
+		/*
 		[NinjaScriptProperty]
 		[Display(Name = "Shift Type (AM/PM/Night)", Order = 9, GroupName = "Parameters")]
 		public ShiftType ShiftType { get; set; } = ShiftType.Moning_0700_1500;
+		*/
 		
 		[NinjaScriptProperty]
 		[Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = "Parameters")]
@@ -105,10 +109,19 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// ATM name for live trade.
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "ATM Strategy", Description = "Các stategies quan trọng: 'Default_MNQ', 'Default_MGC', 'Half_MNQ', 'Half_MGC'", Order = 4, GroupName = "Importants Configurations")]
-        public string ATMName { get; set; } = "Default_MNQ";        
+        [Display(Name = "Default ATM Strategy", Description = "Default ATM Strategy", Order = 4, GroupName = "Importants Configurations")]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public string FullATMName { get; set; } = "Default_MNQ";
 
-		private double PointToMoveGainLoss = 5;
+        /// <summary>
+        /// ATM name for live trade.
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Reduced size Strategy", Description = "Strategy sử dụng khi loss/gain more than a half", Order = 4, GroupName = "Importants Configurations")]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public string HalfATMName { get; set; } = "Half_MNQ";
+
+        private double PointToMoveGainLoss = 5;
 		
 		private List<int> NewsTimes = new List<int>();
 		
@@ -116,6 +129,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private double filledPrice = -1;
 		
 		private readonly string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"atmStrategyDuck.txt"); 
+		
 
     	protected override void OnStateChange() 
 		{
@@ -145,12 +159,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 		        DefaultQuantity = 5;
 		
 		        // Set Properties		        
-		        ATMName = "Default_MNQ";		        
+		        FullATMName = "Default_MNQ";		        
 		
 		        MaximumDayLoss = 400;
 		        StopGainProfit = 600;
 				CheckTradingHour = true;
-				ShiftType = ShiftType.Moning_0700_1500;
+				//ShiftType = ShiftType.Moning_0700_1500;
 				NewsTimeInput = "0830";
 
 				//TicksForWarantee = 12;
@@ -171,26 +185,26 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{
 					Print(e.Message);
 				}
-				
-				// Load Current 
-				if (File.Exists(FileName))
+
+                WarranteeFee = 3.0; //TickSize * TicksForWarantee;
+
+                PointToMoveGainLoss = 5;
+
+                // Load Current 
+                if (File.Exists(FileName))
 				{
 					try
 					{
 						atmStrategyId = File.ReadAllText(FileName);
-					}
+
+                        Print($"WarranteeFee: {WarranteeFee}, PointToMoveGainLoss: {PointToMoveGainLoss}, current atmStrategyId: {atmStrategyId}");
+                    }
 					catch(Exception e)
 					{
 						Print(e.Message);
 					}
 				}
-
-				WarranteeFee = Instrument.FullName.Contains("MNQ") ? 3.0 : 0.5; //TickSize * TicksForWarantee;
-
-                PointToMoveGainLoss = Instrument.FullName.Contains("MNQ") ? 5 : 0.7;
-
-                Print($"WarranteeFee: {WarranteeFee}");
-                Print($"PointToMoveGainLoss: {PointToMoveGainLoss}");
+                
             }
 	  		else if (State == State.DataLoaded)
 			{
@@ -292,6 +306,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			lock (lockEnterOrder) 
 			{
+
                 bool isRealTime = state == State.Realtime;
 
                 var middleOfEMA = (ema29 + ema51) / 2;
@@ -306,6 +321,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     atmStrategyId = GetAtmStrategyUniqueId();
                     orderId = GetAtmStrategyUniqueId();
+
+					// If profit reaches half of daily goal or lose half of daily loss 
+                    var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
+                    var reacHalf = todaysPnL <= -MaximumDayLoss / 2 || todaysPnL >= StopGainProfit /2;
+					var atmStragtegyName = reacHalf ? HalfATMName : FullATMName;
 
                     try
                     {
@@ -328,17 +348,21 @@ namespace NinjaTrader.NinjaScript.Strategies
                             0,
                             TimeInForce.Day,
                             orderId,
-                            ATMName,
+                            atmStragtegyName,
                             atmStrategyId,
                             (atmCallbackErrorCode, atmCallBackId) =>
                             {
                                 if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
                                 {
-                                    DuckStatus = DuckStatus.OrderExist; // Cập nhật status (trong trường hợp fill sau)
                                     LocalPrint($"Enter {action} - New StrategyID: {atmStrategyId} - New status: {DuckStatus}");
                                 }
                             });
-                    }                    
+
+						if (status == DuckStatus.OrderExist)
+						{
+                            Thread.Sleep(1000);
+                        }
+                    }
                 }
                 else
                 {
@@ -400,6 +424,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 				return true;
 			}
 			var time = ToTime(Time[0]);
+
+			/*
 			
 			if (ShiftType == ShiftType.Moning_0700_1500 && (time < 070000 || time > 150000))
 			{
@@ -416,6 +442,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				LocalPrint($"Time: {time} - Shift {ShiftType} --> Not trading hour");
 				return false;
 			}
+			*/
 			
 			var newTime = NewsTimes.FirstOrDefault(c => NearNewsTime(time, c));
 			
@@ -731,13 +758,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{
 					LocalPrint(e.Message);
 				}
-			}		  	
-	    }
+			}
+        }
 		
 		/**
 		* Hàm này chỉ làm việc khi DuckStatus là Idle
 		*/ 
-    	private DuckStatus ShouldTrade(OrderAction action) 
+		
+
+        private DuckStatus ShouldTrade(OrderAction action) 
 		{			
 			/*
 			* Điều kiện vào lệnh: 

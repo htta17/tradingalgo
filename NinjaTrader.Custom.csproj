@@ -365,6 +365,7 @@
     <Compile Include="Strategies\Duck.cs" />
     <Compile Include="Strategies\TestStopLossGainMoving.cs" />
     <Compile Include="Strategies\TrendingEMA2951.cs" />
+    <Compile Include="Strategies\zTestMovingStop.cs" />
     <Compile Include="SuperDomColumns\%40APQ.cs" />
     <Compile Include="SuperDomColumns\%40Notes.cs" />
     <Compile Include="SuperDomColumns\%40ProfitLoss.cs" />

@@ -70,7 +70,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// ATM name for live trade. 
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "ATM Strategy", Order = 4, GroupName = "Parameters")]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        [Display(Name = "ATM Strategy", Order = 4, GroupName = "Importants Configurations")]
         public string FullATMName { get; set; } = "Default_MNQ";
 
         /// <summary>
@@ -395,6 +396,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         // Kéo stop loss/gain
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
+            var updatedPrice = marketDataUpdate.Price;
+
+            if (updatedPrice < 100)
+            {
+                LocalPrint($"MarketDataUpdate, price {updatedPrice} - SYSTEM ERROR");
+                return;
+            }
+
             if (DoubleBBStatus == ChickenStatus.OrderExists) // Điều chỉnh stop gain/loss 
             {
                 if (!AllowToMoveStopLossGain)
@@ -410,14 +419,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 try
                 {
-                    var updatedPrice = marketDataUpdate.Price;
-
-                    if (updatedPrice < 100)
-                    {
-                        LocalPrint($"MarketDataUpdate, price {updatedPrice} - SYSTEM ERROR");
-                        return;
-                    }
-
                     var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && order.Name.Contains("Stop")).ToList();
                     var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains("Target")).ToList();
 
@@ -501,7 +502,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             else if (DoubleBBStatus == ChickenStatus.PendingFill)
             {
                 // Hiện tại chưa lấy được các thông số (EMA, Bollinger, etc.) real time nên chưa làm gì.
-
+                if (currentAction == OrderAction.Buy)
+                {
+                }
+                else
+                { 
+                }
             }
         }
 

@@ -4,45 +4,18 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Xml.Serialization;
 using NinjaTrader.Cbi;
-using NinjaTrader.Gui;
-using NinjaTrader.Gui.Chart;
-using NinjaTrader.Gui.SuperDom;
 using NinjaTrader.Gui.Tools;
 using NinjaTrader.Data;
-using NinjaTrader.NinjaScript;
-using NinjaTrader.Core.FloatingPoint;
-using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
 using System.IO;
 using NinjaTrader.Custom.Strategies;
+using Brushes = System.Windows.Media.Brushes;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public enum WayToTrade
-    {
-        EasyFill_HighRisk,
-        LowRisk_HardFill,
-        MiddleRisk_MiddleLine,
-        SantaOnly,
-        BollingerBandOnly
-    }
-
-    public enum ChickenStatus
-    {
-        Idle, // Đang không có lệnh 
-        PendingFill, // Lệnh đã submit nhưng chưa được fill do giá chưa đúng
-        OrderExists  // Lệnh đã được filled 
-    }
-
     public class Chicken : Strategy
     {
         private int DEMA_Period = 9;
@@ -53,8 +26,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         private double lower = -1;
         private double middle = -1;
 
+        private double upperStd2 = -1;
+        private double lowerStd2 = -1;
+
         private double low5m = -1;
         private double high5m = -1;
+
+        private double close5m = -1;
+        private double open5m = -1;
 
         OrderAction currentAction = OrderAction.Buy;
 
@@ -64,7 +43,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         [NinjaScriptProperty]
         [Display(Name = "Choose way to trade", Order = 3, GroupName = "Parameters")]
-        public WayToTrade WayToTrade { get; set; } = WayToTrade.EasyFill_HighRisk;
+        public ChickenWayToTrade WayToTrade { get; set; } = ChickenWayToTrade.EasyFill_HighRisk;
 
         /// <summary>
         /// ATM name for live trade. 
@@ -150,7 +129,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Set Properties
                 FullATMName = "Default_MNQ";
                 HalfATMName = "Half_MNQ";
-                WayToTrade = WayToTrade.EasyFill_HighRisk;
+                WayToTrade = ChickenWayToTrade.EasyFill_HighRisk;
 
                 MaximumDayLoss = 400;
                 StopGainProfit = 700;
@@ -264,24 +243,24 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        private double GetSetPrice(double upper, double lower, double ema29, double ema51, WayToTrade chooseWay, OrderAction orderAction)
+        private double GetSetPrice(double upper, double lower, double ema29, double ema51, ChickenWayToTrade chooseWay, OrderAction orderAction)
         {
             double price = -1;
             if (orderAction == OrderAction.Buy || orderAction == OrderAction.BuyToCover)
             {
-                if (chooseWay == WayToTrade.EasyFill_HighRisk)
+                if (chooseWay == ChickenWayToTrade.EasyFill_HighRisk)
                 {
                     price = Math.Max(lower, Math.Max(ema29, ema51));
                 }
-                else if (chooseWay == WayToTrade.LowRisk_HardFill)
+                else if (chooseWay == ChickenWayToTrade.LowRisk_HardFill)
                 {
                     price = Math.Min(lower, Math.Min(ema29, ema51));
                 }
-                else if (chooseWay == WayToTrade.MiddleRisk_MiddleLine)
+                else if (chooseWay == ChickenWayToTrade.MiddleRisk_MiddleLine)
                 {
                     price = (lower + ema29 + ema51) / 3;
                 }
-                else if (chooseWay == WayToTrade.SantaOnly)
+                else if (chooseWay == ChickenWayToTrade.SantaOnly)
                 {
                     price = (ema29 + ema51) / 2;
                 }
@@ -292,19 +271,19 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else // if (orderAction == OrderAction.Sell || orderAction == OrderAction.SellShort)
             {
-                if (chooseWay == WayToTrade.EasyFill_HighRisk)
+                if (chooseWay == ChickenWayToTrade.EasyFill_HighRisk)
                 {
                     price = Math.Min(upper, Math.Min(ema29, ema51));
                 }
-                else if (chooseWay == WayToTrade.LowRisk_HardFill)
+                else if (chooseWay == ChickenWayToTrade.LowRisk_HardFill)
                 {
                     price = Math.Max(upper, Math.Max(ema29, ema51));
                 }
-                else if (chooseWay == WayToTrade.MiddleRisk_MiddleLine)
+                else if (chooseWay == ChickenWayToTrade.MiddleRisk_MiddleLine)
                 {
                     price = (upper + ema29 + ema51) / 3;
                 }
-                else if (chooseWay == WayToTrade.SantaOnly)
+                else if (chooseWay == ChickenWayToTrade.SantaOnly)
                 {
                     price = (ema29 + ema51) / 2;
                 }
@@ -400,7 +379,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (updatedPrice < 100)
             {
-                LocalPrint($"MarketDataUpdate, price {updatedPrice} - SYSTEM ERROR");
+                //LocalPrint($"MarketDataUpdate, price {updatedPrice} - SYSTEM ERROR");
                 return;
             }
 
@@ -692,10 +671,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             else if (BarsInProgress == 1) // 5 minute
             {
                 var bollinger = Bollinger(1, 20);
+                var bollingerStd2 = Bollinger(2, 20);
 
                 upper = bollinger.Upper[0];
                 lower = bollinger.Lower[0];
                 middle = bollinger.Middle[0];
+
+                upperStd2 = bollingerStd2.Upper[0];
+                lowerStd2 = bollingerStd2.Lower[0];
 
                 low5m = Low[0];
                 high5m = High[0];
@@ -764,7 +747,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 var pendingOrder = existingOrders.FirstOrDefault();
 
+                LocalPrint($"UpdatePendingOrder - open: {open5m}, close: {close5m}, pendingOrder.IsLong: {pendingOrder.IsLong}, high5m: {high5m}, upper: {upper}, upperStd2: {upperStd2},  || pendingOrder.IsShort: {pendingOrder.IsShort}, low5m: {low5m},  lower: {lower}");
                 var cancelCausedByPrice = (pendingOrder.IsLong && high5m > upper) || (pendingOrder.IsShort && low5m < lower);
+
+                
+
 
                 var timeMoreThan60min = (Time[0] - pendingOrder.Time).TotalMinutes > 60;
 

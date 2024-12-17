@@ -33,7 +33,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				Description									= @"EMA200, EMA51, EMA29 khung 1 phút. Trending sử dụng ";
 				Name										= "TrendingEMA2951";
-				Calculate									= Calculate.OnBarClose;
+				Calculate									= Calculate.OnEachTick;
 				EntriesPerDirection							= 1;
 				EntryHandling								= EntryHandling.AllEntries;
 				IsExitOnSessionCloseStrategy				= true;

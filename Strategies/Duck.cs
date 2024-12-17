@@ -27,22 +27,7 @@ using NinjaTrader.Custom.Strategies;
 
 //This namespace holds Strategies in this folder and is required. Do not change it.
 namespace NinjaTrader.NinjaScript.Strategies 
-{	
-	public enum ShiftType
-	{
-		Moning_0700_1500,
-		Afternoon_1700_2300,
-		Night_2300_0700
-	}
-	
-	public enum DuckStatus
-	{
-		Idle,
-		WaitingForGoodPrice, // Có tín hiệu B-line nhưng giá vẫn chưa pass Santa 
-		FillOrderPending, 
-		OrderExist
-	}
-	//123
+{
     public class Duck : Strategy
     {
 	    private int DEMA_Period = 9;	    
@@ -58,11 +43,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 		/// Khoảng cách đảm bảo cho việc giá của stock chạy đúng hướng.
 		/// </summary>
 	    private double WarranteeFee = 3.0;	
-		
-		/// <summary>
-		/// Nếu EMA và OPEN khung 1 phút < 
-		/// </summary>
-		private double SetOrderWarrantee = -1; 
 
 	    /// <summary>
 	    /// If loss is more than [MaximumDayLoss], won't trade for that day
@@ -924,7 +904,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 			
 			var cancelByPrice = 
 				(currentAction == OrderAction.Buy && currentPriceBar5m > upperBB5m_Std2) || 
-				(currentAction == OrderAction.Sell && currentPriceBar5m < lowerBB5m_Std2); 
+				(currentAction == OrderAction.Sell && currentPriceBar5m < lowerBB5m_Std2);
+
+			LocalPrint($"currentAction: {currentAction}, currentPriceBar5m: {currentPriceBar5m:F2}, upperBB5m_Std2: {upperBB5m_Std2:F2}, lowerBB5m_Std2: {lowerBB5m_Std2:F2}");
 			
 			var isMarketClosed = ToTime(Time[0]) >= 150000; 
 			

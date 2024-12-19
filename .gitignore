@@ -26,3 +26,7 @@
 /NinjaTrader.Custom.csproj.Backup.tmp
 /NinjaTrader.Custom.xml
 /CopierLog.txt
+*.dll
+/bin/Debug/NinjaTrader.Custom.dll
+/bin/Debug/NinjaTrader.Custom.pdb
+/bin/Debug/NinjaTrader.Custom.XML

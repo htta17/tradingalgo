@@ -31,8 +31,15 @@ namespace NinjaTrader.Custom.Strategies
     public enum DuckStatus
     {
         Idle,
-        WaitingForGoodPrice, // Có tín hiệu B-line nhưng giá vẫn chưa pass Santa 
+        WaitingForGoodPrice, // Có tín hiệu B-line nhưng giá vẫn chưa pass EMA29/51 
         FillOrderPending,
         OrderExist
+    }
+
+    public enum TrendingStatus
+    { 
+        UpTrend, 
+        DownTrend, 
+        Sizeway
     }
 }

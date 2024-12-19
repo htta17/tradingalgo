@@ -364,7 +364,6 @@
     <Compile Include="Strategies\ATMStrategyConverter.cs" />
     <Compile Include="Strategies\Chicken.cs" />
     <Compile Include="Strategies\Duck.cs" />
-    <Compile Include="Strategies\StrategiesUtilities.cs" />
     <Compile Include="Strategies\TestStopLossGainMoving.cs" />
     <Compile Include="Strategies\TrendingEMA2951.cs" />
     <Compile Include="SuperDomColumns\%40APQ.cs" />
@@ -376,6 +375,7 @@
     <Compile Include="Indicators\Gemify\OrderLineDecorator\OrderLineDecorator.cs" />
     <Compile Include="Indicators\Prop_Trader_Tools\SimpleTradeCopier.cs" />
     <Compile Include="obj\x64\Debug\.NETFramework,Version=v4.8.AssemblyAttributes.cs" />
+    <Compile Include="Strategies\StrategiesUtilities.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

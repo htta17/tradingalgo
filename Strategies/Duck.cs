@@ -338,10 +338,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 }
                             });
 
+						/*
 						if (status == DuckStatus.OrderExist)
 						{
                             Thread.Sleep(1000);
                         }
+						*/
                     }
                 }
                 else
@@ -555,26 +557,20 @@ namespace NinjaTrader.NinjaScript.Strategies
 	    //double lastCloseBar5m = -1;	
 	    //double currentOpenBar5m = -1;	
 	    double currentPriceBar5m = -1;	
-		double currentDEMA = -1; 
-		
-	    protected override void OnBarUpdate() 
+		double currentDEMA = -1;
+
+        private DateTime lastExecutionTime = DateTime.MinValue;
+        private int executionCount = 0;
+		private int NextBarProgress = 1; 
+        protected override void OnBarUpdate() 
 		{
-			if (CurrentBar < DEMA_Period) 
+            if (CurrentBar < DEMA_Period)
+            {
+                return;
+            }
+
+            lock (lockOjbject)
 			{
-				return;
-			}
-			
-			lock (lockOjbject)
-			{
-				count++;
-				if (count % 14 != 0)
-				{
-					return;
-				}
-				count = 0;				
-				
-				var isTradingHour = IsTradingHour();
-		
 				try 
 				{                    
                     if (BarsInProgress == 2) // 1 minutes
@@ -584,7 +580,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 						low1m = Low[0];
 						high1m = High[0];
 						open1m = Open[0];// currentPrice = Close[0];
-                        LocalPrint($"New prices for 1m: ema29: {ema29:F2}, ema51: {ema51:F2}.");
+                        //LocalPrint($"BarsInProgress = 2 (1M): New prices for 1m: ema29: {ema29:F2}, ema51: {ema51:F2}.");
                     }
 			      	else if (BarsInProgress == 1) // 5 minues
 			      	{
@@ -609,9 +605,25 @@ namespace NinjaTrader.NinjaScript.Strategies
 				
 				        currentDEMA = DEMA(DEMA_Period).Value[0]; 
 						lastDEMA = DEMA(DEMA_Period).Value[1];
-			      	}
-					
-					if (DuckStatus == DuckStatus.Idle) 
+                        //LocalPrint($"BarsInProgress = 1 (5M):New prices for 5m: upperBB5m: {upperBB5m:F2}, lowerBB5m: {lowerBB5m:F2}.");
+                    }
+
+					if (State != State.Realtime)
+					{
+						return;
+					}
+					else if (DateTime.Now.Subtract(lastExecutionTime).TotalSeconds < 1)
+					{
+						return;
+					}
+                    lastExecutionTime = DateTime.Now;
+
+                    var isTradingHour = IsTradingHour();
+
+                    executionCount++;
+                    LocalPrint($"OnBarUpdate execution Count: {executionCount}, Price: {Close[0]}");                    
+
+                    if (DuckStatus == DuckStatus.Idle) 
 					{
 						// Kiểm tra xem thực sự KHÔNG có lệnh nào hay không?
 						var hasActiveOrder = Account.Orders.Any(order =>order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted);
@@ -769,22 +781,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 				
 			    if (!foundCross)
 				{
-                    LocalPrint($"NOT found cross, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastLowerBB5m:F2}, currentDEMA: {currentDEMA:F2}, lowerBB5m:{lowerBB5m:F2}, WarranteeFee: {WarranteeFee:F2}");
+                    LocalPrint($"NOT found cross BUY, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastLowerBB5m:F2}, currentDEMA: {currentDEMA:F2}, lowerBB5m:{lowerBB5m:F2}, WarranteeFee: {WarranteeFee:F2}");
                     return  DuckStatus.Idle; // Tiếp tục trạng thái hiện tại
 				}
 				else if (open1m < Math.Max(ema29, ema51)) // Found cross, nhưng Open của nến 1 phút vẫn ở dưới EMA29/51)
 				{
-					LocalPrint($"Found cross, but open1m {open1m:F2} < Math.Max({ema29:F2}, {ema51:F2})");
+					LocalPrint($"Found cross BUY, but open1m {open1m:F2} < Math.Max({ema29:F2}, {ema51:F2})");
 					return DuckStatus.WaitingForGoodPrice; // Đợi khi nào có nến 1 phút vượt qua EMA29/51 thì set lệnh
 				}
 				else if (open1m - Math.Max(ema29, ema51) <= WarranteeFee)
 				{
-					LocalPrint("Vào lệnh theo giá MARKET");
+					LocalPrint("Vào lệnh BUY theo giá MARKET");
 					return DuckStatus.OrderExist;
 				}
 				else
 				{
-					LocalPrint("Chờ fill lệnh");
+					LocalPrint("Chờ fill lệnh BUY");
 					return DuckStatus.FillOrderPending;
 				}
       		}
@@ -795,22 +807,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 				
 				if (!foundCross)
 				{
-                    LocalPrint($"NOT found cross, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastUpperBB5m:F2}, currentDEMA: {currentDEMA:F2}, upperBB5m:{upperBB5m:F2}, WarranteeFee: {WarranteeFee:F2}");
+                    LocalPrint($"NOT found cross SELL, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastUpperBB5m:F2}, currentDEMA: {currentDEMA:F2}, upperBB5m:{upperBB5m:F2}, WarranteeFee: {WarranteeFee:F2}");
                     return  DuckStatus.Idle; // Tiếp tục trạng thái hiện tại
 				}
 				else if (open1m > Math.Min(ema29, ema51)) // foundCross = true, nhưng open của nến 1 phút vẫn nằm trên EMA29/51 (chưa vượt qua được)
 				{
-					LocalPrint($"Found cross, but open1m {open1m:F2} > Math.Min({ema29:F2}, {ema51:F2})");
+					LocalPrint($"Found cross SELL, but open1m {open1m:F2} > Math.Min({ema29:F2}, {ema51:F2})");
 					return DuckStatus.WaitingForGoodPrice;
 				} 
 				else if (Math.Min(ema29, ema51) - open1m  <= WarranteeFee) // foundCross = true và open1m < Math.Min(ema29, ema51) (open của nến 1 phút đã vượt qua EMA29/51) nhưng chưa vượt qua nhiều
 				{// --> Cho phép vào lệnh
-					LocalPrint("Vào lệnh theo giá MARKET");
+					LocalPrint("Vào lệnh SELL theo giá MARKET");
 					return DuckStatus.OrderExist;
 				}
 				else // foundCross = true AND open1m < Math.Min(ema29, ema51) AND Math.Min(ema29, ema51) - open1m  > WarranteeFee
 				{ // --> Mở nến đã đi quá xa đường EMA29/51 --> Đợi back test về EMA29/51
-					LocalPrint("Chờ fill lệnh");
+					LocalPrint("Chờ fill lệnh SELL");
 					return DuckStatus.FillOrderPending;
 				}				
 			}

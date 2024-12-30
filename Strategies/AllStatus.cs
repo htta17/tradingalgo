@@ -7,12 +7,9 @@ using System.Threading.Tasks;
 namespace NinjaTrader.Custom.Strategies
 {
     public enum ChickenWayToTrade
-    {
-        EasyFill_HighRisk,
-        LowRisk_HardFill,
-        MiddleRisk_MiddleLine,
-        SantaOnly,
-        BollingerBandOnly
+    {       
+        EMA2951,
+        BollingerBand
     }
 
     public enum ChickenStatus

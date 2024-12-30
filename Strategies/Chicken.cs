@@ -43,7 +43,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         [NinjaScriptProperty]
         [Display(Name = "Choose way to trade", Order = 3, GroupName = "Parameters")]
-        public ChickenWayToTrade WayToTrade { get; set; } = ChickenWayToTrade.EasyFill_HighRisk;
+        public ChickenWayToTrade WayToTrade { get; set; } = ChickenWayToTrade.BollingerBand;
 
         /// <summary>
         /// ATM name for live trade. 
@@ -129,7 +129,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Set Properties
                 FullATMName = "Default_MNQ";
                 HalfATMName = "Half_MNQ";
-                WayToTrade = ChickenWayToTrade.EasyFill_HighRisk;
+                WayToTrade = ChickenWayToTrade.BollingerBand;
 
                 MaximumDayLoss = 400;
                 StopGainProfit = 700;
@@ -248,49 +248,25 @@ namespace NinjaTrader.NinjaScript.Strategies
             double price = -1;
             if (orderAction == OrderAction.Buy || orderAction == OrderAction.BuyToCover)
             {
-                if (chooseWay == ChickenWayToTrade.EasyFill_HighRisk)
-                {
-                    price = Math.Max(lower, Math.Max(ema29, ema51));
-                }
-                else if (chooseWay == ChickenWayToTrade.LowRisk_HardFill)
-                {
-                    price = Math.Min(lower, Math.Min(ema29, ema51));
-                }
-                else if (chooseWay == ChickenWayToTrade.MiddleRisk_MiddleLine)
-                {
-                    price = (lower + ema29 + ema51) / 3;
-                }
-                else if (chooseWay == ChickenWayToTrade.SantaOnly)
+                if (chooseWay == ChickenWayToTrade.EMA2951)
                 {
                     price = (ema29 + ema51) / 2;
                 }
-                else
+                else if (chooseWay == ChickenWayToTrade.BollingerBand)                
                 {
                     price = lower;
                 }
             }
-            else // if (orderAction == OrderAction.Sell || orderAction == OrderAction.SellShort)
+            else 
             {
-                if (chooseWay == ChickenWayToTrade.EasyFill_HighRisk)
-                {
-                    price = Math.Min(upper, Math.Min(ema29, ema51));
-                }
-                else if (chooseWay == ChickenWayToTrade.LowRisk_HardFill)
-                {
-                    price = Math.Max(upper, Math.Max(ema29, ema51));
-                }
-                else if (chooseWay == ChickenWayToTrade.MiddleRisk_MiddleLine)
-                {
-                    price = (upper + ema29 + ema51) / 3;
-                }
-                else if (chooseWay == ChickenWayToTrade.SantaOnly)
+                if (chooseWay == ChickenWayToTrade.EMA2951)
                 {
                     price = (ema29 + ema51) / 2;
                 }
-                else
+                else if (chooseWay == ChickenWayToTrade.BollingerBand)
                 {
                     price = upper;
-                }
+                }  
             }
 
             return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;

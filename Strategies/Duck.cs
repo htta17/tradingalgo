@@ -935,11 +935,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 				(currentAction == OrderAction.Buy && currentPrice5m > upperBB5m_Std2) || 
 				(currentAction == OrderAction.Sell && currentPrice5m < lowerBB5m_Std2);
 
-			LocalPrint($"currentAction: {currentAction}, currentPriceBar5m: {currentPrice5m:F2}, upperBB5m_Std2: {upperBB5m_Std2:F2}, lowerBB5m_Std2: {lowerBB5m_Std2:F2}");
+			LocalPrint($"currentAction: {currentAction}, currentPriceBar5m: {currentPrice5m:F2}, upperBB5m_Std2: {upperBB5m_Std2:F2}, lowerBB5m_Std2: {lowerBB5m_Std2:F2}");			
 			
-			var isMarketClosed = ToTime(Time[0]) >= 150000; 
 			
-			if (isMarketClosed || cancelByPrice || (Time[0] - pendingOrder.Time).TotalMinutes > 60) // Cancel lệnh vì market đóng cửa, vì giá đi quá cao hoặc vì
+			if (cancelByPrice || (Time[0] - pendingOrder.Time).TotalMinutes > 60) // Cancel lệnh vì market đóng cửa, vì giá đi quá cao hoặc vì
 			{
 				AtmStrategyCancelEntryOrder(orderId);
 				
@@ -947,7 +946,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				atmStrategyId = null;
 				DuckStatus = DuckStatus.Idle; 
 				
-				LocalPrint(isMarketClosed ? $"Set Idle do hết giờ trade." : $"Chờ quá lâu, cancel lệnh. Status {DuckStatus} now. ");
+				LocalPrint($"Chờ quá lâu, cancel lệnh. Status {DuckStatus} now. ");
 			}			
 			else 
 			{

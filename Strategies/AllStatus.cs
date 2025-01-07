@@ -34,9 +34,20 @@ namespace NinjaTrader.Custom.Strategies
     }
 
     public enum TrendingStatus
-    { 
+    {
         UpTrend, 
         DownTrend, 
-        Sizeway
+        Sizeway, 
+        Unknown
+    }
+
+    public enum TrendingAction
+    {
+        WaitForBackTest,
+        OrderBuyPending, 
+        OrderBuyExists,
+        OrderSellPending,
+        OrderSellExists,
+        NoAction
     }
 }

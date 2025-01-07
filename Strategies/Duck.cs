@@ -286,7 +286,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			lock (lockEnterOrder) 
 			{
-
                 bool isRealTime = state == State.Realtime;
 
                 var middleOfEMA = (ema29 + ema51) / 2;
@@ -297,70 +296,51 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 LocalPrint($"Enter order {action} with status {status}");
 
-                if (isRealTime)
+				if (!isRealTime)
+				{
+					return; 
+				}
+                
+                atmStrategyId = GetAtmStrategyUniqueId();
+                orderId = GetAtmStrategyUniqueId();
+
+				// If profit reaches half of daily goal or lose half of daily loss 
+                var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
+                var reacHalf = todaysPnL <= -MaximumDayLoss / 2 || todaysPnL >= StopGainProfit /2;
+				var atmStragtegyName = reacHalf ? HalfATMName : FullATMName;
+
+                try
                 {
-                    atmStrategyId = GetAtmStrategyUniqueId();
-                    orderId = GetAtmStrategyUniqueId();
+                    File.WriteAllText(FileName, atmStrategyId);
+                }
+                catch (Exception e)
+                {
+                    LocalPrint(e.Message);
+                }
 
-					// If profit reaches half of daily goal or lose half of daily loss 
-                    var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
-                    var reacHalf = todaysPnL <= -MaximumDayLoss / 2 || todaysPnL >= StopGainProfit /2;
-					var atmStragtegyName = reacHalf ? HalfATMName : FullATMName;
+                var existingOrders = Account.Orders.Any(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted);
 
-                    try
-                    {
-                        File.WriteAllText(FileName, atmStrategyId);
-                    }
-                    catch (Exception e)
-                    {
-                        LocalPrint(e.Message);
-                    }
-
-                    var existingOrders = Account.Orders.Any(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted);
-
-					if (!existingOrders)
-					{
-                        // Enter a BUY/SELL order current price
-                        AtmStrategyCreate(
-                            action,
-                            status == DuckStatus.OrderExist ? OrderType.Market : OrderType.Limit, // Market price if fill immediately
-                            status == DuckStatus.OrderExist ? 0 : filledPrice,
-                            0,
-                            TimeInForce.Day,
-                            orderId,
-                            atmStragtegyName,
-                            atmStrategyId,
-                            (atmCallbackErrorCode, atmCallBackId) =>
+				if (!existingOrders)
+				{
+                    // Enter a BUY/SELL order current price
+                    AtmStrategyCreate(
+                        action,
+                        status == DuckStatus.OrderExist ? OrderType.Market : OrderType.Limit, // Market price if fill immediately
+                        status == DuckStatus.OrderExist ? 0 : filledPrice,
+                        0,
+                        TimeInForce.Day,
+                        orderId,
+                        atmStragtegyName,
+                        atmStrategyId,
+                        (atmCallbackErrorCode, atmCallBackId) =>
+                        {
+                            if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
                             {
-                                if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
-                                {
-                                    LocalPrint($"Enter {action} - New StrategyID: {atmStrategyId} - New status: {DuckStatus}");
-                                }
-                            });
-
-						/*
-						if (status == DuckStatus.OrderExist)
-						{
-                            Thread.Sleep(1000);
-                        }
-						*/
-                    }
+                                LocalPrint($"Enter {action} - New StrategyID: {atmStrategyId} - New status: {DuckStatus}");
+                            }
+                        });
                 }
-                else
-                {
-                    /*
-                    if (action == OrderAction.Buy) 
-                    {
-                      EnterLong();
-                    }
-                    else if (action == OrderAction.Sell) 
-                    {
-                      EnterShort();
-                    }
-                    SetStopLoss(CalculationMode.Ticks, StopLossTicks);
-                    SetProfitTarget(CalculationMode.Ticks, StopGainTicks);
-                    */
-                }
+                                
             }
 		}
 
@@ -561,6 +541,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 	    //double currentOpenBar5m = -1;	
 	    double currentPrice5m = -1;	
 		double currentDEMA = -1;
+		double adx_5m = -1;
 
         private DateTime lastExecutionTime = DateTime.MinValue;
         private int executionCount = 0;
@@ -611,7 +592,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 				
 				        currentDEMA = DEMA(DEMA_Period).Value[0]; 
 						lastDEMA = DEMA(DEMA_Period).Value[1];
-                        //LocalPrint($"BarsInProgress = 1 (5M):New prices for 5m: upperBB5m: {upperBB5m:F2}, lowerBB5m: {lowerBB5m:F2}.");
+                        
+                        adx_5m = ADX(14)[0];
                     }
 
 					if (State != State.Realtime)
@@ -795,17 +777,24 @@ namespace NinjaTrader.NinjaScript.Strategies
 					LocalPrint($"Found cross BUY, but open1m {open1m:F2} < Math.Max({ema29:F2}, {ema51:F2})");
 					return DuckStatus.WaitingForGoodPrice; // Đợi khi nào có nến 1 phút vượt qua EMA29/51 thì set lệnh
 				}
-				else if (//open1m >= Math.Max(ema29, ema51) && 
-					currentPrice1m < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - currentPrice1m >= 10)
+				else if (currentPrice1m < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - currentPrice1m >= 10)
 				{
 					LocalPrint("Vào lệnh BUY theo giá MARKET");
 					return DuckStatus.OrderExist;
 				}
-				else if (//open1m > Math.Max(ema29, ema51)
-					Math.Max(ema29, ema51) < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - Math.Max(ema29, ema51) < 10)
+				else 
 				{
-					LocalPrint("Chờ fill lệnh BUY");
-					return DuckStatus.FillOrderPending;
+					// Điều kiện có sẵn: open1m > Math.Max(ema29, ema51) 
+					if (adx_5m > 25 && Math.Max(ema29, ema51) < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - Math.Max(ema29, ema51) < 10)
+					{
+						LocalPrint("Chờ fill lệnh BUY");
+						return DuckStatus.FillOrderPending;
+					}
+					else
+					{
+                        LocalPrint("Vào lệnh BUY theo giá MARKET");
+                        return DuckStatus.OrderExist;
+                    }
 				}				
       		}
 			else if (action == OrderAction.Sell) 
@@ -828,13 +817,19 @@ namespace NinjaTrader.NinjaScript.Strategies
 					LocalPrint("Vào lệnh SELL theo giá MARKET");
 					return DuckStatus.OrderExist;
 				}
-				else if (
-					Math.Min(ema29, ema51) > Math.Max(ema89, ema120) 
-					&& Math.Max(ema89, ema120) - Math.Min(ema29, ema51) < 10)// foundCross = true AND open1m < Math.Min(ema29, ema51) AND Math.Min(ema29, ema51) - open1m  > WarranteeFee
-				{ // --> Mở nến đã đi quá xa đường EMA29/51 --> Đợi back test về EMA29/51
-					LocalPrint("Chờ fill lệnh SELL");
-					return DuckStatus.FillOrderPending;
-				}				
+				else
+				{
+					if (adx_5m > 25 &&  Math.Min(ema29, ema51) > Math.Max(ema89, ema120) && Math.Max(ema89, ema120) - Math.Min(ema29, ema51) < 10)
+					{
+                        LocalPrint("Chờ fill lệnh SELL");
+                        return DuckStatus.FillOrderPending;
+                    }
+                    else
+                    {
+                        LocalPrint("Vào lệnh SELL theo giá MARKET");
+                        return DuckStatus.OrderExist;
+                    }
+                }				
 			}
 			
       		return DuckStatus.Idle;;
@@ -871,11 +866,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint("Vào lệnh BUY theo giá MARKET");
                     return DuckStatus.OrderExist;
                 }
-                else if (//open1m > Math.Max(ema29, ema51)
-                    Math.Max(ema29, ema51) < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - Math.Max(ema29, ema51) < 10)
+                else 
                 {
-                    LocalPrint("Chờ fill lệnh BUY");
-                    return DuckStatus.FillOrderPending;
+					if (adx_5m > 25 && Math.Max(ema29, ema51) < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - Math.Max(ema29, ema51) < 10)
+					{
+						LocalPrint("Chờ fill lệnh BUY");
+						return DuckStatus.FillOrderPending;
+					}
+					else 
+					{
+                        LocalPrint("Vào lệnh BUY theo giá MARKET");
+                        return DuckStatus.OrderExist;
+					}                        
                 }
             }
 			else if (currentAction == OrderAction.Sell)
@@ -895,12 +897,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint("Vào lệnh SELL theo giá MARKET");
                     return DuckStatus.OrderExist;
                 }
-                else if (
-                    Math.Min(ema29, ema51) > Math.Max(ema89, ema120)
-                    && Math.Max(ema89, ema120) - Math.Min(ema29, ema51) < 10)// foundCross = true AND open1m < Math.Min(ema29, ema51) AND Math.Min(ema29, ema51) - open1m  > WarranteeFee
-                { // --> Mở nến đã đi quá xa đường EMA29/51 --> Đợi back test về EMA29/51
-                    LocalPrint("Chờ fill lệnh SELL");
-                    return DuckStatus.FillOrderPending;
+                else 
+                {
+                    if (adx_5m > 25 &&  Math.Min(ema29, ema51) > Math.Max(ema89, ema120)&& Math.Max(ema89, ema120) - Math.Min(ema29, ema51) < 10)
+					{
+                        LocalPrint("Chờ fill lệnh SELL");
+                        return DuckStatus.FillOrderPending;
+                    }
+                    else
+                    {
+                        LocalPrint("Vào lệnh SELL theo giá MARKET");
+                        return DuckStatus.OrderExist;
+                    }
                 }
             }
 

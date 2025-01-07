@@ -29,25 +29,10 @@ namespace NinjaTrader.Custom.Strategies
     {
         Idle,
         WaitingForGoodPrice, // Có tín hiệu B-line nhưng giá vẫn chưa pass EMA29/51 
-        FillOrderPending,
+        FillOrderPendingDuck,
+        FillOrderPendingTrending,
         OrderExist
     }
 
-    public enum TrendingStatus
-    {
-        UpTrend, 
-        DownTrend, 
-        Sizeway, 
-        Unknown
-    }
-
-    public enum TrendingAction
-    {
-        WaitForBackTest,
-        OrderBuyPending, 
-        OrderBuyExists,
-        OrderSellPending,
-        OrderSellExists,
-        NoAction
-    }
+    
 }

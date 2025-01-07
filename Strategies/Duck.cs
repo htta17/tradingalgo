@@ -36,7 +36,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 	    private string orderId = string.Empty;
 	    
 	    private double lastDEMA = -1;
-		
 		private DuckStatus DuckStatus = DuckStatus.Idle;		
 		
 		/// <summary>
@@ -91,7 +90,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Default ATM Strategy", Description = "Default ATM Strategy", Order = 4, GroupName = "Importants Configurations")]
         [TypeConverter(typeof(ATMStrategyConverter))]
-        public string FullATMName { get; set; } = "Default_MNQ";
+        public string FullATMName { get; set; } = "Half_MNQ";
 
         /// <summary>
         /// ATM name for live trade.
@@ -108,15 +107,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 		private OrderAction currentAction = OrderAction.Buy;
 		private double filledPrice = -1;
 		
-		private readonly string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"atmStrategyDuck.txt"); 
-		
+		protected string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"atmStrategyDuck.txt"); 		
 
     	protected override void OnStateChange() 
 		{
 	      	if (State == State.SetDefaults) 
 			{
 		        Description = @"Play on 5 minutes frame.";
-		        Name = "Duck";
+		        Name = this.Name;
 		        Calculate = Calculate.OnPriceChange;
 		        EntriesPerDirection = 1;
 		        EntryHandling = EntryHandling.AllEntries;
@@ -139,15 +137,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 		        DefaultQuantity = 5;
 		
 		        // Set Properties		        
-		        FullATMName = "Default_MNQ";		        
-		
-		        MaximumDayLoss = 400;
+		        FullATMName = "Half_MNQ";
+                HalfATMName = "Half_MNQ";
+
+                MaximumDayLoss = 400;
 		        StopGainProfit = 600;
 				CheckTradingHour = true;
-				//ShiftType = ShiftType.Moning_0700_1500;
+				
 				NewsTimeInput = "0830";
-
-				//TicksForWarantee = 12;
 		    }
 			else if (State == State.Configure) 
 			{
@@ -225,12 +222,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 				Print(e.Message);
 			}			
 		}
+
+		protected virtual string LogInformationTitle { get;  set; } = "[DUCK]";
 	
 		private void LocalPrint(object val)
 		{
 			if (val.GetType() == typeof(string))
 			{
-				Print($"{DateTime.Now} - [DUCK]-{Time[0]}:: " + val);
+				Print($"{DateTime.Now} - {LogInformationTitle}-{Time[0]}:: " + val);
 			}
 			else 
 			{
@@ -288,9 +287,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
                 bool isRealTime = state == State.Realtime;
 
-                var middleOfEMA = (ema29 + ema51) / 2;
+                //var entryPrice = (ema29 + ema51) / 2; // Lấy theo EMA29/51
+                var entryPrice = action == OrderAction.Buy ? lowerBB5m : upperBB5m;
 
-                filledPrice = Math.Round(middleOfEMA * 4.0) / 4.0;
+                filledPrice = Math.Round(entryPrice * 4.0) / 4.0;
 
                 currentAction = action;
 
@@ -339,12 +339,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 LocalPrint($"Enter {action} - New StrategyID: {atmStrategyId} - New status: {DuckStatus}");
                             }
                         });
-                }
-                                
+                }                                
             }
-		}
-
-        
+		}        
 
         bool NearNewsTime(int time, int newsTime)
 		{
@@ -520,11 +517,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 		double ema29 = -1; 
 		double ema51 = -1;        
         double ema120 = -1;
-        double ema89 = -1;
-        double high1m = -1; 
-		double low1m = -1;
+        double ema89 = -1;       
 		double open1m = -1;
-		double currentPrice1m = -1; 
 		
 		double upperBB5m = -1;	
 	    double lowerBB5m = -1;	
@@ -534,23 +528,77 @@ namespace NinjaTrader.NinjaScript.Strategies
 	    double lowerBB5m_Std2 = -1;
 		
 		double lastUpperBB5m = -1; 
-		double lastLowerBB5m = -1; 		
+		double lastLowerBB5m = -1; 				
 		
-		//double lastOpenBar5m = -1;	
-	    //double lastCloseBar5m = -1;	
-	    //double currentOpenBar5m = -1;	
-	    double currentPrice5m = -1;	
+	    double currentPrice = -1;	
 		double currentDEMA = -1;
 		double adx_5m = -1;
+		double plusDI_5m = -1; 
+		double minusDI_5m = -1;
 
         private DateTime lastExecutionTime = DateTime.MinValue;
         private int executionCount = 0;
-		private int NextBarProgress = 1; 
+
+		double yesterdayHigh = -1; 
+		double yesterdayLow = -1;
+        double yesterdayMiddle = -1;
+
+        private double preMarketHigh = double.MinValue;
+        private double preMarketLow = double.MaxValue;
+		private double preMarketMiddle = 0;
+
+        private double asianHigh = double.MinValue;
+        private double asianLow = double.MaxValue;
+        private double asianMiddle = double.MaxValue;
         protected override void OnBarUpdate() 
-		{
+		{			
             if (CurrentBar < DEMA_Period)
             {
                 return;
+            }
+
+            if (Bars.IsFirstBarOfSession)
+            {
+                yesterdayHigh = PriorDayOHLC().PriorHigh[0];
+                yesterdayLow = PriorDayOHLC().PriorLow[0];
+                yesterdayMiddle = (yesterdayHigh + yesterdayLow) / 2;
+                Draw.HorizontalLine(this, "YesterdayHigh", yesterdayHigh, Brushes.Blue, DashStyleHelper.Solid,1);
+                Draw.HorizontalLine(this, "YesterdayLow", yesterdayLow, Brushes.Blue, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "YesterdayMiddle", yesterdayMiddle, Brushes.Blue, DashStyleHelper.Dash, 1);
+
+                preMarketHigh = double.MinValue;
+                preMarketLow = double.MaxValue;
+                asianHigh = double.MinValue;
+                asianLow = double.MaxValue;
+            }
+
+            // Define pre-market time range (12:00 AM to 8:30 AM CST)
+            if (ToTime(Time[0]) >= 0 && ToTime(Time[0]) < 83000)
+            {
+                preMarketHigh = Math.Max(preMarketHigh, High[0]);
+                preMarketLow = Math.Min(preMarketLow, Low[0]);
+				preMarketMiddle = (preMarketLow + preMarketHigh) / 2;
+            }
+            // Define Asian session time range (6:00 PM to 3:00 AM CST)
+            if (ToTime(Time[0]) >= 180000 || ToTime(Time[0]) < 30000)
+            {
+                asianHigh = Math.Max(asianHigh, High[0]);
+                asianLow = Math.Min(asianLow, Low[0]);
+                asianMiddle = (asianHigh + asianLow) / 2;
+            }
+
+            // Draw lines at the open of the regular trading session
+            if (ToTime(Time[0]) == 83000)
+            {
+                Draw.HorizontalLine(this, "PreMarketHigh", preMarketHigh, Brushes.Orange, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "PreMarketLow", preMarketLow, Brushes.Orange, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "PreMarketMiddle", preMarketMiddle, Brushes.Orange, DashStyleHelper.Dash, 1);
+            }
+            else if (ToTime(Time[0]) == 30000)
+            {
+                Draw.HorizontalLine(this, "AsianHigh", asianHigh, Brushes.Green, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "AsianLow", asianLow, Brushes.Green, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "AsianMiddle", asianMiddle, Brushes.Green, DashStyleHelper.Dash, 1);
             }
 
             lock (lockOjbject)
@@ -562,11 +610,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 						ema29 = EMA(29).Value[0]; 
 						ema51 = EMA(51).Value[0];
 						ema120 = EMA(120).Value[0];
-                        ema89 = EMA(89).Value[0];
-                        low1m = Low[0];
-						high1m = High[0];
+                        ema89 = EMA(89).Value[0];                        
 						open1m = Open[0];
-						currentPrice1m = Close[0];
+						currentPrice = Close[0];
                         //LocalPrint($"BarsInProgress = 2 (1M): New prices for 1m: ema29: {ema29:F2}, ema51: {ema51:F2}.");
                     }
 			      	else if (BarsInProgress == 1) // 5 minues
@@ -582,18 +628,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 						lowerBB5m_Std2 = bollinger_Std2.Lower[0];
 						
 						lastUpperBB5m = bollinger.Upper[1];
-				        lastLowerBB5m = bollinger.Lower[1];
-				
-				        //Open and Close price of 5 minute frame
-				        //lastOpenBar5m = Open[1];
-				        //lastCloseBar5m = Close[1];
-				        //currentOpenBar5m = Open[0];
-				        currentPrice5m = Close[0]; // = currentClose
+				        lastLowerBB5m = bollinger.Lower[1];			
+				    
+				        currentPrice = Close[0]; // = currentClose
 				
 				        currentDEMA = DEMA(DEMA_Period).Value[0]; 
 						lastDEMA = DEMA(DEMA_Period).Value[1];
                         
                         adx_5m = ADX(14)[0];
+                        plusDI_5m = DM(14).DiPlus[0];
+                        minusDI_5m = DM(14).DiMinus[0];
                     }
 
 					if (State != State.Realtime)
@@ -641,13 +685,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 							
 							LocalPrint($"I'm waiting - {DuckStatus} - Check to enter LONG: {enterLong}, check to ebter SHORT: {enterShort}");							
 							
-							if (enterLong == DuckStatus.FillOrderPending || enterLong == DuckStatus.OrderExist)  // Vào lệnh LONG market hoặc set lệnh LONG LIMIT
+							if (enterLong == DuckStatus.FillOrderPendingDuck || enterLong == DuckStatus.OrderExist)  // Vào lệnh LONG market hoặc set lệnh LONG LIMIT
 							{
 								DuckStatus = enterLong;
 								EnterOrder(OrderAction.Buy, State, enterLong);
 								Print("Enter Long");
 							}
-							else if (enterShort == DuckStatus.FillOrderPending || enterShort == DuckStatus.OrderExist)
+							else if (enterShort == DuckStatus.FillOrderPendingDuck || enterShort == DuckStatus.OrderExist)
 							{
 								DuckStatus = enterShort;
 								EnterOrder(OrderAction.Sell, State, enterShort);
@@ -679,11 +723,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 						}
 						else 
 						{
-							LocalPrint($"{DuckStatus} - Current price: {currentPrice5m}");
-							MoveStopGainOrLoss(currentPrice5m);						
+							LocalPrint($"{DuckStatus} - Current price: {currentPrice}");
+							MoveStopGainOrLoss(currentPrice);						
 						}
 					}
-					else if (DuckStatus == DuckStatus.FillOrderPending)
+					else if (DuckStatus == DuckStatus.FillOrderPendingDuck)
 					{
 						// Move LIMIT order nếu giá di chuyển quá nhiều
 						var activeOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted);
@@ -725,7 +769,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 DuckStatus = DuckStatus.OrderExist;
                                 LocalPrint($"Chuyển sang trạng thái ORDER_EXISTS từ WaitingForGoodPrice");
                             }
-							else if (!existingOrders && (newStatus == DuckStatus.OrderExist || newStatus == DuckStatus.FillOrderPending))
+							else if (!existingOrders && (newStatus == DuckStatus.OrderExist || newStatus == DuckStatus.FillOrderPendingDuck))
 							{
 								EnterOrder(currentAction, State, newStatus);
 							}
@@ -740,12 +784,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 				}
 			}
         }
+
+		/*
+		 * Hàm này sử dụng để trả về Idle hoặc trade theo Trending, khi không có điều kiện về đánh ngược
+		 */
+		protected virtual DuckStatus ConditionIfCannotFindCross(OrderAction orderAction)
+		{
+			return DuckStatus.Idle;
+		}
 		
 		/**
 		* Hàm này chỉ làm việc khi DuckStatus là Idle
 		*/ 
-		
-
         private DuckStatus ShouldTrade(OrderAction action) 
 		{			
 			/*
@@ -764,75 +814,98 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			if (action == OrderAction.Buy)
 			{
-				var foundCross = lastDEMA < lastLowerBB5m && // DEMA ở dưới BB 
+                //var bigCloudVal = Math.Min(ema89, ema120);
+                var bigCloudVal = ema120;
+
+                var foundCross = lastDEMA < lastLowerBB5m && // DEMA ở dưới BB 
 					((currentDEMA < lowerBB5m && lowerBB5m - currentDEMA <= WarranteeFee) || currentDEMA >= lowerBB5m);  // DEMA ở dưới BB nhưng cách BB <=3 pts, hoặc DEMA đã >= BB - tức là đã đi vào trong
 
 				if (!foundCross)
 				{
 					LocalPrint($"NOT found cross BUY, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastLowerBB5m:F2}, currentDEMA: {currentDEMA:F2}, lowerBB5m:{lowerBB5m:F2}, WarranteeFee: {WarranteeFee:F2}");
-					return DuckStatus.Idle; // Tiếp tục trạng thái hiện tại
-				}
+					return ConditionIfCannotFindCross(action); // Tiếp tục trạng thái hiện tại
+				}				
 				else if (open1m < Math.Max(ema29, ema51)) // Found cross, nhưng Open của nến 1 phút vẫn ở dưới EMA29/51)
 				{
 					LocalPrint($"Found cross BUY, but open1m {open1m:F2} < Math.Max({ema29:F2}, {ema51:F2})");
 					return DuckStatus.WaitingForGoodPrice; // Đợi khi nào có nến 1 phút vượt qua EMA29/51 thì set lệnh
 				}
-				else if (currentPrice1m < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - currentPrice1m >= 10)
+                else if (adx_5m < 22)
+                {
+                    LocalPrint("Vào lệnh BUY theo giá MARKET do có ADX < 22 (Sizeway)");
+                    return DuckStatus.OrderExist;
+                }
+                else if (currentPrice < bigCloudVal && bigCloudVal - currentPrice >= 10)
 				{
-					LocalPrint("Vào lệnh BUY theo giá MARKET");
+					LocalPrint("Vào lệnh BUY theo giá MARKET do cách xa EMA120");
 					return DuckStatus.OrderExist;
 				}
+                /*
+				* Điều kiện có sẵn: open1m > Math.Max(ema29, ema51). 
+				* adx_5m > 25: Đang có xu hướng MẠNH 
+				* minusDI > plusID: Xu hướng GIẢM
+				* Như vậy, (adx_5m > 25 && minusDI > plusID) nghĩa là xu hướng vừa GIẢM mạnh, do đó mua vào là ngược trend, RISKY
+				* Math.Max(ema29, ema51) < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - Math.Max(ema29, ema51) < 10 là 
+				*/
+                else if (adx_5m > 25 && minusDI_5m > plusDI_5m &&
+                        Math.Max(ema29, ema51) < bigCloudVal && bigCloudVal - Math.Max(ema29, ema51) < 10)
+                {
+                    LocalPrint("Chờ fill lệnh BUY");
+                    return DuckStatus.FillOrderPendingDuck;
+                }
 				else 
-				{
-					// Điều kiện có sẵn: open1m > Math.Max(ema29, ema51) 
-					if (adx_5m > 25 && Math.Max(ema29, ema51) < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - Math.Max(ema29, ema51) < 10)
-					{
-						LocalPrint("Chờ fill lệnh BUY");
-						return DuckStatus.FillOrderPending;
-					}
-					else
-					{
-                        LocalPrint("Vào lệnh BUY theo giá MARKET");
-                        return DuckStatus.OrderExist;
-                    }
-				}				
+                {
+                    LocalPrint($"Found cross BUY, but too RISKY");
+                    /*
+					LocalPrint("Vào lệnh BUY theo giá MARKET");
+					return DuckStatus.OrderExist;
+					*/
+                }				
       		}
 			else if (action == OrderAction.Sell) 
 			{
-				var foundCross = lastDEMA > lastUpperBB5m && // DEMA ở trên BB 
+                //var bigCloudVal = Math.Max(ema89, ema120);
+                var bigCloudVal = ema120;
+
+                var foundCross = lastDEMA > lastUpperBB5m && // DEMA ở trên BB 
 					((currentDEMA > upperBB5m && currentDEMA - upperBB5m <= WarranteeFee) || currentDEMA <= upperBB5m); // DEMA đã vào trong BB 					
 
 				if (!foundCross)
 				{
 					LocalPrint($"NOT found cross SELL, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastUpperBB5m:F2}, currentDEMA: {currentDEMA:F2}, upperBB5m:{upperBB5m:F2}, WarranteeFee: {WarranteeFee:F2}");
-					return DuckStatus.Idle; // Tiếp tục trạng thái hiện tại
-				}
+                    return ConditionIfCannotFindCross(action);
+                }
 				else if (open1m > Math.Min(ema29, ema51)) // foundCross = true, nhưng open của nến 1 phút vẫn nằm trên EMA29/51 (chưa vượt qua được)
 				{
 					LocalPrint($"Found cross SELL, but open1m {open1m:F2} > Math.Min({ema29:F2}, {ema51:F2})");
 					return DuckStatus.WaitingForGoodPrice;
 				}
-				else if (currentPrice1m > Math.Max(ema89, ema120) && currentPrice1m - Math.Max(ema89, ema120) >= 10)
-				{// --> Cho phép vào lệnh
-					LocalPrint("Vào lệnh SELL theo giá MARKET");
+                else if (adx_5m < 22)
+                {
+                    LocalPrint("Vào lệnh SELL theo giá MARKET do có ADX < 22 (Sizeway)");
+                    return DuckStatus.OrderExist;
+                }
+                else if (currentPrice > bigCloudVal && currentPrice - bigCloudVal >= 10)
+				{
+					LocalPrint("Vào lệnh SELL theo giá MARKET, price xa so với EMA 120");
 					return DuckStatus.OrderExist;
 				}
-				else
-				{
-					if (adx_5m > 25 &&  Math.Min(ema29, ema51) > Math.Max(ema89, ema120) && Math.Max(ema89, ema120) - Math.Min(ema29, ema51) < 10)
-					{
-                        LocalPrint("Chờ fill lệnh SELL");
-                        return DuckStatus.FillOrderPending;
-                    }
-                    else
-                    {
-                        LocalPrint("Vào lệnh SELL theo giá MARKET");
-                        return DuckStatus.OrderExist;
-                    }
-                }				
-			}
+				else if (adx_5m > 25 && minusDI_5m < plusDI_5m && Math.Min(ema29, ema51) > bigCloudVal && bigCloudVal - Math.Min(ema29, ema51) < 10)
+                {
+                    LocalPrint("Chờ fill lệnh SELL");
+                    return DuckStatus.FillOrderPendingDuck;
+                }
+                else
+                {
+                    LocalPrint($"Found cross SELL, but too RISKY");
+                    /*
+                    LocalPrint("Vào lệnh SELL theo giá MARKET");
+                    return DuckStatus.OrderExist;
+					*/
+                }
+            }
 			
-      		return DuckStatus.Idle;;
+      		return DuckStatus.Idle;
     	}
 
 
@@ -861,7 +934,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					return DuckStatus.WaitingForGoodPrice; // Tiếp tục chờ đợi
 				}
                 else if (//open1m >= Math.Max(ema29, ema51) && 
-                    currentPrice1m < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - currentPrice1m >= 10)
+                    currentPrice < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - currentPrice >= 10)
                 {
                     LocalPrint("Vào lệnh BUY theo giá MARKET");
                     return DuckStatus.OrderExist;
@@ -871,7 +944,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					if (adx_5m > 25 && Math.Max(ema29, ema51) < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - Math.Max(ema29, ema51) < 10)
 					{
 						LocalPrint("Chờ fill lệnh BUY");
-						return DuckStatus.FillOrderPending;
+						return DuckStatus.FillOrderPendingDuck;
 					}
 					else 
 					{
@@ -892,7 +965,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Found cross SELL, but open1m {open1m:F2} > Math.Min({ema29:F2}, {ema51:F2})");
                     return DuckStatus.WaitingForGoodPrice;
                 }
-                else if (currentPrice1m > Math.Max(ema89, ema120) && currentPrice1m - Math.Max(ema89, ema120) >= 10)
+                else if (currentPrice > Math.Max(ema89, ema120) && currentPrice - Math.Max(ema89, ema120) >= 10)
                 {// --> Cho phép vào lệnh
                     LocalPrint("Vào lệnh SELL theo giá MARKET");
                     return DuckStatus.OrderExist;
@@ -902,7 +975,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (adx_5m > 25 &&  Math.Min(ema29, ema51) > Math.Max(ema89, ema120)&& Math.Max(ema89, ema120) - Math.Min(ema29, ema51) < 10)
 					{
                         LocalPrint("Chờ fill lệnh SELL");
-                        return DuckStatus.FillOrderPending;
+                        return DuckStatus.FillOrderPendingDuck;
                     }
                     else
                     {
@@ -917,7 +990,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		
 		private void UpdatePendingOrder(Order pendingOrder)
 		{
-			if (DuckStatus != DuckStatus.FillOrderPending)
+			if (DuckStatus != DuckStatus.FillOrderPendingDuck)
 			{
 				return;
 			}
@@ -940,10 +1013,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 			
 			var cancelByPrice = 
-				(currentAction == OrderAction.Buy && currentPrice5m > upperBB5m_Std2) || 
-				(currentAction == OrderAction.Sell && currentPrice5m < lowerBB5m_Std2);
+				(currentAction == OrderAction.Buy && currentPrice > upperBB5m_Std2) || 
+				(currentAction == OrderAction.Sell && currentPrice < lowerBB5m_Std2);
 
-			LocalPrint($"currentAction: {currentAction}, currentPriceBar5m: {currentPrice5m:F2}, upperBB5m_Std2: {upperBB5m_Std2:F2}, lowerBB5m_Std2: {lowerBB5m_Std2:F2}");			
+			LocalPrint($"currentAction: {currentAction}, currentPriceBar5m: {currentPrice:F2}, upperBB5m_Std2: {upperBB5m_Std2:F2}, lowerBB5m_Std2: {lowerBB5m_Std2:F2}");			
 			
 			
 			if (cancelByPrice || (Time[0] - pendingOrder.Time).TotalMinutes > 60) // Cancel lệnh vì market đóng cửa, vì giá đi quá cao hoặc vì
@@ -958,8 +1031,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}			
 			else 
 			{
-				var middleOfEMA = (ema29 + ema51) / 2.0; 
-				var newPrice = Math.Round(middleOfEMA * 4) / 4.0;
+                //var entryPrice = (ema29 + ema51) / 2.0; 
+                var entryPrice = currentAction == OrderAction.Buy ? lowerBB5m : upperBB5m;
+				var newPrice = Math.Round(entryPrice * 4) / 4.0;
 
 				var shouldMoveBuy = currentAction == OrderAction.Buy 
 					&& newPrice > pendingOrder.LimitPrice
@@ -984,38 +1058,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 		}
 
         protected override void OnPositionUpdate(Position position, double averagePrice, int quantity, MarketPosition marketPosition)
-        {
-			//base.OnPositionUpdate(position, averagePrice, quantity, marketPosition);
+        {			
 			LocalPrint($"OnPositionUpdate: {marketPosition}, {quantity}");
         }
 
         protected override void OnExecutionUpdate(Execution execution, string executionId, double price, int quantity, MarketPosition marketPosition, string orderId, DateTime time)
-        {
-            //base.OnExecutionUpdate(execution, executionId, price, quantity, marketPosition, orderId, time);
+        {            
             LocalPrint($"OnExecutionUpdate: {price}, {orderId} ,IsEntryStrategy: {execution.IsEntryStrategy}, IsEntry:{execution.IsEntry}");
         }
 
-        /*
-		protected override void OnOrderUpdate(
-			Order order, 
-			double limitPrice, 
-			double stopPrice, 
-			int quantity, 
-			int filled, 
-			double averageFillPrice, 
-			OrderState orderState, 
-			DateTime time, 
-			ErrorCode error, 
-			string comment) 
-		{
-	   		LocalPrint($"OnOrderUpdate:: Id: {order.Id}, limitPrice: {limitPrice:F2}, stop: {stopPrice:F2}");
-			
-			CalculatePnL();
-	    }
-		*/
-
-        /*
-		* End of this class
-		*/
     }
 }

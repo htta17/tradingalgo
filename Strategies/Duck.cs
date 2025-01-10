@@ -288,7 +288,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 bool isRealTime = state == State.Realtime;
 
                 //var entryPrice = (ema29 + ema51) / 2; // Lấy theo EMA29/51
-                var entryPrice = action == OrderAction.Buy ? lowerBB5m : upperBB5m;
+                var entryPrice = action == OrderAction.Buy ? lowerBB_5m : upperBB_5m;
 
                 filledPrice = Math.Round(entryPrice * 4.0) / 4.0;
 
@@ -509,32 +509,31 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				LocalPrint(e.Message);
 			}
-		}
-	
-	    private int count = 0;	
+		}	
+	    
 		private readonly object lockOjbject = new Object();	
 		
-		double ema29 = -1; 
-		double ema51 = -1;        
-        double ema120 = -1;
-        double ema89 = -1;       
-		double open1m = -1;
+		protected double ema29_1m = -1;
+        protected double ema51_1m = -1;
+        protected double ema120_1m = -1;
+        protected double ema89_1m = -1;
+        protected double open_1m = -1;
+
+        protected double upperBB_5m = -1;
+        protected double lowerBB_5m = -1;
+        protected double middleBB_5m = -1;
+
+        protected double upperBB5m_Std2 = -1;
+        protected double lowerBB5m_Std2 = -1;
+
+        protected double lastUpperBB5m = -1;
+        protected double lastLowerBB5m = -1; 				
 		
-		double upperBB5m = -1;	
-	    double lowerBB5m = -1;	
-	    double middleBB5m = -1;	
-		
-		double upperBB5m_Std2 = -1;
-	    double lowerBB5m_Std2 = -1;
-		
-		double lastUpperBB5m = -1; 
-		double lastLowerBB5m = -1; 				
-		
-	    double currentPrice = -1;	
-		double currentDEMA = -1;
-		double adx_5m = -1;
-		double plusDI_5m = -1; 
-		double minusDI_5m = -1;
+	    protected double currentPrice = -1;	
+		protected double currentDEMA = -1;
+		protected double adx_5m = -1;
+		protected double plusDI_5m = -1; 
+		protected double minusDI_5m = -1;
 
         private DateTime lastExecutionTime = DateTime.MinValue;
         private int executionCount = 0;
@@ -607,11 +606,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{                    
                     if (BarsInProgress == 2) // 1 minutes
 			      	{						
-						ema29 = EMA(29).Value[0]; 
-						ema51 = EMA(51).Value[0];
-						ema120 = EMA(120).Value[0];
-                        ema89 = EMA(89).Value[0];                        
-						open1m = Open[0];
+						ema29_1m = EMA(29).Value[0]; 
+						ema51_1m = EMA(51).Value[0];
+						ema120_1m = EMA(120).Value[0];
+                        ema89_1m = EMA(89).Value[0];                        
+						open_1m = Open[0];
 						currentPrice = Close[0];
                         //LocalPrint($"BarsInProgress = 2 (1M): New prices for 1m: ema29: {ema29:F2}, ema51: {ema51:F2}.");
                     }
@@ -620,9 +619,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 				        var bollinger = Bollinger(1, 20);
 						var bollinger_Std2 = Bollinger(2, 20);
 				        
-						upperBB5m = bollinger.Upper[0];
-				        lowerBB5m = bollinger.Lower[0];
-				        middleBB5m = bollinger.Middle[0];
+						upperBB_5m = bollinger.Upper[0];
+				        lowerBB_5m = bollinger.Lower[0];
+				        middleBB_5m = bollinger.Middle[0];
 						
 						upperBB5m_Std2 = bollinger_Std2.Upper[0];
 						lowerBB5m_Std2 = bollinger_Std2.Lower[0];
@@ -788,15 +787,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 		/*
 		 * Hàm này sử dụng để trả về Idle hoặc trade theo Trending, khi không có điều kiện về đánh ngược
 		 */
-		protected virtual DuckStatus ConditionIfCannotFindCross(OrderAction orderAction)
-		{
+		protected virtual DuckStatus ConditionIfCannotFindCross(OrderAction orderAction)			
+		{			
 			return DuckStatus.Idle;
 		}
 		
 		/**
 		* Hàm này chỉ làm việc khi DuckStatus là Idle
 		*/ 
-        private DuckStatus ShouldTrade(OrderAction action) 
+        protected virtual DuckStatus ShouldTrade(OrderAction action) 
 		{			
 			/*
 			* Điều kiện vào lệnh: 
@@ -809,25 +808,28 @@ namespace NinjaTrader.NinjaScript.Strategies
 				return DuckStatus;
 			}
 
-			var minDistance = Math.Min(Math.Abs(currentDEMA - lowerBB5m), Math.Abs(upperBB5m - currentDEMA));
-            WriteDistance($"Distance: {minDistance:F2}");
+			var minDistance = Math.Min(Math.Abs(currentDEMA - lowerBB_5m), Math.Abs(upperBB_5m - currentDEMA));            
 
 			if (action == OrderAction.Buy)
 			{
                 //var bigCloudVal = Math.Min(ema89, ema120);
-                var bigCloudVal = ema120;
+                var bigCloudVal = ema120_1m;
 
-                var foundCross = lastDEMA < lastLowerBB5m && // DEMA ở dưới BB 
-					((currentDEMA < lowerBB5m && lowerBB5m - currentDEMA <= WarranteeFee) || currentDEMA >= lowerBB5m);  // DEMA ở dưới BB nhưng cách BB <=3 pts, hoặc DEMA đã >= BB - tức là đã đi vào trong
+                var foundCross = lastDEMA < lastLowerBB5m && // last DEMA ở dưới BB 
+					((currentDEMA < lowerBB_5m && lowerBB_5m - currentDEMA <= WarranteeFee) || currentDEMA >= lowerBB_5m);  // DEMA ở dưới BB nhưng cách BB <=3 pts, hoặc DEMA đã >= BB - tức là đã đi vào trong
+
+                WriteDistance($"Distance: {minDistance:F2}, lastDEMA: {lastDEMA:F2}, , LowerBB: {lowerBB_5m:F2}, currentDEMA: {currentDEMA:F2} --> CROSS: {foundCross}");
+
+                LocalPrint($"Current DEMA: ");
 
 				if (!foundCross)
 				{
-					LocalPrint($"NOT found cross BUY, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastLowerBB5m:F2}, currentDEMA: {currentDEMA:F2}, lowerBB5m:{lowerBB5m:F2}, WarranteeFee: {WarranteeFee:F2}");
+					LocalPrint($"NOT found cross BUY, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastLowerBB5m:F2}, currentDEMA: {currentDEMA:F2}, lowerBB5m:{lowerBB_5m:F2}, WarranteeFee: {WarranteeFee:F2}");
 					return ConditionIfCannotFindCross(action); // Tiếp tục trạng thái hiện tại
 				}				
-				else if (open1m < Math.Max(ema29, ema51)) // Found cross, nhưng Open của nến 1 phút vẫn ở dưới EMA29/51)
+				else if (open_1m < Math.Max(ema29_1m, ema51_1m)) // Found cross, nhưng Open của nến 1 phút vẫn ở dưới EMA29/51)
 				{
-					LocalPrint($"Found cross BUY, but open1m {open1m:F2} < Math.Max({ema29:F2}, {ema51:F2})");
+					LocalPrint($"Found cross BUY, but open1m {open_1m:F2} < Math.Max({ema29_1m:F2}, {ema51_1m:F2})");
 					return DuckStatus.WaitingForGoodPrice; // Đợi khi nào có nến 1 phút vượt qua EMA29/51 thì set lệnh
 				}
                 else if (adx_5m < 22)
@@ -848,7 +850,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				* Math.Max(ema29, ema51) < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - Math.Max(ema29, ema51) < 10 là 
 				*/
                 else if (adx_5m > 25 && minusDI_5m > plusDI_5m &&
-                        Math.Max(ema29, ema51) < bigCloudVal && bigCloudVal - Math.Max(ema29, ema51) < 10)
+                        Math.Max(ema29_1m, ema51_1m) < bigCloudVal && bigCloudVal - Math.Max(ema29_1m, ema51_1m) < 10)
                 {
                     LocalPrint("Chờ fill lệnh BUY");
                     return DuckStatus.FillOrderPendingDuck;
@@ -865,19 +867,21 @@ namespace NinjaTrader.NinjaScript.Strategies
 			else if (action == OrderAction.Sell) 
 			{
                 //var bigCloudVal = Math.Max(ema89, ema120);
-                var bigCloudVal = ema120;
+                var bigCloudVal = ema120_1m;
 
                 var foundCross = lastDEMA > lastUpperBB5m && // DEMA ở trên BB 
-					((currentDEMA > upperBB5m && currentDEMA - upperBB5m <= WarranteeFee) || currentDEMA <= upperBB5m); // DEMA đã vào trong BB 					
+					((currentDEMA > upperBB_5m && currentDEMA - upperBB_5m <= WarranteeFee) || currentDEMA <= upperBB_5m); // DEMA đã vào trong BB 					
 
-				if (!foundCross)
+                WriteDistance($"Distance: {minDistance:F2}, lastDEMA: {lastDEMA:F2}, , UpperBB: {upperBB_5m:F2}, currentDEMA: {currentDEMA:F2} --> CROSS: {foundCross}");
+
+                if (!foundCross)
 				{
-					LocalPrint($"NOT found cross SELL, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastUpperBB5m:F2}, currentDEMA: {currentDEMA:F2}, upperBB5m:{upperBB5m:F2}, WarranteeFee: {WarranteeFee:F2}");
+					LocalPrint($"NOT found cross SELL, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastUpperBB5m:F2}, currentDEMA: {currentDEMA:F2}, upperBB5m:{upperBB_5m:F2}, WarranteeFee: {WarranteeFee:F2}");
                     return ConditionIfCannotFindCross(action);
                 }
-				else if (open1m > Math.Min(ema29, ema51)) // foundCross = true, nhưng open của nến 1 phút vẫn nằm trên EMA29/51 (chưa vượt qua được)
+				else if (open_1m > Math.Min(ema29_1m, ema51_1m)) // foundCross = true, nhưng open của nến 1 phút vẫn nằm trên EMA29/51 (chưa vượt qua được)
 				{
-					LocalPrint($"Found cross SELL, but open1m {open1m:F2} > Math.Min({ema29:F2}, {ema51:F2})");
+					LocalPrint($"Found cross SELL, but open1m {open_1m:F2} > Math.Min({ema29_1m:F2}, {ema51_1m:F2})");
 					return DuckStatus.WaitingForGoodPrice;
 				}
                 else if (adx_5m < 22)
@@ -890,7 +894,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					LocalPrint("Vào lệnh SELL theo giá MARKET, price xa so với EMA 120");
 					return DuckStatus.OrderExist;
 				}
-				else if (adx_5m > 25 && minusDI_5m < plusDI_5m && Math.Min(ema29, ema51) > bigCloudVal && bigCloudVal - Math.Min(ema29, ema51) < 10)
+				else if (adx_5m > 25 && minusDI_5m < plusDI_5m && Math.Min(ema29_1m, ema51_1m) > bigCloudVal && bigCloudVal - Math.Min(ema29_1m, ema51_1m) < 10)
                 {
                     LocalPrint("Chờ fill lệnh SELL");
                     return DuckStatus.FillOrderPendingDuck;
@@ -917,71 +921,121 @@ namespace NinjaTrader.NinjaScript.Strategies
 				return DuckStatus;
 			}
 
-            var minDistance = Math.Min(Math.Abs(currentDEMA - lowerBB5m), Math.Abs(upperBB5m - currentDEMA));
+            var minDistance = Math.Min(Math.Abs(currentDEMA - lowerBB_5m), Math.Abs(upperBB_5m - currentDEMA));
             WriteDistance($"Distance: {minDistance:F2}");
 
             if (currentAction == OrderAction.Buy)
 			{
-				// Kiểm tra lại cross 
-				if (currentDEMA < lowerBB5m && lowerBB5m - currentDEMA >= WarranteeFee + 8 * TickSize) // DEMA vẫn nằm dưới lowerBB5m và ngày càng cách xa lowerBB5m
+                var bigCloudVal = ema120_1m;
+
+                var foundCross = lastDEMA < lastLowerBB5m && // last DEMA ở dưới BB 
+                    ((currentDEMA < lowerBB_5m && lowerBB_5m - currentDEMA <= WarranteeFee) || currentDEMA >= lowerBB_5m);
+
+                // DEMA vẫn nằm dưới lowerBB5m và ngày càng cách xa lowerBB5m, (BEARISH)
+                var priceWentFarDown = lowerBB_5m - currentDEMA >= WarranteeFee + 8 * TickSize;
+
+				// Đã đi theo chiều BULLISH quá xa
+				var priceWentFarUp = 
+							// DEMA trước và hiện tại đều đã ở trên Bollinger Lower Band
+							lastDEMA > lastLowerBB5m && currentDEMA > lowerBB_5m
+							// Nhưng giá chưa chạm đến vùng EMA120 
+							&& currentPrice < bigCloudVal
+							// Và khoảng cách là <7 điểm, quá bé
+							&& bigCloudVal - currentPrice < 7 
+							// Và ADX quá lớn (Trend mạnh) 
+							&& adx_5m > 27;
+
+				if (priceWentFarDown || priceWentFarUp || !foundCross)
 				{
 					LocalPrint($"SETUP hết đẹp, quay trở về trạng thái IDLE");
-					return DuckStatus.Idle; // Hết setup đẹp, tiếp tục trở về Idle để đợi
+					return ConditionIfCannotFindCross(currentAction); // Hết setup đẹp, tiếp tục trở về Idle để đợi
 				}				
-				else if (open1m < Math.Max(ema29, ema51)) // Found cross, nhưng Open của nến 1 phút vẫn ở dưới EMA29/51)
+				else if (open_1m < Math.Max(ema29_1m, ema51_1m)) // Found cross, nhưng Open của nến 1 phút vẫn ở dưới EMA29/51)
 				{
-					LocalPrint($"Continue waiting, open1m {open1m:F2} < Math.Max({ema29:F2}, {ema51:F2})");
+					LocalPrint($"Continue waiting, open1m {open_1m:F2} < Math.Max({ema29_1m:F2}, {ema51_1m:F2})");
 					return DuckStatus.WaitingForGoodPrice; // Tiếp tục chờ đợi
 				}
-                else if (//open1m >= Math.Max(ema29, ema51) && 
-                    currentPrice < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - currentPrice >= 10)
+				else if (adx_5m < 22)
+				{
+					LocalPrint("Vào lệnh BUY theo giá MARKET do có ADX < 22 (Sizeway)");
+					return DuckStatus.OrderExist;
+				}
+				else if (//open1m >= Math.Max(ema29, ema51) && 
+					currentPrice < bigCloudVal && bigCloudVal - currentPrice >= 10)
+				{
+					LocalPrint("Vào lệnh BUY theo giá MARKET");
+					return DuckStatus.OrderExist;
+				}
+                else if (adx_5m > 25 && minusDI_5m > plusDI_5m &&
+                        Math.Max(ema29_1m, ema51_1m) < bigCloudVal && bigCloudVal - Math.Max(ema29_1m, ema51_1m) < 10)
                 {
-                    LocalPrint("Vào lệnh BUY theo giá MARKET");
-                    return DuckStatus.OrderExist;
+                    LocalPrint("Chờ fill lệnh BUY");
+                    return DuckStatus.FillOrderPendingDuck;
                 }
-                else 
+                else
                 {
-					if (adx_5m > 25 && Math.Max(ema29, ema51) < Math.Min(ema89, ema120) && Math.Min(ema89, ema120) - Math.Max(ema29, ema51) < 10)
-					{
-						LocalPrint("Chờ fill lệnh BUY");
-						return DuckStatus.FillOrderPendingDuck;
-					}
-					else 
-					{
-                        LocalPrint("Vào lệnh BUY theo giá MARKET");
-                        return DuckStatus.OrderExist;
-					}                        
+                    LocalPrint($"Found cross BUY, but too RISKY");
+                    /*
+					LocalPrint("Vào lệnh BUY theo giá MARKET");
+					return DuckStatus.OrderExist;
+					*/
                 }
             }
 			else if (currentAction == OrderAction.Sell)
 			{
-				if (currentDEMA > upperBB5m && currentDEMA - upperBB5m >= WarranteeFee + 8 * TickSize) // DEMA vẫn nằm trên upperBB5m và ngày càng cách xa upperBB5m
+                var bigCloudVal = ema120_1m;
+
+                var foundCross = lastDEMA > lastUpperBB5m && // DEMA ở trên BB 
+                    ((currentDEMA > upperBB_5m && currentDEMA - upperBB_5m <= WarranteeFee) || currentDEMA <= upperBB_5m); // DEMA đã vào trong BB
+
+                // DEMA vẫn nằm trên upperBB5m và ngày càng cách xa upperBB5m, (BULLISH)
+                var priceWentFarUp = currentDEMA - upperBB_5m >= WarranteeFee + 8 * TickSize;
+
+                // Đã đi theo chiều BEARISH quá xa
+                var priceWentFarDown =
+                            // DEMA trước và hiện tại đều đã ở dưới Bollinger Lower Band
+                            lastDEMA < lastUpperBB5m && currentDEMA > upperBB_5m
+                            // Nhưng giá chưa chạm đến vùng EMA120 
+                            && currentPrice > bigCloudVal
+                            // Và khoảng cách là <7 điểm, quá bé
+                            && currentPrice - bigCloudVal < 7
+                            // Và ADX quá lớn (Trend mạnh) 
+                            && adx_5m > 27;
+
+                if (priceWentFarDown || priceWentFarUp || !foundCross)
+
+                    if (currentDEMA > upperBB_5m && currentDEMA - upperBB_5m >= WarranteeFee + 8 * TickSize) // DEMA vẫn nằm trên upperBB5m và ngày càng cách xa upperBB5m
 				{
                     LocalPrint($"SETUP hết đẹp, quay trở về trạng thái IDLE");
-                    return DuckStatus.Idle; // Hết setup đẹp, tiếp tục trở về Idle để đợi
-				}
-                else if (open1m > Math.Min(ema29, ema51)) // foundCross = true, nhưng open của nến 1 phút vẫn nằm trên EMA29/51 (chưa vượt qua được)
+                    return ConditionIfCannotFindCross(currentAction); // Hết setup đẹp, tiếp tục trở về Idle để đợi
+                    }
+                else if (open_1m > Math.Min(ema29_1m, ema51_1m)) // foundCross = true, nhưng open của nến 1 phút vẫn nằm trên EMA29/51 (chưa vượt qua được)
                 {
-                    LocalPrint($"Found cross SELL, but open1m {open1m:F2} > Math.Min({ema29:F2}, {ema51:F2})");
+                    LocalPrint($"Found cross SELL, but open1m {open_1m:F2} > Math.Min({ema29_1m:F2}, {ema51_1m:F2})");
                     return DuckStatus.WaitingForGoodPrice;
                 }
-                else if (currentPrice > Math.Max(ema89, ema120) && currentPrice - Math.Max(ema89, ema120) >= 10)
+                else if (adx_5m < 22)
+                {
+                    LocalPrint("Vào lệnh SELL theo giá MARKET do có ADX < 22 (Sizeway)");
+                    return DuckStatus.OrderExist;
+                }
+                else if (currentPrice > Math.Max(ema89_1m, ema120_1m) && currentPrice - Math.Max(ema89_1m, ema120_1m) >= 10)
                 {// --> Cho phép vào lệnh
                     LocalPrint("Vào lệnh SELL theo giá MARKET");
                     return DuckStatus.OrderExist;
                 }
-                else 
+                else if (adx_5m > 25 && minusDI_5m < plusDI_5m && Math.Min(ema29_1m, ema51_1m) > bigCloudVal && bigCloudVal - Math.Min(ema29_1m, ema51_1m) < 10)
                 {
-                    if (adx_5m > 25 &&  Math.Min(ema29, ema51) > Math.Max(ema89, ema120)&& Math.Max(ema89, ema120) - Math.Min(ema29, ema51) < 10)
-					{
-                        LocalPrint("Chờ fill lệnh SELL");
-                        return DuckStatus.FillOrderPendingDuck;
-                    }
-                    else
-                    {
-                        LocalPrint("Vào lệnh SELL theo giá MARKET");
-                        return DuckStatus.OrderExist;
-                    }
+                    LocalPrint("Chờ fill lệnh SELL");
+                    return DuckStatus.FillOrderPendingDuck;
+                }
+                else
+                {
+                    LocalPrint($"Found cross SELL, but too RISKY");
+                    /*
+                    LocalPrint("Vào lệnh SELL theo giá MARKET");
+                    return DuckStatus.OrderExist;
+                    */
                 }
             }
 
@@ -1032,7 +1086,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			else 
 			{
                 //var entryPrice = (ema29 + ema51) / 2.0; 
-                var entryPrice = currentAction == OrderAction.Buy ? lowerBB5m : upperBB5m;
+                var entryPrice = currentAction == OrderAction.Buy ? lowerBB_5m : upperBB_5m;
 				var newPrice = Math.Round(entryPrice * 4) / 4.0;
 
 				var shouldMoveBuy = currentAction == OrderAction.Buy 

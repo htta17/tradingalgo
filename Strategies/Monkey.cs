@@ -44,5 +44,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             return base.ConditionIfCannotFindCross(orderAction);
         }
+
+        protected override DuckStatus ShouldTrade(OrderAction action)
+        {            
+            return base.ShouldTrade(action);
+        }
     }
 }

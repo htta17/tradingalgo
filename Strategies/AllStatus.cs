@@ -34,5 +34,21 @@ namespace NinjaTrader.Custom.Strategies
         OrderExist
     }
 
-    
+    /// <summary>
+    /// Lựa chọn để vào lệnh: Vào theo ATM cố định, vào theo bollinger bands
+    /// </summary>
+    public enum LossGainStrategy
+    {
+        /// <summary>
+        /// Dùng ATM để vào lệnh, stop loss/gain dựa theo ATM (Default_MNQ, Half_MNQ) 
+        /// </summary>
+        ChooseATM, 
+
+        /// <summary>
+        /// Tính toán khoảng cách của BB (std1 và std2) để quyết định sizing và stop loss/gain
+        /// </summary>
+        ChooseBollinger,
+    }
+
+
 }

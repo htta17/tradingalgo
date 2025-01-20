@@ -28,7 +28,7 @@ using NinjaTrader.Custom.Strategies;
 //This namespace holds Strategies in this folder and is required. Do not change it.
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class Monkey : Duck
+    public class Monkey : PriceChangeBasedClass
     {
         protected override string LogInformationTitle { get; set; } = "[MONKEY]";
         protected override void OnStateChange()

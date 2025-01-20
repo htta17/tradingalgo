@@ -21,9 +21,9 @@
     <NoWarn>1591</NoWarn>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
-	<PropertyGroup>
-		<DocumentsFolder>$(USERPROFILE)\Documents</DocumentsFolder>
-	</PropertyGroup>
+  <PropertyGroup>
+    <DocumentsFolder>$(USERPROFILE)\Documents</DocumentsFolder>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
     <DebugSymbols>true</DebugSymbols>
@@ -379,6 +379,8 @@
     <Compile Include="Strategies\AllStatus.cs" />
     <Compile Include="Strategies\Duck.cs" />
     <Compile Include="Strategies\Monkey.cs" />
+    <Compile Include="Strategies\BarClosedBasedClass.cs" />
+    <Compile Include="Strategies\PriceChangeBasedClass.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

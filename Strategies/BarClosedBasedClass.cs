@@ -47,15 +47,28 @@ namespace NinjaTrader.NinjaScript.Strategies
         
         protected double volume_5m = -1;
         #endregion 
-
-        protected Order CurrentOrder = null;
+        
         protected OrderAction? currentAction = null;
         protected ChickenStatus DoubleBBStatus = ChickenStatus.Idle;
         private ChickenStatus LastBBStatus_1m = ChickenStatus.Idle;
-        protected double filledPrice = -1;        
+        protected double filledPrice = -1;
+
+        #region Importants Configurations
 
         [NinjaScriptProperty]
-        [Display(Name = "Choose way to trade", Order = 3, GroupName = "Parameters")]
+        [Display(Name = "How to set stoploss/gain?", 
+            Order = 2, 
+            GroupName = "Importants Configurations")]
+        public LossGainStrategy WayToSetStop { get; set; } = LossGainStrategy.ChooseATM;
+
+
+        /// <summary>
+        /// Điểm vào lệnh (Theo EMA29/51 hay Bollinger band)
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Enter order price:",
+            Order = 3,
+            GroupName = "Importants Configurations")]
         public ChickenWayToTrade WayToTrade { get; set; } = ChickenWayToTrade.BollingerBand;
 
         /// <summary>
@@ -63,46 +76,73 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         [NinjaScriptProperty]
         [TypeConverter(typeof(ATMStrategyConverter))]
-        [Display(Name = "ATM Strategy", Order = 4, GroupName = "Importants Configurations")]
+        [Display(Name = "ATM Strategy",
+            Order = 4,
+            GroupName = "Importants Configurations")]
         public string FullATMName { get; set; } = "Default_MNQ";
 
         /// <summary>
         /// ATM name for live trade.
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Reduced size Strategy", Description = "Strategy sử dụng khi loss/gain more than a half", Order = 4, GroupName = "Importants Configurations")]
+        [Display(Name = "Reduced size Strategy",
+            Description = "Strategy sử dụng khi loss/gain more than a half of daily gain/loss",
+            Order = 5,
+            GroupName = "Importants Configurations")]
         [TypeConverter(typeof(ATMStrategyConverter))]
         public string HalfATMName { get; set; } = "Half_MNQ";
+        #endregion
 
+        #region Parameters
         /// <summary>
-        /// If loss is more than [MaximumDayLoss], won't trade for that day 
+        /// If loss is more than [MaximumDayLoss], stop trading for that day
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Maximum Day Loss ($)", Order = 5, GroupName = "Parameters")]
+        [Display(Name = "Maximum Day Loss ($)",
+            Order = 5,
+            GroupName = "Parameters")]
         public int MaximumDayLoss { get; set; } = 400;
 
         /// <summary>
-        /// If gain is more than [StopWhenGain], won't trade for that day 
+        /// If gain is more than [StopWhenGain], stop trading for that day 
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Stop Trading if Profit is ($)", Order = 6, GroupName = "Parameters")]
+        [Display(Name = "Stop Trading if Profit is ($)",
+            Order = 6,
+            GroupName = "Parameters")]
         public int StopGainProfit { get; set; } = 700;
 
+        /// <summary>
+        /// Cho phép dịch chuyển stop loss và target
+        /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Allow to move stop loss/profit target", Order = 8, GroupName = "Parameters")]
+        [Display(Name = "Allow to move stop loss/profit target",
+            Order = 8,
+            GroupName = "Parameters")]
         public bool AllowToMoveStopLossGain { get; set; } = true;
 
+        /// <summary>
+        /// Số ticks cho stop loss khi đặt stoploss dựa theo BollingerBand
+        /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Stop loss (Ticks):", Order = 8, GroupName = "Parameters")]
         public int StopLossInTicks { get; set; } = 100; // 25 points for MNQ
 
+        /// <summary>
+        /// Thời gian có news, dừng trade trước và sau thời gian có news 5 phút
+        /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = "Parameters")]
         public string NewsTimeInput { get; set; } = "0830";
+        #endregion
 
-        [NinjaScriptProperty]
-        [Display(Name = "How to set stoploss/gain?", Order = 11, GroupName = "Parameters")]
-        public LossGainStrategy WayToSetStop { get; set; } = LossGainStrategy.ChooseATM;
+
+
+
+
+
+
+
 
         private List<int> NewsTimes = new List<int>();
 
@@ -378,25 +418,25 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         /// <summary>
-        /// Hàm này dùng cho Back test only - Move stop loss khi đóng nến để xét % gain/loss của giải thuật
+        /// Hàm này dùng cho [BACK TEST DATA] only - Move stop loss khi đóng nến để xét % gain/loss của giải thuật
         /// </summary>
-        private void MoveStopLossToBreakEven()
+        private void MoveStopLossToBreakEvenForBackTest()
         {
-            LocalPrint($"MoveStopLossToBreakEven:: ");
+            LocalPrint($"MoveStopLossToBreakEvenForBackTest:: {State} {WayToSetStop}");
             if (State == State.Realtime || WayToSetStop != LossGainStrategy.BasedOnBollinger) // Ở chế độ realtime thì remove stop gain/loss ở OnMarketData
             {
                 return;
             }
 
             var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && (order.OrderType == OrderType.StopLimit || order.OrderType == OrderType.StopMarket)).ToList();
-            LocalPrint($"MoveStopLossToBreakEven:: {stopOrders.Count}");
+            LocalPrint($"MoveStopLossToBreakEvenForBackTest:: {stopOrders.Count}");
 
             if (stopOrders.Count() != 1)
             {
                 return;
             }
 
-            LocalPrint($"MoveStopLossToBreakEven:: ");
+            LocalPrint($"MoveStopLossToBreakEvenForBackTest:: ");
 
             var stopOrder = stopOrders.FirstOrDefault();
 
@@ -625,7 +665,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (CurrentBar < 30)
             {
-                //LocalPrint($"Not ENOUGH bars");
+                LocalPrint($"Not ENOUGH bars");
                 return;
             }
 
@@ -669,7 +709,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 				* Do 2 events BarClosed ở khung 5 phút và 1 phút xuất hiện gần như đồng thời, 
 				* nên cần chắc chắn là việc cập nhật PendingOrder chỉ xảy ra ở cây nến tiếp theo
 				*/
-
                 if (DoubleBBStatus == ChickenStatus.PendingFill)
                 {
                     if (LastBBStatus_1m == ChickenStatus.PendingFill)
@@ -680,7 +719,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (DoubleBBStatus == ChickenStatus.OrderExists)
                 {
                     // Move to break even
-                    MoveStopLossToBreakEven();
+                    MoveStopLossToBreakEvenForBackTest();
                 }
                 LastBBStatus_1m = DoubleBBStatus;
             }
@@ -731,7 +770,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (DoubleBBStatus == ChickenStatus.OrderExists)
                 {                    
                     // Move to break even
-                    MoveStopLossToBreakEven();
+                    MoveStopLossToBreakEvenForBackTest();
                 }
             }
         }
@@ -800,9 +839,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (isMarketClosed || cancelCausedByPrice || timeMoreThan60min)
                 {
+                    
                     AtmStrategyCancelEntryOrder(orderId);
                     orderId = null;
-                    atmStrategyId = null;
+                    atmStrategyId = null;                   
+                    
                     DoubleBBStatus = ChickenStatus.Idle;
                     if (isMarketClosed)
                     {
@@ -823,7 +864,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     LocalPrint($"Đang chờ, giá old Price {pendingOrder.LimitPrice:F2}, new Price: {filledPrice:F2}");
 
-                    LocalPrint($"Đã cập nhật lại giá entry - New price: ${filledPrice:F2}");
+                    LocalPrint($"Đã cập nhật lại giá entry - New price: ${filledPrice:F2}");                    
                     
                     AtmStrategyChangeEntryOrder(filledPrice, 0, orderId);
                 }

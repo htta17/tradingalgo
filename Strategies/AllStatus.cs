@@ -47,8 +47,6 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Tính toán khoảng cách của BB (std1 và std2) để quyết định sizing và stop loss/gain
         /// </summary>
-        ChooseBollinger,
+        BasedOnBollinger,
     }
-
-
 }

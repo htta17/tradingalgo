@@ -236,7 +236,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			*/
             var time = ToTime(Time[0]);
 
-            // Cho phép trade reverse (Bollinger Band) từ 8:35 am đến 3:30pm
+            // Cho phép trade reverse (Bollinger Band) từ 8:35 am đến 11:30pm
             if (time >= 083500 && time <= 233000) 
             {
                 if (currentPrice > lowerBB_5m && currentPrice < upperBB_5m)
@@ -420,15 +420,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && (order.OrderType == OrderType.StopLimit || order.OrderType == OrderType.StopMarket)).ToList();
-            LocalPrint($"MoveStopLossToBreakEvenForBackTest:: {stopOrders.Count}");
+            var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && (order.OrderType == OrderType.StopLimit || order.OrderType == OrderType.StopMarket)).ToList();            
 
             if (stopOrders.Count() != 1)
             {
                 return;
-            }
-
-            LocalPrint($"MoveStopLossToBreakEvenForBackTest:: ");
+            }            
 
             var stopOrder = stopOrders.FirstOrDefault();
 
@@ -443,7 +440,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         private void MoveTargetOrStopOrder(double newTargetPrice, Order target, LossGainStrategy lossGainStrategy, bool isGainStop, string buyOrSell)
-        {
+        {            
             if (lossGainStrategy == LossGainStrategy.ChooseATM)
             {
                 AtmStrategyChangeStopTarget(

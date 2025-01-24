@@ -381,6 +381,7 @@
     <Compile Include="Strategies\Monkey.cs" />
     <Compile Include="Strategies\BarClosedBasedClass.cs" />
     <Compile Include="Strategies\PriceChangeBasedClass.cs" />
+    <Compile Include="Strategies\SimpleTrade.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

@@ -6,12 +6,18 @@ using System.Threading.Tasks;
 
 namespace NinjaTrader.Custom.Strategies
 {
+    /// <summary>
+    /// Lựa chọn điểm vào lệnh (Theo EMA29/51 hay theo Bollinger bands)
+    /// </summary>
     public enum ChickenWayToTrade
     {       
         EMA2951,
         BollingerBand
     }
 
+    /// <summary>
+    /// Trạng thái hiện tại của giải thuật
+    /// </summary>
     public enum ChickenStatus
     {
         Idle, // Đang không có lệnh 
@@ -19,6 +25,9 @@ namespace NinjaTrader.Custom.Strategies
         OrderExists  // Lệnh đã được filled 
     }
 
+    /// <summary>
+    /// Shift: Ca ngày, ca chiều tối, ca đêm
+    /// </summary>
     public enum ShiftType
     {
         Moning_0700_1500,
@@ -30,7 +39,6 @@ namespace NinjaTrader.Custom.Strategies
         Idle,
         WaitingForGoodPrice, // Có tín hiệu B-line nhưng giá vẫn chưa pass EMA29/51 
         FillOrderPendingDuck,
-        FillOrderPendingTrending,
         OrderExist
     }
 
@@ -49,4 +57,40 @@ namespace NinjaTrader.Custom.Strategies
         /// </summary>
         BasedOnBollinger,
     }
+
+    /// <summary>
+    /// Hành động gì tiếp theo đây? Trade theo xu hướng, ngược xu hướng, không trade, etc.
+    /// </summary>
+    public enum TradeAction
+    {         
+        NoTrade,
+
+        /// <summary>
+        /// Đặt lệnh bán tại upper Bollinger (5m) band hoặc EMA29/51 (1m) tùy vào setting
+        /// </summary>
+        Sell_Reversal,
+
+        /// <summary>
+        /// Đặt lệnh bán tại upper Bollinger (5m) band hoặc EMA29/51 (1m) tùy vào setting
+        /// </summary>
+        Buy_Reversal, 
+
+        /// <summary>
+        /// Đặt lệnh bán tại EMA29/51
+        /// </summary>
+        Sell_Trending,
+
+        /// <summary>
+        /// Đặt lệnh mua tại EMA29/51
+        /// </summary>
+        Buy_Trending,
+    }
+
+    public enum TimeFrame
+    { 
+        One_Minute, 
+        Five_Minute
+    }
+
+    
 }

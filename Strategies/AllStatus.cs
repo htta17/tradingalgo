@@ -92,5 +92,14 @@ namespace NinjaTrader.Custom.Strategies
         Five_Minute
     }
 
+    public class WEA_ValueSet
+    { 
+        public double DeadZoneVal { get; set; }
+        public double ExplosionVal { get; set; }
+
+        public double UpTrendVal { get; set; }
+
+        public double DownTrendVal { get; set; }
+    }
     
 }

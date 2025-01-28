@@ -1,6 +1,7 @@
 #region Using declarations
 using System;
 using System.Windows.Media;
+using NinjaTrader.Gui;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.Indicators;
 #endregion
@@ -15,13 +16,10 @@ namespace NinjaTrader.NinjaScript.Indicators
         private int slowLength = 40;
         private int channelLength = 20;
         private double mult = 2.0;
-
-        private Series<double> macdDiff;
-        private Series<double> bbUpper;
-        private Series<double> bbLower;
+        
         private Series<double> trendUp;
-        private Series<double> trendDown;
-        private Series<double> explosionLine;
+        private Series<double> trendDown;        
+        private Series<double> deadZoneSeries;
 
         protected override void OnStateChange()
         {
@@ -31,22 +29,19 @@ namespace NinjaTrader.NinjaScript.Indicators
                 Name = "WaddahAttarExplosion";
                 IsOverlay = false;
 
-                AddPlot(Brushes.Lime, "UpTrend");
-                AddPlot(Brushes.Red, "DownTrend");
-                AddPlot(Brushes.SaddleBrown, "ExplosionLine");
-                AddPlot(Brushes.Blue, "DeadZoneLine");
+                AddPlot(new Stroke(Brushes.Green, 2), PlotStyle.Bar, "UpTrend");
+                AddPlot(new Stroke(Brushes.Red, 2), PlotStyle.Bar, "DownTrend");
+                AddPlot(new Stroke(Brushes.LimeGreen, 2), PlotStyle.Line, "ExplosionLine");
+                AddPlot(new Stroke(Brushes.DarkRed, 2), PlotStyle.Line, "DeadZoneLine");
 
                 // Set the number of bars required for calculation
                 BarsRequiredToPlot = Math.Max(fastLength, Math.Max(slowLength, channelLength)) + 1;
             }
             else if (State == State.DataLoaded)
             {
-                macdDiff = new Series<double>(this);
-                bbUpper = new Series<double>(this);
-                bbLower = new Series<double>(this);
                 trendUp = new Series<double>(this);
                 trendDown = new Series<double>(this);
-                explosionLine = new Series<double>(this);
+                deadZoneSeries = new Series<double>(this);
             }
         }
 
@@ -64,36 +59,36 @@ namespace NinjaTrader.NinjaScript.Indicators
                 // Calculate Typical Price
                 double typicalPrice = (High[0] + Low[0] + Close[0]) / 3.0;
 
-                Print("typicalPrice");
+                // Calculate True Range and store it in a Series
+                double trueRange = Math.Max(High[0] - Low[0], Math.Max(Math.Abs(High[0] - Close[1]), Math.Abs(Low[0] - Close[1])));
+                if (CurrentBar == 0)
+                    deadZoneSeries[0] = trueRange; // Initialize the first value
+                else
+                    deadZoneSeries[0] = trueRange; // Store True Range for EMA calculation
 
-                // Dead Zone Calculation
-                double deadZone = EMA(TypicalPriceSeries(), 100)[0] * 3.7;
+                // Calculate smoothed ATR using EMA of the True Range Series
+                double smoothedATR = EMA(deadZoneSeries, 100)[0];
 
-                Print("deadZone");
+                // Dead Zone
+                double deadZone = smoothedATR * 3.7;
+
+
+                //Print("deadZone");
 
                 // MACD Difference Calculation
                 double fastEMA = EMA(Close, fastLength)[0];
-                Print("fastEMA");
 
                 double slowEMA = EMA(Close, slowLength)[0];
-                Print("slowEMA");
                 double prevFastEMA = EMA(Close, fastLength)[1];
-                Print("prevFastEMA");
                 double prevSlowEMA = EMA(Close, slowLength)[1];
-                Print("prevSlowEMA");
 
                 double macd = fastEMA - slowEMA;
-                Print("macd");
                 double prevMacd = prevFastEMA - prevSlowEMA;
-                Print("prevMacd");
                 double t1 = (macd - prevMacd) * sensitivity;
-                Print("t1");
 
                 // Bollinger Bands Calculation
                 double bbBasis = SMA(Close, channelLength)[0];
-                Print("bbBasis");
                 double bbDev = mult * StdDev(Close, channelLength)[0];
-                Print("bbDev");
                 double bbUpperVal = bbBasis + bbDev;
                 double bbLowerVal = bbBasis - bbDev;
 
@@ -103,29 +98,17 @@ namespace NinjaTrader.NinjaScript.Indicators
                 // Trend Calculations
                 trendUp[0] = t1 >= 0 ? t1 : 0;
                 trendDown[0] = t1 < 0 ? -t1 : 0;
-                Print("before Plot");
 
                 // Set plot values
                 Values[0][0] = trendUp[0]; // UpTrend
                 Values[1][0] = trendDown[0]; // DownTrend
                 Values[2][0] = e1; // ExplosionLine
                 Values[3][0] = deadZone; // DeadZoneLine
-
-                Print($"{Time[0]} UpTrend: {trendUp[0]}, DownTrend: {trendDown[0]}, ExplosionLine: {e1}, DeadZoneLine: {deadZone}");
             }
             catch (Exception e)
             {
                 Print(e.Message);
             }
-        }
-
-        // Helper function for Typical Price
-        private Series<double> TypicalPriceSeries()
-        {
-            var typicalPriceSeries = new Series<double>(this);
-            for (int i = 0; i < CurrentBar; i++)
-                typicalPriceSeries[i] = (High[i] + Low[i] + Close[i]) / 3.0;
-            return typicalPriceSeries;
         }
     }
 }

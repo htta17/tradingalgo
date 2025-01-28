@@ -14,6 +14,8 @@ using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
 using System.IO;
 using System.Windows;
+using NinjaTrader.NinjaScript.Indicators;
+using NinjaTrader.Gui;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -59,6 +61,16 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double adx_5m = -1;
         protected double plusDI_5m = -1;
         protected double minusDI_5m = -1;
+
+        // WAE Values 
+        protected double waeDeadVal_5m = -1;
+        protected double waeExplosion_5m = -1;
+        protected double waeUptrend_5m = -1;
+        protected double waeDowntrend_5m = -1;
+        
+        private Series<double> deadZoneSeries;
+
+       
         #endregion
 
         protected TradeAction currentTradeAction = TradeAction.NoTrade;        
@@ -198,6 +210,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }                
 
                 PointToMoveGainLoss = 5;
+
+
             }
             else if (State == State.DataLoaded)
             {
@@ -211,20 +225,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 AddChartIndicator(bollinger1);
                 AddChartIndicator(bollinger2);
-                AddChartIndicator(DEMA(9));
+                AddChartIndicator(DEMA(9));              
                 
-
-                //var adx = ADX(FiveMinutes_Period);
-                //adx.Plots[0].Brush = Brushes.Gold;
-
-                var di = DM(FiveMinutes_Period);
-                di.Plots[0].Brush = Brushes.Gold;
-                di.Plots[1].Brush = Brushes.Green;
-                di.Plots[2].Brush = Brushes.Red;
-
-                //AddChartIndicator(adx);
-                AddChartIndicator(di);
-
+                deadZoneSeries = new Series<double>(this);
             }
         }
 
@@ -236,8 +239,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 			* 2. currentPrice > lower && currentPrice < upper
 			*/
             var time = ToTime(Time[0]);
-            
-            
             // Cho phép trade reverse (Bollinger Band) từ 8:35 am đến 11:30pm
             if (time >= 083500 && time <= 233000 && currentPrice > lowerBB_5m && currentPrice < upperBB_5m)
             {
@@ -253,32 +254,24 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     return TradeAction.Buy_Reversal;
                 }
-            }            
-            
-            // Trade theo treding
-            // Find the trend 
-            if (adx_5m > ADX_Min_Level && volume_5m > avgEMAVolume_5m) // Nếu là xu hướng mạnh và có volume
-            {
-                // Check xem là xu hướng gì
-                if (plusDI_5m > minusDI_5m)
-                {
-                    LocalPrint($"Found BUY signal (Trending) - adx_5m: {adx_5m:N2}, volume_5m: {volume_5m:N2}, " +
-                        $"avgEMAVolume_5m: {avgEMAVolume_5m:N2}, " +
-                        $"plusDI_5m: {plusDI_5m:N2}, " +
-                        $"minusDI_5m: {minusDI_5m:N2}");
+            }
 
-                    return TradeAction.Buy_Trending; 
-                }
-                else
+            // Trade theo trending
+            if (time >= 083500 && time <= 233000)
+            {
+                if (waeDeadVal_5m < waeExplosion_5m && waeExplosion_5m < waeDowntrend_5m)
                 {
-                    LocalPrint($"Found SELL signal (Trending) - adx_5m: {adx_5m:N2}, volume_5m: {volume_5m:N2}, " +
-                        $"avgEMAVolume_5m: {avgEMAVolume_5m:N2}, " +
-                        $"plusDI_5m: {plusDI_5m:N2}, " +
-                        $"minusDI_5m: {minusDI_5m:N2}");
+                    LocalPrint($"Found SELL signal - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}");
 
                     return TradeAction.Sell_Trending;
                 }
-            }
+                else if (waeDeadVal_5m < waeExplosion_5m && waeExplosion_5m < waeUptrend_5m)
+                {
+                    LocalPrint($"Found BUY signal - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeUptrend_5m: {waeUptrend_5m:N2}");
+
+                    return TradeAction.Buy_Trending;
+                }
+            }            
 
             return TradeAction.NoTrade;
         }
@@ -292,7 +285,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Draw.TextFixed(
                         this,
                         "RunningAcc",
-                        $"Run on: {Account.Name} - Net Liquidation: {Account.Get(AccountItem.NetLiquidation, Currency.UsDollar):C2}",
+                        $"{Account.Name}:${Account.Get(AccountItem.NetLiquidation, Currency.UsDollar):C2}",
                         TextPosition.BottomLeft,
                         Brushes.DarkBlue,            // Text color
                         new SimpleFont("Arial", 12), // Font and size
@@ -671,7 +664,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             finally 
             {
-                LocalPrint($"CountOrders: {ActiveOrders.Count}");
+                //LocalPrint($"CountOrders: {ActiveOrders.Count}");
             }
         }
 
@@ -824,12 +817,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 volume_5m = Volume[0];
                 avgEMAVolume_5m = EMA(Volume, FiveMinutes_Period)[0];
-                adx_5m = ADX(FiveMinutes_Period).Value[0];
+                adx_5m = ADX(FiveMinutes_Period).Value[0];                
                 
-                if (adx_5m > ADX_Min_Level)
-                {
-                    LocalPrint($"ADX = {adx_5m} at {Time[0]}");
-                }
                 plusDI_5m = DM(FiveMinutes_Period).DiPlus[0];
                 minusDI_5m = DM(FiveMinutes_Period).DiMinus[0];
 
@@ -846,7 +835,69 @@ namespace NinjaTrader.NinjaScript.Strategies
                 currentDEMA_5m = DEMA(DEMA_Period).Value[0];
                 lastDEMA_5m = DEMA(DEMA_Period).Value[1];
                 currentPrice = Close[0];
+
+                var wae = FindWaddahAttarExplosion();
+
+                waeDeadVal_5m = wae.DeadZoneVal; 
+                waeDowntrend_5m = wae.DownTrendVal;
+                waeExplosion_5m = wae.ExplosionVal;
+                waeUptrend_5m = wae.UpTrendVal;
+
+                LocalPrint($"WAE Values: DeadZoneVal: {wae.DeadZoneVal:N2}, ExplosionVal: {wae.ExplosionVal:N2}, DowntrendVal:{wae.DownTrendVal:N2}, UptrendVal: {wae.UpTrendVal:N2}. ADX = {adx_5m:N2}");
             }
+        }
+        /// <summary>
+        /// Tìm các giá trị của Waddah Attar Explosion ở khung 5 phút
+        /// </summary>
+        /// <returns></returns>
+        private WEA_ValueSet FindWaddahAttarExplosion()
+        {
+            int sensitivity = 150;
+            int fastLength = 20;
+            int slowLength = 40;
+            int channelLength = 20;
+            double mult = 2.0;
+
+            // WAE
+            // Calculate Typical Price
+            double typicalPrice = (High[0] + Low[0] + Close[0]) / 3.0;
+
+            // Calculate True Range and store it in a Series
+            double trueRange = Math.Max(High[0] - Low[0], Math.Max(Math.Abs(High[0] - Close[1]), Math.Abs(Low[0] - Close[1])));
+            deadZoneSeries[0] = trueRange; // Initialize the first value
+
+            // Calculate smoothed ATR using EMA of the True Range Series
+            double smoothedATR = EMA(deadZoneSeries, 100)[0];
+
+            // Dead Zone
+            double deadZone = smoothedATR * 3.7;
+
+            // MACD Difference Calculation
+            double fastEMA = EMA(Close, fastLength)[0];
+            double slowEMA = EMA(Close, slowLength)[0];
+            double prevFastEMA = EMA(Close, fastLength)[1];
+            double prevSlowEMA = EMA(Close, slowLength)[1];
+
+            double macd = fastEMA - slowEMA;
+            double prevMacd = prevFastEMA - prevSlowEMA;
+            double trendCalculation = (macd - prevMacd) * sensitivity;
+
+            // Bollinger Bands Calculation
+            double bbBasis = SMA(Close, channelLength)[0];
+            double bbDev = mult * StdDev(Close, channelLength)[0];
+            double bbUpperVal = bbBasis + bbDev;
+            double bbLowerVal = bbBasis - bbDev;
+
+            // Explosion Line
+            double explosionValue = bbUpperVal - bbLowerVal;            
+
+            return new WEA_ValueSet
+            {
+                DeadZoneVal = deadZone, 
+                DownTrendVal = trendCalculation < 0 ? -trendCalculation : 0,
+                ExplosionVal = explosionValue,
+                UpTrendVal = trendCalculation >= 0 ? trendCalculation : 0
+            };
         }
 
         private void CancelAllPendingOrder()
@@ -897,7 +948,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 LocalPrint($"Cancel lệnh do đã chạm Bollinger upper band (over bought) hoặc Bollinger lower band (over sold)");
                 return;
             }
-
+            
+            # region Begin of move pending order
             var newPrice = GetSetPrice(currentTradeAction);
 
             if (Math.Abs(newPrice - filledPrice) > 3)
@@ -937,7 +989,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                 }
             }
-        }        
+            #endregion
+
+        }
 
         /*
 		This should be blank to easy to see the function

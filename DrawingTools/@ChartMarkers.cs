@@ -15,6 +15,7 @@ using System.Xml.Serialization;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
+using NinjaTrader.Gui.NinjaScript;
 
 #endregion
 
@@ -22,32 +23,35 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 {
 	public abstract class ChartMarker : DrawingTool
 	{
-		private		Brush			areaBrush;
+		private		Brush					areaBrush;
 		[CLSCompliant(false)]
-		protected	DeviceBrush		areaDeviceBrush		= new DeviceBrush();
-		private		Brush			outlineBrush;
+		protected readonly DeviceBrush		AreaDeviceBrush		= new();
+		private		Brush					outlineBrush;
 		[CLSCompliant(false)]
-		protected	DeviceBrush		outlineDeviceBrush	= new DeviceBrush();
+		protected readonly DeviceBrush		OutlineDeviceBrush	= new();
 
 		public ChartAnchor	Anchor					{ get; set; }
 
 		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolShapesAreaBrush", GroupName = "NinjaScriptGeneral", Order = 1)]
 		[XmlIgnore]
 		public Brush		AreaBrush
-		{ 
-			get { return areaBrush; }
+		{
+			get => areaBrush;
 			set 
 			{
 				areaBrush = value;
-				areaDeviceBrush.Brush = value;
+				AreaDeviceBrush.Brush = value;
 			}
 		}
+
+		[Display(ResourceType = typeof(Resource), Name = "NinjaScriptDrawingToolShapesSize", GroupName = "GuiGeneral", Order = 2)]
+		public ChartMarkerSize		Size { get; set; } = ChartMarkerSize.Medium;
 
 		[Browsable(false)]
 		public string AreaBrushSerialize
 		{
-			get { return Serialize.BrushToString(AreaBrush);	}
-			set { AreaBrush = Serialize.StringToBrush(value);	}
+			get => Serialize.BrushToString(AreaBrush);
+			set => AreaBrush = Serialize.StringToBrush(value);
 		}
 
 		protected double BarWidth
@@ -57,51 +61,44 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 				if (AttachedTo != null)
 				{
 					ChartBars chartBars = AttachedTo.ChartObject as ChartBars;
-					if (chartBars == null)
-					{
-						Gui.NinjaScript.IChartBars iChartBars = AttachedTo.ChartObject as Gui.NinjaScript.IChartBars;
-						if (iChartBars != null)
-							chartBars = iChartBars.ChartBars;
-					}
-					if (chartBars != null && chartBars.Properties.ChartStyle != null)
+					if (chartBars == null && AttachedTo.ChartObject is IChartBars iChartBars)
+						chartBars = iChartBars.ChartBars;
+					if (chartBars?.Properties.ChartStyle != null)
 						return chartBars.Properties.ChartStyle.BarWidth;
 				}
 				return MinimumSize;
 			}
 		}
 
-		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolShapesOutlineBrush", GroupName = "NinjaScriptGeneral", Order = 2)]
+		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolShapesOutlineBrush", GroupName = "NinjaScriptGeneral", Order = 3)]
 		[XmlIgnore]
 		public Brush		OutlineBrush
 		{
-			get { return outlineBrush; }
+			get => outlineBrush;
 			set 
 			{
 				outlineBrush = value;
-				outlineDeviceBrush.Brush = value;
+				OutlineDeviceBrush.Brush = value;
 			}
 		}
 
 		[Browsable(false)]
 		public string OutlineBrushSerialize
 		{
-			get { return Serialize.BrushToString(OutlineBrush);		}
-			set { OutlineBrush = Serialize.StringToBrush(value);	}
+			get => Serialize.BrushToString(OutlineBrush);
+			set => OutlineBrush = Serialize.StringToBrush(value);
 		}
 
-		public static float MinimumSize { get { return 5f; } }
+		protected static float MinimumSize => 5f;
 
-		public override IEnumerable<ChartAnchor> Anchors
-		{
-			get { return new[]{Anchor}; }
-		}
+		public override IEnumerable<ChartAnchor> Anchors => new[]{ Anchor };
 
 		public override void OnCalculateMinMax()
 		{
 			MinValue = double.MaxValue;
 			MaxValue = double.MinValue;
 
-			if (!this.IsVisible)
+			if (!IsVisible)
 				return;
 
 
@@ -109,10 +106,18 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			MaxValue = Anchor.Price;
 		}
 
+		protected float GetSizeMultiplier() => Size switch	{
+																ChartMarkerSize.ExtraLarge	=> 2.0f,
+																ChartMarkerSize.Large		=> 1.5f,
+																ChartMarkerSize.Small		=> 0.75f,
+																ChartMarkerSize.ExtraSmall	=> 0.5f,
+																_							=> 1f
+															};
+
 		protected override void Dispose(bool disposing)
 		{
-			areaDeviceBrush.RenderTarget	= null;
-			outlineDeviceBrush.RenderTarget	= null;
+			AreaDeviceBrush.RenderTarget	= null;
+			OutlineDeviceBrush.RenderTarget	= null;
 		}
 
 		public override Cursor GetCursor(ChartControl chartControl, ChartPanel chartPanel, ChartScale chartScale, Point point)
@@ -126,25 +131,20 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			// we want to check at least 6 pixels away, or by padding x 2 if its more (It could be 0 on some objects like square)
 			Point anchorPointPixels = Anchor.GetPoint(chartControl, chartPanel, chartScale);
 			Vector distToMouse = point - anchorPointPixels;
-			return distToMouse.Length <= GetSelectionSensitivity(chartControl) ?
-				IsLocked ?  Cursors.Arrow : Cursors.SizeAll : 
-				null;
+			return distToMouse.Length <= GetSelectionSensitivity() ? IsLocked ?  Cursors.Arrow : Cursors.SizeAll : null;
 		}
 
 		public override Point[] GetSelectionPoints(ChartControl chartControl, ChartScale chartScale)
 		{
 			if (Anchor.IsEditing)
-				return new Point[0];
+				return Array.Empty<Point>();
 
-			ChartPanel chartPanel = chartControl.ChartPanels[chartScale.PanelIndex];
-			Point anchorPoint = Anchor.GetPoint(chartControl, chartPanel, chartScale);
+			ChartPanel	chartPanel	= chartControl.ChartPanels[chartScale.PanelIndex];
+			Point		anchorPoint	= Anchor.GetPoint(chartControl, chartPanel, chartScale);
 			return new[]{ anchorPoint };
 		}
 
-		public double GetSelectionSensitivity(ChartControl chartControl)
-		{
-			return Math.Max(15d, 10d * (BarWidth / 5d));
-		}
+		private double GetSelectionSensitivity() => Math.Max(15d, 10d * (BarWidth / 5d));
 
 		public override bool IsVisibleOnChart(ChartControl chartControl, ChartScale chartScale, DateTime firstTimeOnChart, DateTime lastTimeOnChart)
 		{
@@ -167,7 +167,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					IsSelected			= false;
 					break;
 				case DrawingState.Normal:
-					// make sure they clicked near us. use GetCursor incase something has more than one point, like arrows
+					// make sure they clicked near us. use GetCursor in case something has more than one point, like arrows
 					Point point = dataPoint.GetPoint(chartControl, chartPanel, chartScale);
 					if (GetCursor(chartControl, chartPanel, chartScale, point) != null)
 						DrawingState = DrawingState.Moving;
@@ -186,9 +186,19 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 
 		public override void OnMouseUp(ChartControl control, ChartPanel chartPanel, ChartScale chartScale, ChartAnchor dataPoint)
 		{
-			if (DrawingState == DrawingState.Editing || DrawingState == DrawingState.Moving)
+			if (DrawingState is DrawingState.Editing or DrawingState.Moving)
 				DrawingState = DrawingState.Normal;
 		}
+	}
+
+	[TypeConverter(typeof(Core.CoreEnumConverter))]
+	public enum ChartMarkerSize
+	{
+		ExtraSmall			= 0,
+		Small				= 1,
+		Medium				= 2,
+		Large				= 3,
+		ExtraLarge			= 4
 	}
 
 	/// <summary>
@@ -196,7 +206,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 	/// </summary>
 	public class Dot : ChartMarker
 	{
-		public override object Icon { get { return Gui.Tools.Icons.DrawDot; } }
+		public override object Icon => Gui.Tools.Icons.DrawDot;
 
 		protected override void OnStateChange()
 		{
@@ -207,9 +217,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					DisplayName = Custom.Resource.NinjaScriptDrawingToolAnchor,
 					IsEditing	= true,
 				};
-				Name				= Custom.Resource.NinjaScriptDrawingToolsChartDotMarkerName;
-				AreaBrush			= Brushes.DodgerBlue;
-				OutlineBrush		= Brushes.DarkGray;
+				Name			= Custom.Resource.NinjaScriptDrawingToolsChartDotMarkerName;
+				AreaBrush		= Brushes.DodgerBlue;
+				OutlineBrush	= Brushes.DarkGray;
 			}
 			else if (State == State.Terminated)
 				Dispose();
@@ -223,16 +233,16 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			ChartPanel	panel					= chartControl.ChartPanels[chartScale.PanelIndex];
 			Point		pixelPoint				= Anchor.GetPoint(chartControl, panel, chartScale);
 
-			areaDeviceBrush.RenderTarget		= RenderTarget;
-			outlineDeviceBrush.RenderTarget		= RenderTarget;
+			AreaDeviceBrush.RenderTarget		= RenderTarget;
+			OutlineDeviceBrush.RenderTarget		= RenderTarget;
 			RenderTarget.AntialiasMode			= SharpDX.Direct2D1.AntialiasMode.PerPrimitive;
 
-			float radius = Math.Max((float) BarWidth, MinimumSize);
+			float radius = Math.Max((float) BarWidth, MinimumSize) * GetSizeMultiplier();
 			// center rendering on anchor is done by radius method of drawing here
-			SharpDX.Direct2D1.Brush tmpBrush = IsInHitTest ? chartControl.SelectionBrush : areaDeviceBrush.BrushDX;
+			SharpDX.Direct2D1.Brush tmpBrush = IsInHitTest ? chartControl.SelectionBrush : AreaDeviceBrush.BrushDX;
 			if (tmpBrush != null)
 				RenderTarget.FillEllipse(new SharpDX.Direct2D1.Ellipse(new SharpDX.Vector2((float)pixelPoint.X, (float)pixelPoint.Y), radius, radius), tmpBrush);
-			tmpBrush = IsInHitTest ? chartControl.SelectionBrush : outlineDeviceBrush.BrushDX;
+			tmpBrush = IsInHitTest ? chartControl.SelectionBrush : OutlineDeviceBrush.BrushDX;
 			if (tmpBrush != null)
 				RenderTarget.DrawEllipse(new SharpDX.Direct2D1.Ellipse(new SharpDX.Vector2((float)pixelPoint.X, (float)pixelPoint.Y), radius, radius), tmpBrush);
 		}
@@ -245,25 +255,25 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 	{
 		protected void DrawSquare(float width, ChartControl chartControl, ChartScale chartScale)
 		{
-			areaDeviceBrush.RenderTarget = RenderTarget;
-			outlineDeviceBrush.RenderTarget = RenderTarget;
+			AreaDeviceBrush.RenderTarget = RenderTarget;
+			OutlineDeviceBrush.RenderTarget = RenderTarget;
 
 			ChartPanel panel = chartControl.ChartPanels[chartScale.PanelIndex];
 			Point pixelPoint = Anchor.GetPoint(chartControl, panel, chartScale);
 
 			// adjust our x/y to center the rect on our anchor (moving the top left back and up by half)
-			float xCentered = (float)(pixelPoint.X - (width / 2f));
-			float yCentered = (float)(pixelPoint.Y - (width / 2f));
+			float xCentered = (float)(pixelPoint.X - width / 2f);
+			float yCentered = (float)(pixelPoint.Y - width / 2f);
 
-			SharpDX.Direct2D1.Brush tmpBrush = IsInHitTest ? chartControl.SelectionBrush : areaDeviceBrush.BrushDX;
+			SharpDX.Direct2D1.Brush tmpBrush = IsInHitTest ? chartControl.SelectionBrush : AreaDeviceBrush.BrushDX;
 			if (tmpBrush != null)
 				RenderTarget.FillRectangle(new SharpDX.RectangleF(xCentered, yCentered, width, width), tmpBrush);
-			tmpBrush = IsInHitTest ? chartControl.SelectionBrush : outlineDeviceBrush.BrushDX;
+			tmpBrush = IsInHitTest ? chartControl.SelectionBrush : OutlineDeviceBrush.BrushDX;
 			if (tmpBrush != null)
 				RenderTarget.DrawRectangle(new SharpDX.RectangleF(xCentered, yCentered, width, width), tmpBrush);
 		}
 
-		public override object Icon { get { return Gui.Tools.Icons.DrawSquare; } }
+		public override object Icon => Gui.Tools.Icons.DrawSquare;
 
 		protected override void OnStateChange()
 		{
@@ -272,7 +282,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 				Anchor	= new ChartAnchor
 				{
 					DisplayName = Custom.Resource.NinjaScriptDrawingToolAnchor,
-					IsEditing	= true,
+					IsEditing	= true
 				};
 				Name				= Custom.Resource.NinjaScriptDrawingToolsChartSquareMarkerName;
 				AreaBrush			= Brushes.Crimson;
@@ -286,7 +296,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		{
 			if (Anchor.IsEditing)
 				return;
-			float barWidth = Math.Max((float)BarWidth * 2, MinimumSize * 2); // we draw from center
+			float barWidth = Math.Max((float)BarWidth * 2, MinimumSize * 2) * GetSizeMultiplier(); // we draw from center
 			DrawSquare(barWidth, chartControl, chartScale);
 		}
 	}
@@ -296,7 +306,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 	/// </summary>
 	public class Diamond : Square
 	{
-		public override object Icon { get { return Gui.Tools.Icons.DrawDiamond; } }
+		public override object Icon => Gui.Tools.Icons.DrawDiamond;
 
 		protected override void OnStateChange()
 		{
@@ -327,14 +337,14 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			// rotate from anchor since that will be center of rendering in base render
 			RenderTarget.Transform	= SharpDX.Matrix3x2.Rotation(MathHelper.DegreesToRadians(45), pixelPoint.ToVector2());
 
-			areaDeviceBrush.RenderTarget = RenderTarget;
-			outlineDeviceBrush.RenderTarget = RenderTarget;
+			AreaDeviceBrush.RenderTarget	= RenderTarget;
+			OutlineDeviceBrush.RenderTarget	= RenderTarget;
 
 			float barWidth = Math.Max((float)BarWidth * 2, MinimumSize * 2); // we draw from center
 
-			// We are rotating this square to make a diamond, so we need the distance from opposite angles to be barwidth
+			// We are rotating this square to make a diamond, so we need the distance from opposite angles to be bar width
 			// Using barWidth as the hypotenuse, calculate equal side lengths of a right triangle
-			float hypotenuseAdjustedWidth = (float)Math.Sqrt(Math.Pow(barWidth, 2) * 0.5);
+			float hypotenuseAdjustedWidth = (float)Math.Sqrt(Math.Pow(barWidth, 2) * 0.5) * GetSizeMultiplier();
 			DrawSquare(hypotenuseAdjustedWidth, chartControl, chartScale);
 
 			RenderTarget.Transform	= SharpDX.Matrix3x2.Identity;
@@ -345,12 +355,12 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 	{
 		[XmlIgnore]
 		[Browsable(false)]
-		public bool		IsUpArrow	{ get; protected set; }
+		protected bool		IsUpArrow	{ get; set; }
 
 		public override Point[] GetSelectionPoints(ChartControl chartControl, ChartScale chartScale)
 		{
 			if (Anchor.IsEditing)
-				return new Point[0];
+				return Array.Empty<Point>();
 			ChartPanel panel			= chartControl.ChartPanels[chartScale.PanelIndex];
 			Point pixelPointArrowTop	= Anchor.GetPoint(chartControl, panel, chartScale);
 			return new [] { new Point(pixelPointArrowTop.X, pixelPointArrowTop.Y) };
@@ -371,8 +381,8 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			if (Anchor.IsEditing)
 				return;
 
-			areaDeviceBrush.RenderTarget = RenderTarget;
-			outlineDeviceBrush.RenderTarget = RenderTarget;
+			AreaDeviceBrush.RenderTarget = RenderTarget;
+			OutlineDeviceBrush.RenderTarget = RenderTarget;
 
 			ChartPanel panel			= chartControl.ChartPanels[chartScale.PanelIndex];
 			Point pixelPoint			= Anchor.GetPoint(chartControl, panel, chartScale);
@@ -392,12 +402,12 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			RenderTarget.AntialiasMode	= SharpDX.Direct2D1.AntialiasMode.PerPrimitive;
 			RenderTarget.Transform		= transformMatrix;
 			
-			float barWidth			= Math.Max((float) BarWidth, MinimumSize);
+			float barWidth			= Math.Max((float) BarWidth, MinimumSize) * GetSizeMultiplier();
 			float arrowHeight		= barWidth * 3f;
 			float arrowPointHeight	= barWidth;
 			float arrowStemWidth	= barWidth / 3f;
 
-			SharpDX.Direct2D1.PathGeometry arrowPathGeometry = new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
+			SharpDX.Direct2D1.PathGeometry arrowPathGeometry = new(Core.Globals.D2DFactory);
 			SharpDX.Direct2D1.GeometrySink geometrySink = arrowPathGeometry.Open();
 			geometrySink.BeginFigure(SharpDX.Vector2.Zero, SharpDX.Direct2D1.FigureBegin.Filled);
 
@@ -411,10 +421,10 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			geometrySink.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 			geometrySink.Close(); // note this calls dispose for you. but not the other way around
 
-			SharpDX.Direct2D1.Brush tmpBrush = IsInHitTest ? chartControl.SelectionBrush : areaDeviceBrush.BrushDX;
+			SharpDX.Direct2D1.Brush tmpBrush = IsInHitTest ? chartControl.SelectionBrush : AreaDeviceBrush.BrushDX;
 			if (tmpBrush != null)
 				RenderTarget.FillGeometry(arrowPathGeometry, tmpBrush);
-			tmpBrush = IsInHitTest ? chartControl.SelectionBrush : outlineDeviceBrush.BrushDX;
+			tmpBrush = IsInHitTest ? chartControl.SelectionBrush : OutlineDeviceBrush.BrushDX;
 			if (tmpBrush != null)
 				RenderTarget.DrawGeometry(arrowPathGeometry, tmpBrush);
 			arrowPathGeometry.Dispose();
@@ -427,7 +437,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 	/// </summary>
 	public class ArrowDown : ArrowMarkerBase
 	{
-		public override object Icon { get { return Gui.Tools.Icons.DrawArrowDown; } }
+		public override object Icon => Gui.Tools.Icons.DrawArrowDown;
 
 		protected override void OnStateChange()
 		{
@@ -453,7 +463,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 	/// </summary>
 	public class ArrowUp : ArrowMarkerBase
 	{
-		public override object Icon { get { return Gui.Tools.Icons.DrawArrowUp; } }
+		public override object Icon => Gui.Tools.Icons.DrawArrowUp;
 
 		protected override void OnStateChange()
 		{
@@ -464,10 +474,10 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					DisplayName = Custom.Resource.NinjaScriptDrawingToolAnchor,
 					IsEditing	= true,
 				};
-				Name				= Custom.Resource.NinjaScriptDrawingToolsChartArrowUpMarkerName;
-				AreaBrush			= Brushes.SeaGreen;
-				OutlineBrush		= Brushes.DarkGray;
-				IsUpArrow			= true;
+				Name			= Custom.Resource.NinjaScriptDrawingToolsChartArrowUpMarkerName;
+				AreaBrush		= Brushes.SeaGreen;
+				OutlineBrush	= Brushes.DarkGray;
+				IsUpArrow		= true;
 			}
 			else if (State == State.Terminated)
 				Dispose();
@@ -485,12 +495,12 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			if (Anchor.IsEditing)
 				return;
 
-			areaDeviceBrush.RenderTarget = RenderTarget;
-			outlineDeviceBrush.RenderTarget = RenderTarget;
+			AreaDeviceBrush.RenderTarget = RenderTarget;
+			OutlineDeviceBrush.RenderTarget = RenderTarget;
 
-			ChartPanel panel			= chartControl.ChartPanels[chartScale.PanelIndex];
-			Point pixelPoint			= Anchor.GetPoint(chartControl, panel, chartScale);
-			SharpDX.Vector2 endVector	= pixelPoint.ToVector2();
+			ChartPanel		panel		= chartControl.ChartPanels[chartScale.PanelIndex];
+			Point			pixelPoint	= Anchor.GetPoint(chartControl, panel, chartScale);
+			SharpDX.Vector2	endVector	= pixelPoint.ToVector2();
 
 			// the geometry is created with 0,0 as point origin, and pointing UP by default.
 			// so translate & rotate as needed
@@ -504,10 +514,10 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			RenderTarget.AntialiasMode	= SharpDX.Direct2D1.AntialiasMode.PerPrimitive;
 			RenderTarget.Transform		= transformMatrix;
 
-			SharpDX.Direct2D1.PathGeometry trianglePathGeometry	= new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
+			SharpDX.Direct2D1.PathGeometry trianglePathGeometry	= new(Core.Globals.D2DFactory);
 			SharpDX.Direct2D1.GeometrySink geometrySink			= trianglePathGeometry.Open();
 
-			float barWidth = Math.Max((float) BarWidth, MinimumSize);
+			float barWidth = Math.Max((float) BarWidth, MinimumSize) * GetSizeMultiplier();
 			geometrySink.BeginFigure(SharpDX.Vector2.Zero, SharpDX.Direct2D1.FigureBegin.Filled);
 			geometrySink.AddLine(new SharpDX.Vector2(barWidth, barWidth));
 			geometrySink.AddLine(new SharpDX.Vector2(-barWidth, barWidth));
@@ -515,15 +525,15 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			geometrySink.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 			geometrySink.Close(); // note this calls dispose for you. but not the other way around
 
-			SharpDX.Direct2D1.Brush tmpBrush = IsInHitTest ? chartControl.SelectionBrush : outlineDeviceBrush.BrushDX;
+			SharpDX.Direct2D1.Brush tmpBrush = IsInHitTest ? chartControl.SelectionBrush : OutlineDeviceBrush.BrushDX;
 			if (tmpBrush != null)
 				RenderTarget.DrawGeometry(trianglePathGeometry, tmpBrush);
-			tmpBrush = IsInHitTest ? chartControl.SelectionBrush : areaDeviceBrush.BrushDX;
+			tmpBrush = IsInHitTest ? chartControl.SelectionBrush : AreaDeviceBrush.BrushDX;
 			if (tmpBrush != null)
 				RenderTarget.FillGeometry(trianglePathGeometry, tmpBrush);
 			
 			trianglePathGeometry.Dispose();
-			RenderTarget.Transform				= SharpDX.Matrix3x2.Identity;
+			RenderTarget.Transform = SharpDX.Matrix3x2.Identity;
 		}
 	}
 
@@ -532,7 +542,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 	/// </summary>
 	public class TriangleDown : TriangleBase
 	{
-		public override object Icon { get { return Gui.Tools.Icons.DrawTriangleDown; } }
+		public override object Icon => Gui.Tools.Icons.DrawTriangleDown;
 
 		protected override void OnStateChange()
 		{
@@ -540,7 +550,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			{
 				Anchor	= new ChartAnchor
 				{
-					DisplayName = Custom.Resource.NinjaScriptDrawingToolAnchor,
+					DisplayName	= Custom.Resource.NinjaScriptDrawingToolAnchor,
 					IsEditing	= true,
 				};
 				Name				= Custom.Resource.NinjaScriptDrawingToolsChartTriangleDownMarkerName;
@@ -558,7 +568,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 	/// </summary>
 	public class TriangleUp : TriangleBase
 	{
-		public override object Icon { get { return Gui.Tools.Icons.DrawTriangleUp; } }
+		public override object Icon => Gui.Tools.Icons.DrawTriangleUp;
 
 		protected override void OnStateChange()
 		{
@@ -569,10 +579,10 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					DisplayName = Custom.Resource.NinjaScriptDrawingToolAnchor,
 					IsEditing	= true,
 				};
-				Name				= Custom.Resource.NinjaScriptDrawingToolsChartTriangleUpMarkerName;
-				AreaBrush			= Brushes.SeaGreen;
-				OutlineBrush		= Brushes.DarkGray;
-				IsUpTriangle		= true;
+				Name			= Custom.Resource.NinjaScriptDrawingToolsChartTriangleUpMarkerName;
+				AreaBrush		= Brushes.SeaGreen;
+				OutlineBrush	= Brushes.DarkGray;
+				IsUpTriangle	= true;
 			}
 			else if (State == State.Terminated)
 				Dispose();
@@ -582,7 +592,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 	public static partial class Draw
 	{
 		// this function does all the actual instance creation and setup
-		private static T ChartMarkerCore<T>(NinjaScriptBase owner, string tag, bool isAutoScale, 
+		private static T ChartMarkerCore<T>(NinjaScriptBase owner, string tag, bool isAutoScale,
 										int barsAgo, DateTime time, double yVal, Brush brush, bool isGlobal, string templateName) where T : ChartMarker
 		{
 			if (owner == null)
@@ -593,25 +603,17 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 				throw new ArgumentException("bad Y value");
 
 			if (isGlobal && tag[0] != GlobalDrawingToolManager.GlobalDrawingToolTagPrefix)
-				tag = string.Format("{0}{1}", GlobalDrawingToolManager.GlobalDrawingToolTagPrefix, tag);
+				tag = $"{GlobalDrawingToolManager.GlobalDrawingToolTagPrefix}{tag}";
 
-			T chartMarkerT = DrawingTool.GetByTagOrNew(owner, typeof(T), tag, templateName) as T;
-			
-			if (chartMarkerT == null)
-				return default(T);
+			if (DrawingTool.GetByTagOrNew(owner, typeof(T), tag, templateName) is not T chartMarkerT)
+				return default;
 
 			DrawingTool.SetDrawingToolCommonValues(chartMarkerT, tag, isAutoScale, owner, isGlobal);
 			
-			// dont nuke existing anchor refs 
-
-			//int				currentBar		= DrawingTool.GetCurrentBar(owner);
-			//ChartControl	chartControl	= DrawingTool.GetOwnerChartControl(owner);
-			//ChartBars		chartBars		= (owner as Gui.NinjaScript.IChartBars).ChartBars;
-
 			ChartAnchor anchor = DrawingTool.CreateChartAnchor(owner, barsAgo, time, yVal);
 			anchor.CopyDataValues(chartMarkerT.Anchor);
 
-			// dont forget to set anchor as not editing or else it wont be drawn
+			// don't forget to set anchor as not editing or else it won't be drawn
 			chartMarkerT.Anchor.IsEditing = false;
 
 			// can be null when loaded from templateName
@@ -634,9 +636,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static ArrowDown ArrowDown(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush)
-		{
-			return ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
-		}
+			=> ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
 
 		/// <summary>
 		/// Draws an arrow pointing down.
@@ -648,10 +648,8 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="y">The y value or Price for the object</param>
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
-		public static ArrowDown ArrowDown(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush)
-		{
-			return ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
-		}
+		public static ArrowDown ArrowDown(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush) 
+			=> ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
 
 		/// <summary>
 		/// Draws an arrow pointing down.
@@ -665,10 +663,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static ArrowDown ArrowDown(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
 
 		/// <summary>
 		/// Draws an arrow pointing down.
@@ -682,10 +677,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static ArrowDown ArrowDown(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
 
 		/// <summary>
 		/// Draws an arrow pointing down.
@@ -699,9 +691,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static ArrowDown ArrowDown(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
 
 		/// <summary>
 		/// Draws an arrow pointing down.
@@ -715,9 +705,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static ArrowDown ArrowDown(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<ArrowDown>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
 
 		// arrow up
 		/// <summary>
@@ -731,9 +719,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static ArrowUp ArrowUp(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush)
-		{
-			return ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
-		}
+			=> ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
 
 		/// <summary>
 		/// Draws an arrow pointing up.
@@ -746,9 +732,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static ArrowUp ArrowUp(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush)
-		{
-			return ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
-		}
+			=> ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
 
 		/// <summary>
 		/// Draws an arrow pointing up.
@@ -762,10 +746,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static ArrowUp ArrowUp(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
 
 		/// <summary>
 		/// Draws an arrow pointing up.
@@ -779,10 +760,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static ArrowUp ArrowUp(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
 
 		/// <summary>
 		/// Draws an arrow pointing up.
@@ -796,9 +774,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static ArrowUp ArrowUp(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
 
 		/// <summary>
 		/// Draws an arrow pointing up.
@@ -812,9 +788,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static ArrowUp ArrowUp(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<ArrowUp>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
 
 		// diamond
 		/// <summary>
@@ -828,9 +802,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static Diamond Diamond(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush)
-		{
-			return ChartMarkerCore<Diamond>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
-		}
+			=> ChartMarkerCore<Diamond>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
 
 		/// <summary>
 		/// Draws a diamond.
@@ -843,9 +815,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static Diamond Diamond(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush)
-		{
-			return ChartMarkerCore<Diamond>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
-		}
+			=> ChartMarkerCore<Diamond>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
 
 		/// <summary>
 		/// Draws a diamond.
@@ -859,10 +829,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static Diamond Diamond(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<Diamond>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<Diamond>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
 
 		/// <summary>
 		/// Draws a diamond.
@@ -876,10 +843,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static Diamond Diamond(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<Diamond>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<Diamond>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
 
 		/// <summary>
 		/// Draws a diamond.
@@ -893,9 +857,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static Diamond Diamond(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<Diamond>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<Diamond>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
 
 		/// <summary>
 		/// Draws a diamond.
@@ -909,9 +871,8 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static Diamond Diamond(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<Diamond>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<Diamond>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
+
 		// dot
 		/// <summary>
 		/// Draws a dot.
@@ -924,9 +885,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static Dot Dot(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush)
-		{
-			return ChartMarkerCore<Dot>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
-		}
+			=> ChartMarkerCore<Dot>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
 
 		/// <summary>
 		/// Draws a dot.
@@ -939,9 +898,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static Dot Dot(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush)
-		{
-			return ChartMarkerCore<Dot>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
-		}
+			=> ChartMarkerCore<Dot>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
 
 		/// <summary>
 		/// Draws a dot.
@@ -955,10 +912,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static Dot Dot(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<Dot>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<Dot>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
 
 		/// <summary>
 		/// Draws a dot.
@@ -972,10 +926,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static Dot Dot(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<Dot>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<Dot>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
 
 		/// <summary>
 		/// Draws a dot.
@@ -989,9 +940,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static Dot Dot(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<Dot>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<Dot>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
 
 		/// <summary>
 		/// Draws a dot.
@@ -1005,9 +954,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static Dot Dot(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<Dot>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<Dot>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
 
 		// square
 		/// <summary>
@@ -1021,9 +968,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static Square Square(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush)
-		{
-			return ChartMarkerCore<Square>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
-		}
+			=> ChartMarkerCore<Square>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
 
 		/// <summary>
 		/// Draws a square.
@@ -1036,9 +981,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static Square Square(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush)
-		{
-			return ChartMarkerCore<Square>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
-		}
+			=> ChartMarkerCore<Square>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
 
 		/// <summary>
 		/// Draws a square.
@@ -1052,10 +995,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static Square Square(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<Square>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<Square>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
 
 		/// <summary>
 		/// Draws a square.
@@ -1069,10 +1009,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static Square Square(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<Square>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<Square>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
 
 		/// <summary>
 		/// Draws a square.
@@ -1086,9 +1023,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static Square Square(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<Square>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<Square>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
 
 		/// <summary>
 		/// Draws a square.
@@ -1102,9 +1037,8 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static Square Square(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<Square>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<Square>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
+
 		// triangle down
 		/// <summary>
 		/// Draws a triangle pointing down.
@@ -1117,9 +1051,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static TriangleDown TriangleDown(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush)
-		{
-			return ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
-		}
+			=> ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
 
 		/// <summary>
 		/// Draws a triangle pointing down.
@@ -1132,9 +1064,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static TriangleDown TriangleDown(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush)
-		{
-			return ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
-		}
+			=> ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
 
 		/// <summary>
 		/// Draws a triangle pointing down.
@@ -1148,10 +1078,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static TriangleDown TriangleDown(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
 
 		/// <summary>
 		/// Draws a triangle pointing down.
@@ -1165,10 +1092,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static TriangleDown TriangleDown(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
 
 		/// <summary>
 		/// Draws a triangle pointing down.
@@ -1182,9 +1106,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static TriangleDown TriangleDown(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
 
 		/// <summary>
 		/// Draws a triangle pointing down.
@@ -1198,9 +1120,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static TriangleDown TriangleDown(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<TriangleDown>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
 
 		// triangle up
 		/// <summary>
@@ -1214,9 +1134,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static TriangleUp TriangleUp(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush)
-		{
-			return ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
-		}
+			=> ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null);
 
 		/// <summary>
 		/// Draws a triangle pointing up.
@@ -1229,9 +1147,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="brush">The brush used to color draw object</param>
 		/// <returns></returns>
 		public static TriangleUp TriangleUp(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush)
-		{
-			return ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
-		}
+			=> ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null);
 
 		/// <summary>
 		/// Draws a triangle pointing up.
@@ -1245,10 +1161,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static TriangleUp TriangleUp(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, int.MinValue, time, y, brush, false, null));
 
 		/// <summary>
 		/// Draws a triangle pointing up.
@@ -1262,10 +1175,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="drawOnPricePanel">Determines if the draw-object should be on the price panel or a separate panel</param>
 		/// <returns></returns>
 		public static TriangleUp TriangleUp(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, Brush brush, bool drawOnPricePanel)
-		{
-			return DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () =>
-				ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
-		}
+			=> DrawingTool.DrawToggledPricePanel(owner, drawOnPricePanel, () => ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, brush, false, null));
 
 		/// <summary>
 		/// Draws a triangle pointing up.
@@ -1279,9 +1189,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static TriangleUp TriangleUp(NinjaScriptBase owner, string tag, bool isAutoScale, DateTime time, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, int.MinValue, time, y, null, isGlobal, templateName);
 
 		/// <summary>
 		/// Draws a triangle pointing up.
@@ -1295,8 +1203,6 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		/// <param name="templateName">The name of the drawing tool template the object will use to determine various visual properties</param>
 		/// <returns></returns>
 		public static TriangleUp TriangleUp(NinjaScriptBase owner, string tag, bool isAutoScale, int barsAgo, double y, bool isGlobal, string templateName)
-		{
-			return ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
-		}
+			=> ChartMarkerCore<TriangleUp>(owner, tag, isAutoScale, barsAgo, Core.Globals.MinDate, y, null, isGlobal, templateName);
 	}
 }

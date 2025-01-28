@@ -38,28 +38,28 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		private				bool								isReadyForMovingSecondLeg;
 		private				bool								updateEndAnc;
 
-		public override object Icon { get { return Gui.Tools.Icons.DrawTrendChannel; } }
+		public override object Icon => Gui.Tools.Icons.DrawTrendChannel;
 
 		[XmlIgnore]
 		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolShapesAreaBrush", GroupName = "NinjaScriptGeneral", Order = 1)]
 		public Brush AreaBrush
 		{
-			get { return areaBrush; }
-			set { areaBrush = value.ToFrozenBrush(); }
+			get => areaBrush;
+			set => areaBrush = value.ToFrozenBrush();
 		}
 
 		[Browsable(false)]
 		public string AreaBrushSerialize
 		{
-			get { return Serialize.BrushToString(AreaBrush); }
-			set { AreaBrush = Serialize.StringToBrush(value); }
+			get => Serialize.BrushToString(AreaBrush);
+			set => AreaBrush = Serialize.StringToBrush(value);
 		}
 
 		[Range(0, 100)]
 		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolAreaOpacity", GroupName = "NinjaScriptGeneral", Order = 2)]
 		public int AreaOpacity
 		{
-			get { return areaOpacity; }
+			get => areaOpacity;
 			set
 			{
 				int newOpacity = Math.Max(0, Math.Min(100, value));
@@ -93,13 +93,12 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolTrendChannelParallelStroke", GroupName = "NinjaScriptLines", Order = 2)]
 		public Stroke ParallelStroke { get; set; }
 
-		public override bool SupportsAlerts { get { return true; } }
+		public override bool SupportsAlerts => true;
 
 		public override void CopyTo(NinjaScript ninjaScript)
 		{
 			base.CopyTo(ninjaScript);
-			TrendChannel tc = ninjaScript as TrendChannel;
-			if (tc != null)
+			if (ninjaScript is TrendChannel tc)
 				tc.isReadyForMovingSecondLeg = isReadyForMovingSecondLeg;
 		}
 
@@ -110,12 +109,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			if (areaDeviceBrush != null)
 				areaDeviceBrush.RenderTarget = null;
 
-			if (fillLeftGeometry != null)
-				fillLeftGeometry.Dispose();
-			if (fillMainGeometry != null)
-				fillMainGeometry.Dispose();
-			if (fillRightGeometry != null)
-				fillRightGeometry.Dispose();
+			fillLeftGeometry?.Dispose();
+			fillMainGeometry?.Dispose();
+			fillRightGeometry?.Dispose();
 		}
 
 		protected override void OnStateChange()
@@ -286,18 +282,19 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 				case Condition.NotEqual		: return pointLocation != MathHelper.PointLineLocation.DirectlyOnLine;
 				case Condition.CrossAbove	:
 				case Condition.CrossBelow	:
-					Predicate<ChartAlertValue> predicate = v =>
+
+					bool Predicate(ChartAlertValue v)
 					{
 						double barX = chartControl.GetXByTime(v.Time);
 						double barY = chartScale.GetYByValue(v.Value);
 						Point stepBarPoint = new Point(barX, barY);
 						// NOTE: 'left / right' is relative to if line was vertical. it can end up backwards too
 						MathHelper.PointLineLocation ptLocation = MathHelper.GetPointLineLocation(alertStartPoint, alertEndPoint, stepBarPoint);
-						if (condition == Condition.CrossAbove)
-							return ptLocation == MathHelper.PointLineLocation.LeftOrAbove;
+						if (condition == Condition.CrossAbove) return ptLocation == MathHelper.PointLineLocation.LeftOrAbove;
 						return ptLocation == MathHelper.PointLineLocation.RightOrBelow;
-					};
-					return MathHelper.DidPredicateCross(values, predicate);
+					}
+
+					return MathHelper.DidPredicateCross(values, Predicate);
 			}
 			
 			return false;
@@ -358,7 +355,6 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 
 		public override void OnEdited(ChartControl chartControl, ChartPanel chartPanel, ChartScale chartScale, DrawingTool oldinstance)
 		{
-			// if user edits anchors, we need to update our parallel end
 			SetParallelLine(chartControl, false);
 		}
 
@@ -501,10 +497,11 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			SharpDX.Vector2 startVec2	= startPoint2.ToVector2();
 			SharpDX.Vector2 endVec2		= endPoint2.ToVector2();
 
-			Point maxPoint				= GetExtendedPoint(startPoint, endPoint);
-			Point maxPoint2				= ParallelStartAnchor.Time > DateTime.MinValue ? GetExtendedPoint(startPoint2, endPoint2) : new Point(-1, -1);
-			Point minPoint				= GetExtendedPoint(endPoint, startPoint);
-			Point minPoint2				= ParallelStartAnchor.Time > DateTime.MinValue ? GetExtendedPoint(endPoint2, startPoint2) : new Point(-1, -1);
+			Point maxPoint				= GetExtendedPoint(chartControl, panel, chartScale, TrendStartAnchor, TrendEndAnchor);
+			Point minPoint				= GetExtendedPoint(chartControl, panel, chartScale, TrendEndAnchor, TrendStartAnchor);
+
+			Point maxPoint2				= ParallelStartAnchor.Time > DateTime.MinValue ? startPoint2 + (maxPoint - minPoint) : new Point(double.NaN, double.NaN);
+			Point minPoint2				= ParallelStartAnchor.Time > DateTime.MinValue ? startPoint2 + (minPoint - maxPoint) : new Point(double.NaN, double.NaN);
 
 			SharpDX.Direct2D1.Brush tmpBrush = IsInHitTest ? chartControl.SelectionBrush : Stroke.BrushDX;
 			RenderTarget.DrawLine(startVec, endVec, tmpBrush, Stroke.Width, Stroke.StrokeStyle);
@@ -529,14 +526,14 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			geometrySinkMain.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 			geometrySinkMain.Close();
 
-			if (areaDeviceBrush != null && areaDeviceBrush.RenderTarget != null && areaDeviceBrush.BrushDX != null)
+			if (areaDeviceBrush is { RenderTarget: { }, BrushDX: { } })
 				RenderTarget.FillGeometry(fillMainGeometry, areaDeviceBrush.BrushDX);
 
 			if (IsExtendedLinesLeft)
 			{
 				if (minPoint.X > -1 || minPoint.Y > -1)
 					RenderTarget.DrawLine(startVec, minPoint.ToVector2(), Stroke.BrushDX, Stroke.Width, Stroke.StrokeStyle);
-				if (minPoint2.X > -1 || minPoint2.Y > -1)
+				if (!double.IsNaN(minPoint2.X) && !double.IsNaN(minPoint2.Y))
 					RenderTarget.DrawLine(startVec2, minPoint2.ToVector2(), ParallelStroke.BrushDX, ParallelStroke.Width, ParallelStroke.StrokeStyle);
 
 				if (minPoint2.Y > 0 && minPoint2.X < ChartPanel.X && minPoint2.Y < ChartPanel.H + ChartPanel.Y && minPoint.X > ChartPanel.X && minPoint.Y > ChartPanel.H + ChartPanel.Y
@@ -549,10 +546,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					fillLeftFig[2]			= extLowLeftPoint.ToVector2();
 					fillLeftFig[3]			= minPoint.ToVector2();
 					fillLeftFig[4]			= startPoint.ToVector2();
-					
-					if (fillLeftGeometry != null)
-						fillLeftGeometry.Dispose();
-					
+
+					fillLeftGeometry?.Dispose();
+
 					fillLeftGeometry	= new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
 
 					SharpDX.Direct2D1.GeometrySink geometrySinkLeft = fillLeftGeometry.Open();
@@ -561,7 +557,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					geometrySinkLeft.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 					geometrySinkLeft.Close();
 
-					if (areaDeviceBrush != null && areaDeviceBrush.RenderTarget != null && areaDeviceBrush.BrushDX != null)
+					if (areaDeviceBrush is { RenderTarget: { }, BrushDX: { } })
 						RenderTarget.FillGeometry(fillLeftGeometry, areaDeviceBrush.BrushDX);
 				}
 				else if (minPoint2.X > ChartPanel.X && minPoint2.Y < ChartPanel.Y && minPoint.X < ChartPanel.X && minPoint.Y < ChartPanel.H + ChartPanel.Y
@@ -574,10 +570,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					fillLeftFig[2]			= extUppLeftPoint.ToVector2();
 					fillLeftFig[3]			= minPoint.ToVector2();
 					fillLeftFig[4]			= startPoint.ToVector2();
-					
-					if (fillLeftGeometry != null)
-						fillLeftGeometry.Dispose();
-					
+
+					fillLeftGeometry?.Dispose();
+
 					fillLeftGeometry	= new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
 
 					SharpDX.Direct2D1.GeometrySink geometrySinkLeft = fillLeftGeometry.Open();
@@ -586,7 +581,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					geometrySinkLeft.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 					geometrySinkLeft.Close();
 
-					if (areaDeviceBrush != null && areaDeviceBrush.RenderTarget != null && areaDeviceBrush.BrushDX != null)
+					if (areaDeviceBrush is { RenderTarget: { }, BrushDX: { } })
 						RenderTarget.FillGeometry(fillLeftGeometry, areaDeviceBrush.BrushDX);
 				}
 				else if (minPoint2.X < ChartPanel.W + ChartPanel.X && minPoint2.Y < ChartPanel.Y && minPoint.X > ChartPanel.W + ChartPanel.X && minPoint.Y < ChartPanel.H + ChartPanel.Y
@@ -599,10 +594,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					fillLeftFig[2]			= extUppRightPoint.ToVector2();
 					fillLeftFig[3]			= minPoint.ToVector2();
 					fillLeftFig[4]			= startPoint.ToVector2();
-					
-					if (fillLeftGeometry != null)
-						fillLeftGeometry.Dispose();
-					
+
+					fillLeftGeometry?.Dispose();
+
 					fillLeftGeometry		= new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
 
 					SharpDX.Direct2D1.GeometrySink geometrySinkLeft = fillLeftGeometry.Open();
@@ -611,7 +605,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					geometrySinkLeft.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 					geometrySinkLeft.Close();
 
-					if (areaDeviceBrush != null && areaDeviceBrush.RenderTarget != null && areaDeviceBrush.BrushDX != null)
+					if (areaDeviceBrush is { RenderTarget: { }, BrushDX: { } })
 						RenderTarget.FillGeometry(fillLeftGeometry, areaDeviceBrush.BrushDX);
 				}
 				else if (minPoint2.Y > 0 && minPoint2.X > ChartPanel.W + ChartPanel.X && minPoint2.Y < ChartPanel.H + ChartPanel.Y && minPoint.X < ChartPanel.W + ChartPanel.X && minPoint.Y > ChartPanel.H + ChartPanel.Y
@@ -624,10 +618,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					fillLeftFig[2]			= extLowRightPoint.ToVector2();
 					fillLeftFig[3]			= minPoint.ToVector2();
 					fillLeftFig[4]			= startPoint.ToVector2();
-					
-					if (fillLeftGeometry != null)
-						fillLeftGeometry.Dispose();
-					
+
+					fillLeftGeometry?.Dispose();
+
 					fillLeftGeometry		= new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
 
 					SharpDX.Direct2D1.GeometrySink geometrySinkLeft = fillLeftGeometry.Open();
@@ -636,7 +629,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					geometrySinkLeft.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 					geometrySinkLeft.Close();
 
-					if (areaDeviceBrush != null && areaDeviceBrush.RenderTarget != null && areaDeviceBrush.BrushDX != null)
+					if (areaDeviceBrush is { RenderTarget: { }, BrushDX: { } })
 						RenderTarget.FillGeometry(fillLeftGeometry, areaDeviceBrush.BrushDX);
 				}
 				else
@@ -671,10 +664,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 						fillLeftFig[2]		= minPoint.ToVector2();
 					
 					fillLeftFig[3]			= startPoint.ToVector2();
-					
-					if (fillLeftGeometry != null)
-						fillLeftGeometry.Dispose();
-					
+
+					fillLeftGeometry?.Dispose();
+
 					fillLeftGeometry		= new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
 
 					SharpDX.Direct2D1.GeometrySink geometrySinkLeft = fillLeftGeometry.Open();
@@ -683,7 +675,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					geometrySinkLeft.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 					geometrySinkLeft.Close();
 
-					if (areaDeviceBrush != null && areaDeviceBrush.RenderTarget != null && areaDeviceBrush.BrushDX != null)
+					if (areaDeviceBrush is { RenderTarget: { }, BrushDX: { } })
 						RenderTarget.FillGeometry(fillLeftGeometry, areaDeviceBrush.BrushDX);
 				}
 			}
@@ -705,10 +697,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					fillRightFig[2]		= extLowLeftPoint.ToVector2();
 					fillRightFig[3]		= maxPoint.ToVector2();
 					fillRightFig[4]		= endPoint.ToVector2();
-					
-					if (fillRightGeometry != null)
-						fillRightGeometry.Dispose();
-					
+
+					fillRightGeometry?.Dispose();
+
 					fillRightGeometry	= new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
 
 					SharpDX.Direct2D1.GeometrySink geometrySinkRight = fillRightGeometry.Open();
@@ -717,7 +708,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					geometrySinkRight.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 					geometrySinkRight.Close();
 
-					if (areaDeviceBrush != null && areaDeviceBrush.RenderTarget != null && areaDeviceBrush.BrushDX != null)
+					if (areaDeviceBrush is { RenderTarget: { }, BrushDX: { } })
 						RenderTarget.FillGeometry(fillRightGeometry, areaDeviceBrush.BrushDX);
 				}
 				else if (maxPoint2.X > ChartPanel.X && maxPoint2.Y < ChartPanel.Y && maxPoint.X < ChartPanel.X && maxPoint.Y < ChartPanel.H + ChartPanel.Y
@@ -730,10 +721,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					fillRightFig[2]			= extUppLeftPoint.ToVector2();
 					fillRightFig[3]			= maxPoint.ToVector2();
 					fillRightFig[4]			= endPoint.ToVector2();
-					
-					if (fillRightGeometry != null)
-						fillRightGeometry.Dispose();
-					
+
+					fillRightGeometry?.Dispose();
+
 					fillRightGeometry		= new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
 
 					SharpDX.Direct2D1.GeometrySink geometrySinkRight = fillRightGeometry.Open();
@@ -742,7 +732,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					geometrySinkRight.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 					geometrySinkRight.Close();
 
-					if (areaDeviceBrush != null && areaDeviceBrush.RenderTarget != null && areaDeviceBrush.BrushDX != null)
+					if (areaDeviceBrush is { RenderTarget: { }, BrushDX: { } })
 						RenderTarget.FillGeometry(fillRightGeometry, areaDeviceBrush.BrushDX);
 				}
 				else if (maxPoint2.X < ChartPanel.W + ChartPanel.X && maxPoint2.Y < ChartPanel.Y && maxPoint.X > ChartPanel.W + ChartPanel.X && maxPoint.Y < ChartPanel.H + ChartPanel.Y
@@ -755,10 +745,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					fillRightFig[2]			= extUppRightPoint.ToVector2();
 					fillRightFig[3]			= maxPoint.ToVector2();
 					fillRightFig[4]			= endPoint.ToVector2();
-					
-					if (fillRightGeometry != null)
-						fillRightGeometry.Dispose();
-					
+
+					fillRightGeometry?.Dispose();
+
 					fillRightGeometry		= new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
 
 					SharpDX.Direct2D1.GeometrySink geometrySinkRight = fillRightGeometry.Open();
@@ -767,7 +756,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					geometrySinkRight.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 					geometrySinkRight.Close();
 
-					if (areaDeviceBrush != null && areaDeviceBrush.RenderTarget != null && areaDeviceBrush.BrushDX != null)
+					if (areaDeviceBrush is { RenderTarget: { }, BrushDX: { } })
 						RenderTarget.FillGeometry(fillRightGeometry, areaDeviceBrush.BrushDX);
 				}
 				else if (maxPoint2.Y > 0 && maxPoint2.X > ChartPanel.W + ChartPanel.X && maxPoint2.Y < ChartPanel.H + ChartPanel.Y && maxPoint.X < ChartPanel.W + ChartPanel.X && maxPoint.Y > ChartPanel.H + ChartPanel.Y
@@ -780,10 +769,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					fillRightFig[2]			= extLowRightPoint.ToVector2();
 					fillRightFig[3]			= maxPoint.ToVector2();
 					fillRightFig[4]			= endPoint.ToVector2();
-					
-					if (fillRightGeometry != null)
-						fillRightGeometry.Dispose();
-					
+
+					fillRightGeometry?.Dispose();
+
 					fillRightGeometry		= new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
 
 					SharpDX.Direct2D1.GeometrySink geometrySinkRight = fillRightGeometry.Open();
@@ -792,7 +780,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					geometrySinkRight.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 					geometrySinkRight.Close();
 
-					if (areaDeviceBrush != null && areaDeviceBrush.RenderTarget != null && areaDeviceBrush.BrushDX != null)
+					if (areaDeviceBrush is { RenderTarget: { }, BrushDX: { } })
 						RenderTarget.FillGeometry(fillRightGeometry, areaDeviceBrush.BrushDX);
 				}
 				else
@@ -827,10 +815,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 						fillRightFig[2]		= maxPoint.ToVector2();
 					
 					fillRightFig[3]			= endPoint.ToVector2();
-					
-					if (fillRightGeometry != null)
-						fillRightGeometry.Dispose();
-					
+
+					fillRightGeometry?.Dispose();
+
 					fillRightGeometry		= new SharpDX.Direct2D1.PathGeometry(Core.Globals.D2DFactory);
 
 					SharpDX.Direct2D1.GeometrySink geometrySinkRight = fillRightGeometry.Open();
@@ -839,7 +826,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					geometrySinkRight.EndFigure(SharpDX.Direct2D1.FigureEnd.Closed);
 					geometrySinkRight.Close();
 
-					if (areaDeviceBrush != null && areaDeviceBrush.RenderTarget != null && areaDeviceBrush.BrushDX != null)
+					if (areaDeviceBrush is { RenderTarget: { }, BrushDX: { } })
 						RenderTarget.FillGeometry(fillRightGeometry, areaDeviceBrush.BrushDX);
 				}
 			}
@@ -880,14 +867,14 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			{
 				if (chartControl.BarSpacingType != BarSpacingType.TimeBased)
 				{
-					ParallelStartAnchor.SlotIndex = TrendEndAnchor.SlotIndex;
-					ParallelStartAnchor.Time = chartControl.GetTimeBySlotIndex(ParallelStartAnchor.SlotIndex);
+					ParallelStartAnchor.SlotIndex	= TrendEndAnchor.SlotIndex;
+					ParallelStartAnchor.Time		= chartControl.GetTimeBySlotIndex(ParallelStartAnchor.SlotIndex);
 				}
 				else
 					ParallelStartAnchor.Time = TrendEndAnchor.Time;
 
-				ParallelStartAnchor.Price		= TrendEndAnchor.Price;
-				ParallelStartAnchor.StartAnchor = InitialMouseDownAnchor;
+				ParallelStartAnchor.Price			= TrendEndAnchor.Price;
+				ParallelStartAnchor.StartAnchor		= InitialMouseDownAnchor;
 			}
 			else 
 			{
@@ -917,10 +904,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 				throw new ArgumentException("tag cant be null or empty");
 
 			if (isGlobal && tag[0] != GlobalDrawingToolManager.GlobalDrawingToolTagPrefix)
-				tag = string.Format("{0}{1}", GlobalDrawingToolManager.GlobalDrawingToolTagPrefix, tag);
+				tag = $"{GlobalDrawingToolManager.GlobalDrawingToolTagPrefix}{tag}";
 
-			TrendChannel trendChannel = DrawingTool.GetByTagOrNew(owner, typeof(TrendChannel), tag, templateName) as TrendChannel;
-			if (trendChannel == null)
+			if (!(DrawingTool.GetByTagOrNew(owner, typeof(TrendChannel), tag, templateName) is TrendChannel trendChannel))
 				return null;
 
 			DrawingTool.SetDrawingToolCommonValues(trendChannel, tag, isAutoScale, owner, isGlobal);

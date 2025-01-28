@@ -125,7 +125,7 @@ namespace NinjaTrader.NinjaScript.ShareServices
 
 			try
 			{
-				if (await Core.Globals.SendMailToServer(FromMailAddress, DisplayName, ToMailAddress.Split(',', ';'), CcMailAddress.Split(',', ';'), text, Subject, imageFilePath, Server, Port, mailUserName, mailPassword))
+				if (await Core.Globals.SendMailToServer(FromMailAddress, DisplayName, ToMailAddress.Split(',', ';'), CcMailAddress.Split(',', ';'), text, Subject, imageFilePath, Server, Port, mailUserName, mailPassword, IsBodyHtml))
 					LogAndPrint(typeof(Custom.Resource), "ShareMailSentSuccessfully", new[] { Name }, Cbi.LogLevel.Information);
 			}
 			catch (Exception ex)

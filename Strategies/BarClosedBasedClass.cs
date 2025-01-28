@@ -1,3 +1,5 @@
+//#define ENABLE_ADX_DI
+
 #region Using declarations
 using System;
 using System.Collections.Generic;
@@ -21,6 +23,7 @@ namespace NinjaTrader.NinjaScript.Strategies
     {
         private const int DEMA_Period = 9;
         private const int FiveMinutes_Period = 14;
+        private const int ADX_Min_Level = 25; 
 
         #region 1 minute values
         protected double ema21_1m = -1;
@@ -176,6 +179,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 DailyTargetProfit = 700;
                 AllowToMoveStopLossGain = true;
                 NewsTimeInput = "0830";
+
+                
             }
             else if (State == State.Configure)
             {
@@ -207,6 +212,19 @@ namespace NinjaTrader.NinjaScript.Strategies
                 AddChartIndicator(bollinger1);
                 AddChartIndicator(bollinger2);
                 AddChartIndicator(DEMA(9));
+                
+
+                //var adx = ADX(FiveMinutes_Period);
+                //adx.Plots[0].Brush = Brushes.Gold;
+
+                var di = DM(FiveMinutes_Period);
+                di.Plots[0].Brush = Brushes.Gold;
+                di.Plots[1].Brush = Brushes.Green;
+                di.Plots[2].Brush = Brushes.Red;
+
+                //AddChartIndicator(adx);
+                AddChartIndicator(di);
+
             }
         }
 
@@ -219,7 +237,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			*/
             var time = ToTime(Time[0]);
             
-            /*
+            
             // Cho phép trade reverse (Bollinger Band) từ 8:35 am đến 11:30pm
             if (time >= 083500 && time <= 233000 && currentPrice > lowerBB_5m && currentPrice < upperBB_5m)
             {
@@ -235,12 +253,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     return TradeAction.Buy_Reversal;
                 }
-            }
-            */
+            }            
             
             // Trade theo treding
             // Find the trend 
-            if (adx_5m > 25 && volume_5m > avgEMAVolume_5m) // Nếu là xu hướng mạnh và có volume
+            if (adx_5m > ADX_Min_Level && volume_5m > avgEMAVolume_5m) // Nếu là xu hướng mạnh và có volume
             {
                 // Check xem là xu hướng gì
                 if (plusDI_5m > minusDI_5m)
@@ -458,7 +475,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (action == OrderAction.Buy)
             {
-                Draw.ArrowUp(this, $"SellSignal" + CurrentBar, false, 0, Low[0] - TickSize * 10, Brushes.Green);
+                Draw.ArrowUp(this, $"BuySignal" + CurrentBar, false, 0, Low[0] - TickSize * 10, Brushes.Green);
             }
             else if (action == OrderAction.Sell)
             {
@@ -477,7 +494,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 EnterOrderPure(priceToSet, targetHalf, stopLossPrice, signalHalf, DefaultQuantity);
 
                 var signalFull = tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Sell_Trending ? SignalEntry_TrendingFull : SignalEntry_ReversalFull;
-                EnterOrderPure(priceToSet, targetFull, stopLossPrice - 0.5, signalFull, DefaultQuantity);
+                EnterOrderPure(priceToSet, targetFull, stopLossPrice, signalFull, DefaultQuantity);
             }
             catch (Exception ex) 
             {
@@ -502,6 +519,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (ChickenStatus == ChickenStatus.OrderExists && ActiveOrders.Count == 2) 
                 { 
+                    
                 }
             }
         }
@@ -622,21 +640,27 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 return;
             }
-            
-            var key = order.Name == StopLoss_SignalName || order.Name == ProfitTarget_SignalName  
-                ? $"{order.Name}-{order.FromEntrySignal}" 
-                :order.Name;
+
+            var key = order.Name == StopLoss_SignalName || order.Name == ProfitTarget_SignalName
+                ? $"{order.Name}-{order.FromEntrySignal}"
+                : order.Name;
+
+            LocalPrint(
+                $"OnOrderUpdate - key: {key}, orderType: {order.OrderType}, orderState: {orderState}, " +
+                $"limitPrice: {limitPrice:N2}, stop: {stopPrice:N2}");
 
             try
             {
+                /*
                 LocalPrint(
                 $"OnOrderUpdate - key: {key}, orderType: {order.OrderType}, orderState: {orderState}, " +
                 $"limitPrice: {limitPrice:N2}, stop: {stopPrice:N2}");
+                */
                 if (orderState == OrderState.Filled || orderState == OrderState.Cancelled)
                 {
                     ActiveOrders.Remove(key);
                 }
-                else if (orderState == OrderState.Working)
+                else if (orderState == OrderState.Working && !ActiveOrders.ContainsKey(key))
                 {
                     ActiveOrders.Add(key, order);
                 }                
@@ -794,13 +818,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }                
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
-            {                
+            {
                 var bollinger = Bollinger(1, 20);
                 var bollingerStd2 = Bollinger(2, 20);
 
                 volume_5m = Volume[0];
                 avgEMAVolume_5m = EMA(Volume, FiveMinutes_Period)[0];
                 adx_5m = ADX(FiveMinutes_Period).Value[0];
+                
+                if (adx_5m > ADX_Min_Level)
+                {
+                    LocalPrint($"ADX = {adx_5m} at {Time[0]}");
+                }
                 plusDI_5m = DM(FiveMinutes_Period).DiPlus[0];
                 minusDI_5m = DM(FiveMinutes_Period).DiMinus[0];
 

@@ -7,7 +7,7 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9.0</LangVersion>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <OutputType>Library</OutputType>
     <Platforms>x64</Platforms>
@@ -20,9 +20,6 @@
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
     <NoWarn>1591</NoWarn>
     <PlatformTarget>x64</PlatformTarget>
-  </PropertyGroup>
-  <PropertyGroup>
-    <DocumentsFolder>$(USERPROFILE)\Documents</DocumentsFolder>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
@@ -363,25 +360,26 @@
     <Compile Include="Strategies\%40SampleMultiInstrument.cs" />
     <Compile Include="Strategies\%40SampleMultiTimeFrame.cs" />
     <Compile Include="Strategies\%40Strategy.cs" />
-    <Compile Include="Strategies\ATMStrategyConverter.cs" />
-    <Compile Include="Strategies\Chicken.cs" />
-    <Compile Include="Strategies\StrategiesUtilities.cs" />
-    <Compile Include="Strategies\TestStopLossGainMoving.cs" />
     <Compile Include="SuperDomColumns\%40APQ.cs" />
     <Compile Include="SuperDomColumns\%40Notes.cs" />
     <Compile Include="SuperDomColumns\%40ProfitLoss.cs" />
     <Compile Include="SuperDomColumns\%40Recent.cs" />
     <Compile Include="SuperDomColumns\%40Volume.cs" />
     <Compile Include="SuperDomColumns\%40PullingStacking.cs" />
-    <Compile Include="Indicators\Gemify\OrderLineDecorator\OrderLineDecorator.cs" />
     <Compile Include="Indicators\Prop_Trader_Tools\SimpleTradeCopier.cs" />
-    <Compile Include="obj\x64\Debug\.NETFramework,Version=v4.8.AssemblyAttributes.cs" />
+    <Compile Include="Indicators\Gemify\OrderLineDecorator\OrderLineDecorator.cs" />
+    <Compile Include="Indicators\WaddahAttarExplosion.cs" />
     <Compile Include="Strategies\AllStatus.cs" />
+    <Compile Include="Strategies\ATMStrategyConverter.cs" />
+    <Compile Include="Strategies\BarClosedBasedClass.cs" />
+    <Compile Include="Strategies\Chicken.cs" />
     <Compile Include="Strategies\Duck.cs" />
     <Compile Include="Strategies\Monkey.cs" />
-    <Compile Include="Strategies\BarClosedBasedClass.cs" />
     <Compile Include="Strategies\PriceChangeBasedClass.cs" />
     <Compile Include="Strategies\SimpleTrade.cs" />
+    <Compile Include="Strategies\StrategiesUtilities.cs" />
+    <Compile Include="Strategies\TestStopLossGainMoving.cs" />
+    <Compile Include="obj\x64\Debug\.NETFramework,Version=v4.8.AssemblyAttributes.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

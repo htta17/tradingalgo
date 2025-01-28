@@ -50,7 +50,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 			else if (State == State.Historical)
 			{
-				isAdvancedType		= BarsPeriod.BarsPeriodType == BarsPeriodType.HeikenAshi || BarsPeriod.BarsPeriodType == BarsPeriodType.Volumetric;
+				isAdvancedType		= BarsPeriod.BarsPeriodType == BarsPeriodType.HeikenAshi || BarsPeriod.BarsPeriodType == BarsPeriodType.PriceOnVolume || BarsPeriod.BarsPeriodType == BarsPeriodType.Volumetric;
 				bool isOtherType	= BarsPeriod.ToString().IndexOf("Range") >= 0 || BarsPeriod.ToString().IndexOf(NinjaTrader.Custom.Resource.BarsPeriodTypeNameRange) >= 0;
 
 				if (BarsPeriod.BarsPeriodType == BarsPeriodType.Range ||

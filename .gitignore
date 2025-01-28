@@ -32,3 +32,13 @@
 /bin/Debug/NinjaTrader.Custom.XML
 /.vs/ProjectEvaluation
 /bin/Debug/mscorlib.dll
+/zh-Hans/NinjaTrader.Vendor.resources.dll
+/NinjaTrader.Vendor.dll
+/de-DE/NinjaTrader.Vendor.resources.dll
+/es-ES/NinjaTrader.Vendor.resources.dll
+/fr-FR/NinjaTrader.Vendor.resources.dll
+/it-IT/NinjaTrader.Vendor.resources.dll
+/ko-KR/NinjaTrader.Vendor.resources.dll
+/pt-PT/NinjaTrader.Vendor.resources.dll
+/ru-RU/NinjaTrader.Vendor.resources.dll
+/NinjaTrader.Custom.csproj.user

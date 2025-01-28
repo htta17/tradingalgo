@@ -57,7 +57,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			string tickMsg		= ShowPercent ? tickCount.ToString("P0") : tickCount.ToString();
 
 			string tick1 = (BarsPeriod.BarsPeriodType == BarsPeriodType.Tick 
-						|| ((BarsPeriod.BarsPeriodType == BarsPeriodType.HeikenAshi || BarsPeriod.BarsPeriodType == BarsPeriodType.Volumetric) && BarsPeriod.BaseBarsPeriodType == BarsPeriodType.Tick) ? ((CountDown 
+						|| ((BarsPeriod.BarsPeriodType == BarsPeriodType.HeikenAshi || BarsPeriod.BarsPeriodType == BarsPeriodType.PriceOnVolume || BarsPeriod.BarsPeriodType == BarsPeriodType.Volumetric) && BarsPeriod.BaseBarsPeriodType == BarsPeriodType.Tick) ? ((CountDown 
 										? NinjaTrader.Custom.Resource.TickCounterTicksRemaining + tickMsg : NinjaTrader.Custom.Resource.TickCounterTickCount + tickMsg))
 										: NinjaTrader.Custom.Resource.TickCounterBarError);
 

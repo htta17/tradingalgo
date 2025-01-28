@@ -9,7 +9,6 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml.Serialization;
@@ -26,7 +25,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 	public class Text : DrawingTool
 	{
 		private		Brush							areaBrush;
-		private		DeviceBrush				 		areaBrushDevice			= new DeviceBrush();
+		private		DeviceBrush				 		areaBrushDevice			= new();
 		private		int								areaOpacity;
 		private		TextAlignment					alignment;
 		[CLSCompliant(false)]
@@ -36,16 +35,15 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		private		bool							needsLayoutUpdate;
 		private		readonly	float 				outlinePadding 			= GetPadding();
 		private		Brush							textBrush;
-		private		DeviceBrush 					textBrushDevice			= new DeviceBrush();
+		private		DeviceBrush 					textBrushDevice			= new();
 		private		string							text;
-		private		Popup							popup;
 		
-		public override object Icon { get { return Gui.Tools.Icons.DrawText; } }
+		public override object Icon => Gui.Tools.Icons.DrawText;
 
 		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolTextAlignment", GroupName = "NinjaScriptGeneral", Order = 7)]
 		public TextAlignment Alignment
 		{
-			get { return alignment; }
+			get => alignment;
 			set
 			{
 				if (alignment == value)
@@ -62,8 +60,8 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		[Browsable(false)]
 		public bool	UseChartTextBrushSerialize
 		{
-			get { return UseChartTextBrush && (LastBrush == null || TextBrush == null || LastBrush.ToString() == TextBrush.ToString()); }
-			set { UseChartTextBrush = value; }
+			get => UseChartTextBrush && (LastBrush == null || TextBrush == null || LastBrush.ToString() == TextBrush.ToString());
+			set => UseChartTextBrush = value;
 		}
 		
 		[Browsable(false)]
@@ -82,19 +80,19 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolShapesAreaBrush", GroupName = "NinjaScriptGeneral", Order = 1)]
 		public Brush AreaBrush
 		{
-			get { return areaBrush; }
+			get => areaBrush;
 			set
 			{
 				areaBrush = value;
-				if (areaBrush != null && areaBrush.CanFreeze)
+				if (areaBrush is { CanFreeze: true })
 					areaBrush.Freeze();
 			}
 		}
 		[Browsable(false)]
 		public string AreaBrushSerialize
 		{
-			get { return Serialize.BrushToString(AreaBrush); }
-			set { AreaBrush = Serialize.StringToBrush(value); }
+			get => Serialize.BrushToString(AreaBrush);
+			set => AreaBrush = Serialize.StringToBrush(value);
 		}
 
 		/// <summary>
@@ -104,14 +102,14 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolAreaOpacity", GroupName = "NinjaScriptGeneral", Order = 2)]
 		public int AreaOpacity
 		{
-			get { return areaOpacity; }
-			set { areaOpacity = Math.Max(0, Math.Min(100, value)); }
+			get => areaOpacity;
+			set => areaOpacity = Math.Max(0, Math.Min(100, value));
 		}
 
 		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolTextFont", GroupName = "NinjaScriptGeneral", Order = 4)]
 		public Gui.Tools.SimpleFont Font
 		{
-			get { return font; }
+			get => font;
 			set
 			{
 				font				= value;
@@ -127,7 +125,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		[PropertyEditor("NinjaTrader.Gui.Tools.MultilineEditor")]
 		public string DisplayText
 		{
-			get { return text; }
+			get => text;
 			set
 			{
 				if (text == value)
@@ -141,11 +139,11 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolTextBrush", GroupName = "NinjaScriptGeneral", Order = 1)]
 		public Brush TextBrush
 		{
-			get { return textBrush; }
+			get => textBrush;
 			set
 			{	
 				textBrush = value;
-				if (textBrush != null && textBrush.CanFreeze)
+				if (textBrush is { CanFreeze: true })
 					textBrush.Freeze();
 			}
 		}
@@ -153,8 +151,8 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		[Browsable(false)]
 		public string TextBrushSerialize
 		{
-			get { return Serialize.BrushToString(TextBrush); }
-			set { TextBrush = Serialize.StringToBrush(value); }
+			get => Serialize.BrushToString(TextBrush);
+			set => TextBrush = Serialize.StringToBrush(value);
 		}
 
 		/// <summary>
@@ -166,8 +164,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		protected override void Dispose(bool disposing)
 		{
 			base.Dispose(disposing);
-			if (cachedTextLayout != null)
-				cachedTextLayout.Dispose();
+			cachedTextLayout?.Dispose();
 			if (textBrushDevice != null)
 				textBrushDevice.RenderTarget = null;
 			if (areaBrushDevice != null)
@@ -183,7 +180,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 				return;
 
 			Rect				outLineRect		= GetCurrentRect(layoutRect, outlinePadding); // this will add padding to layoutRect for us
-			SharpDX.RectangleF	outlineRectDx	= new SharpDX.RectangleF((float)outLineRect.X, (float)outLineRect.Y, (float)outLineRect.Width, (float)outLineRect.Height);
+			SharpDX.RectangleF	outlineRectDx	= new((float)outLineRect.X, (float)outLineRect.Y, (float)outLineRect.Width, (float)outLineRect.Height);
 			Stroke				outlineStroke	= OutlineStroke;
 			textBrushDevice	.RenderTarget		= RenderTarget;
 			areaBrushDevice	.RenderTarget		= RenderTarget;
@@ -192,14 +189,12 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			SharpDX.Direct2D1.Brush tmpBrush;
 			if (AreaBrush != null)
 			{
-				SolidColorBrush tmpOb		= areaBrushDevice.Brush as SolidColorBrush;
-				SolidColorBrush tmpNb 		= AreaBrush 			as SolidColorBrush;
 				// if brush not set, set brush. else if brush set and changed, change brush. if not SolidColorBrush always change brush
-				if (tmpNb == null || tmpOb == null || tmpOb.Color != tmpNb.Color || Math.Abs(tmpOb.Opacity - (areaOpacity / 100d)) > 0.1)
+				if (AreaBrush is not SolidColorBrush tmpNb || areaBrushDevice.Brush is not SolidColorBrush tmpOb || tmpOb.Color != tmpNb.Color || Math.Abs(tmpOb.Opacity - areaOpacity / 100d) > 0.1)
 				{
-					Brush brushCopy			= AreaBrush.Clone();
-					brushCopy.Opacity		= areaOpacity / 100d;
-					areaBrushDevice.Brush	= brushCopy;
+					Brush brushCopy = AreaBrush.Clone();
+					brushCopy.Opacity = areaOpacity / 100d;
+					areaBrushDevice.Brush = brushCopy;
 				}
 				areaBrushDevice.RenderTarget	= RenderTarget;
 				tmpBrush						= IsInHitTest ? chartControl.SelectionBrush : areaBrushDevice.BrushDX;
@@ -216,11 +211,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			}
 			
 			textBrushDevice.RenderTarget = RenderTarget;
-			
-			SolidColorBrush tmpOtb = textBrushDevice.Brush  as SolidColorBrush;
-			SolidColorBrush tmpNtb = TextBrush				as SolidColorBrush;
+
 			// if brush not set, set brush. else if brush set and changed, change brush. if not SolidColorBrush always change brush
-			if (tmpNtb == null || tmpOtb == null || tmpOtb.Color != tmpNtb.Color || Math.Abs(tmpOtb.Opacity - tmpNtb.Opacity) > 0.1)
+			if (TextBrush is not SolidColorBrush tmpNtb || textBrushDevice.Brush is not SolidColorBrush tmpOtb || tmpOtb.Color != tmpNtb.Color || Math.Abs(tmpOtb.Opacity - tmpNtb.Opacity) > 0.1)
 				textBrushDevice.Brush = TextBrush;
 			// when drawing the actual text layout, add padding again, we dont want text right on the edges of our outline rect
 			tmpBrush = IsInHitTest ? chartControl.SelectionBrush : textBrushDevice.BrushDX;
@@ -231,25 +224,19 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		public override Cursor GetCursor(ChartControl chartControl, ChartPanel chartPanel, ChartScale chartScale, Point point)
 		{
 			if (DrawingState == DrawingState.Building)
-				return popup == null || !popup.IsOpen ? Cursors.IBeam : null;
+				return chartControl.GetTextEntryBox().Visibility != Visibility.Visible ? Cursors.IBeam : null;
 			if (DrawingState == DrawingState.Moving)
 				return IsLocked ? Cursors.No : Cursors.SizeAll;
 			// the rect width/height acts as a sensitivity here
 			return GetCurrentRect(layoutRect, outlinePadding).IntersectsWith(new Rect(point.X, point.Y, 4, 4)) ? IsLocked ? Cursors.Arrow : Cursors.SizeAll : null;
 		}
 
-		protected virtual Rect GetCurrentRect(Rect pLayoutRect, double pOutlinePadding)
-		{
-			return !ManuallyDrawn 
+		protected virtual Rect GetCurrentRect(Rect pLayoutRect, double pOutlinePadding) =>
+			!ManuallyDrawn 
 				? new Rect(pLayoutRect.X - pOutlinePadding, pLayoutRect.Y - pLayoutRect.Height / 2 - pOutlinePadding, pLayoutRect.Width + pOutlinePadding * 2, pLayoutRect.Height + pOutlinePadding * 2)
 				: new Rect(pLayoutRect.X - pOutlinePadding, pLayoutRect.Y - pOutlinePadding, pLayoutRect.Width + pOutlinePadding * 2, pLayoutRect.Height + pOutlinePadding * 2);
-		}
 
-		private static float GetPadding()
-		{
-			float? paddingResource = Application.Current.FindResource("FontModalTitleMargin") as float?;
-			return paddingResource.HasValue ? paddingResource.Value : 3f;
-		}
+		private static float GetPadding() => Application.Current.FindResource("FontModalTitleMargin") as float? ?? 3f;
 
 		protected virtual Point GetTextDrawingPosition(ChartControl chartControl, ChartPanel chartPanel, ChartScale chartScale)
 		{
@@ -258,19 +245,19 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			if (cachedTextLayout == null)
 				return anchorPoint;
 
-			switch (Alignment)
+			return Alignment switch
 			{
-				case TextAlignment.Center	: return new Point(anchorPoint.X - cachedTextLayout.MaxWidth / 2, anchorPoint.Y);
-				case TextAlignment.Right	: return new Point(anchorPoint.X - cachedTextLayout.MaxWidth, anchorPoint.Y);
-				case TextAlignment.Left		: return new Point(anchorPoint.X + outlinePadding, anchorPoint.Y);
-				default						: return anchorPoint;
-			}
+				TextAlignment.Center	=> new Point(anchorPoint.X - cachedTextLayout.MaxWidth / 2, anchorPoint.Y),
+				TextAlignment.Right		=> new Point(anchorPoint.X - cachedTextLayout.MaxWidth, anchorPoint.Y),
+				TextAlignment.Left		=> new Point(anchorPoint.X + outlinePadding, anchorPoint.Y),
+				_						=> anchorPoint
+			};
 		}
 
 		public override Point[] GetSelectionPoints(ChartControl chartControl, ChartScale chartScale)
 		{
-			if (DrawingState == DrawingState.Building || layoutRect == default(Rect) || popup != null && popup.IsOpen)
-				return new Point[0];
+			if (DrawingState == DrawingState.Building || layoutRect == default || chartControl.GetTextEntryBox().Visibility == Visibility.Visible)
+				return Array.Empty<Point>();
 
 			Rect curRect = GetCurrentRect(layoutRect, outlinePadding);
 			return new[] { curRect.TopLeft, curRect.TopRight, curRect.BottomLeft, curRect.BottomRight };
@@ -280,7 +267,6 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 		{
 			if (DrawingState == DrawingState.Building)
 				return true;
-
 
 			// get our width -> time value so we can account for the actual text displayed (since there is only one anchor)
 			//chartControl.GetTimeByX
@@ -303,10 +289,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			float startY			= chartScale.GetYByValue(Anchor.Price);
 			float textHeight		= cachedTextLayout.Metrics.Height;
 			double textBottomPrice	= chartScale.GetValueByY(startY + textHeight);
-			if (textBottomPrice > chartScale.MaxValue || Anchor.Price < chartScale.MinValue)
-				return false;
-
-			return true;
+			return !(textBottomPrice > chartScale.MaxValue) && !(Anchor.Price < chartScale.MinValue);
 		}
 
 		public override void OnCalculateMinMax()
@@ -351,75 +334,81 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			if (DrawingState == DrawingState.Building)
 			{
 				dataPoint.CopyDataValues(Anchor);
-				Anchor.IsEditing	= false;
+				Anchor.IsEditing		= false;
+				Point point				= chartControl.MouseDownPoint;
 
-				DisplayText			= string.Empty;
-				TextBox tb			= new TextBox
-				{
-					AcceptsReturn		= true,
-					Background			= new SolidColorBrush(Color.FromArgb(4, 0, 0, 0)),
-					BorderBrush			= chartControl.Properties.AxisPen.Brush,
-					FontFamily			= Font.Family,
-					FontSize			= Font.Size,
-					FontStyle			= Font.Italic ? FontStyles.Italic : FontStyles.Normal,
-					FontWeight			= Font.Bold ? FontWeights.Bold : FontWeights.Normal,
-					Foreground			= TextBrush ?? chartControl.Properties.ChartText,
-					HorizontalAlignment	= HorizontalAlignment.Stretch,
-					Style				= Application.Current.FindResource("TextBoxNoEffects") as Style
-				};
-				
+				DisplayText				= string.Empty;
+				TextBox tb				= chartControl.GetTextEntryBox();
+				tb.Text					= string.Empty;
+				tb.AcceptsReturn		= true;
+				tb.AcceptsTab			= true;
+				tb.Background			= new SolidColorBrush(Color.FromArgb(4, 0, 0, 0));
+				tb.BorderBrush			= chartControl.Properties.AxisPen.Brush;
+				tb.FontFamily			= Font.Family;
+				tb.FontSize				= Font.Size;
+				tb.FontStyle			= Font.Italic ? FontStyles.Italic : FontStyles.Normal;
+				tb.FontWeight			= Font.Bold ? FontWeights.Bold : FontWeights.Normal;
+				tb.Foreground			= TextBrush ?? chartControl.Properties.ChartText;
+				tb.Style				= Application.Current.FindResource("TextBoxNoEffects") as Style;
+				tb.Margin				= new Thickness(point.X, point.Y, 0, 0);
+
 				if (TextBrush == null)
 					UseChartTextBrush = true;
 
-				popup = new Popup
+				void OnTbOnPreviewKeyDown(object _, KeyEventArgs args)
 				{
-					AllowsTransparency	= true,
-					PlacementTarget		= chartPanel,
-					Placement			= PlacementMode.MousePoint,
-					MinWidth			= 75,
-					IsOpen				= false,
-					StaysOpen			= true,
-					Child				= tb
-				};
-				
-				tb.PreviewKeyDown += (sender, args) =>
-				{
+					if (args.Key is Key.Enter or Key.Tab)
+					{
+						tb.Visibility	= Visibility.Collapsed;
+						args.Handled	= true;
+						return;
+					}
+
 					if (args.Key == Key.System && args.SystemKey == Key.Enter)
 					{
-						int		oldIdx	= tb.CaretIndex;
-						string	text1	= tb.Text.Substring(0, oldIdx);
-						string	text2	= tb.Text.Substring(oldIdx);
-						tb.Text			= string.Format("{0}{1}{2}", text1, Environment.NewLine, text2);
-						tb.CaretIndex	= oldIdx + Environment.NewLine.Length;
-						args.Handled	= true;
-					}
-					if (args.Key == Key.Enter)
-					{
-						popup.IsOpen = false;
+						int oldIdx = tb.CaretIndex;
+						string text1 = tb.Text.Substring(0, oldIdx);
+						string text2 = tb.Text.Substring(oldIdx);
+						tb.Text = $"{text1}{Environment.NewLine}{text2}";
+						tb.CaretIndex = oldIdx + Environment.NewLine.Length;
 						args.Handled = true;
 					}
-				};
-
-				tb.PreviewLostKeyboardFocus += (sender, args) => { popup.IsOpen = false; };
-
-				popup.IsOpen = true;
-				ManuallyDrawn = true;
-				tb.Focus();
-
-				popup.PreviewMouseDown += OnChartMouseDown;
-
-				popup.Closed += (sender, args) =>
+				}
+				void OnTbOnIsVisibleChanged(object _, DependencyPropertyChangedEventArgs __)
 				{
-					popup.PreviewMouseDown -= OnChartMouseDown;
+					if (tb.Visibility == Visibility.Visible)
+						return;
+
+					tb.PreviewKeyDown			-= OnTbOnPreviewKeyDown;
+					tb.PreviewMouseDown			-= OnTbPreviewMouseDown;
+					tb.IsVisibleChanged			-= OnTbOnIsVisibleChanged;
+
 					DisplayText		= tb.Text;
 					DrawingState	= DrawingState.Normal;
 					IsSelected		= false;
+
 					chartControl.InvalidateVisual();
+
 					if (chartControl.IsStayInDrawMode)
 						chartControl.TryStartDrawing(GetType().FullName);
+
 					if (IsGlobalDrawingTool)
 						GlobalDrawingToolManager.RaiseGlobalDrawingObjectChanged(chartControl, Cbi.Operation.Update, this);
-				};
+				}
+				void OnTbPreviewMouseDown(object _, MouseButtonEventArgs __)
+				{
+					if (!tb.IsMouseDirectlyOver)
+						tb.Visibility	= Visibility.Collapsed;
+				}
+
+				tb.PreviewKeyDown				+= OnTbOnPreviewKeyDown;
+				chartControl.PreviewMouseDown	+= OnTbPreviewMouseDown;
+				tb.IsVisibleChanged				+= OnTbOnIsVisibleChanged;
+
+				ManuallyDrawn = true;
+
+				tb.Visibility = Visibility.Visible;
+				tb.Focus();
 			}
 			else
 			{
@@ -434,23 +423,13 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			}
 		}
 
-		private void OnChartMouseDown(object sender, MouseButtonEventArgs e)
-		{
-			if (popup.IsMouseDirectlyOver)
-				return;
-			popup.IsOpen = false;
-		}
-
 		public override void OnMouseMove(ChartControl chartControl, ChartPanel chartPanel, ChartScale chartScale, ChartAnchor dataPoint)
 		{
-			if (!IsLocked && (DrawingState == DrawingState.Moving || DrawingState == DrawingState.Editing))
+			if (!IsLocked && DrawingState is DrawingState.Moving or DrawingState.Editing)
 				Anchor.MoveAnchor(InitialMouseDownAnchor, dataPoint, chartControl, chartPanel, chartScale, this);
 		}
 
-		public override void OnMouseUp(ChartControl chartControl, ChartPanel chartPanel, ChartScale chartScale, ChartAnchor dataPoint)
-		{
-			DrawingState = DrawingState.Normal;
-		}
+		public override void OnMouseUp(ChartControl chartControl, ChartPanel chartPanel, ChartScale chartScale, ChartAnchor dataPoint) => DrawingState = DrawingState.Normal;
 
 		public override void OnRender(ChartControl chartControl, ChartScale chartScale)
 		{
@@ -535,12 +514,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			MaxValue = double.MinValue;
 		}
 		
-		private int PaddingMultiplier(ChartControl chartControl, ChartPanel panel, bool top)
-		{
-			return !top
-				? chartControl.ChartPanels.IndexOf(panel) == chartControl.ChartPanels.Count - 1 ? 2 : 1
+		private int PaddingMultiplier(ChartControl chartControl, ChartPanel panel, bool top) =>
+			!top ? chartControl.ChartPanels.IndexOf(panel) == chartControl.ChartPanels.Count - 1 ? 2 : 1
 				: chartControl.ChartPanels.IndexOf(panel) == 0 && chartControl.IsScrollArrowVisible ? 4 : 1;
-		}
 
 		protected override Point GetTextDrawingPosition(ChartControl chartControl, ChartPanel chartPanel, ChartScale chartScale)
 		{
@@ -570,8 +546,8 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 					y = chartPanel.Y + chartPanel.H - textHeight - padding;
 					break;
 				case TextPosition.Center:
-					x = chartPanel.X + chartPanel.W / 2 - textWidth / 2;
-					y = chartPanel.Y + chartPanel.H / 2 - textHeight / 2;
+					x = chartPanel.X + chartPanel.W / 2.0f - textWidth / 2;
+					y = chartPanel.Y + chartPanel.H / 2.0f - textHeight / 2;
 					break;
 				case TextPosition.TopLeft:
 					x = chartPanel.X + padding;
@@ -587,15 +563,9 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			return new Point(x, y);
 		}
 
-		protected override Rect GetCurrentRect(Rect layoutRect, double outlinePadding)
-		{
-			return new Rect(layoutRect.X - outlinePadding, layoutRect.Y - outlinePadding, layoutRect.Width + outlinePadding * 2, layoutRect.Height + outlinePadding * 2);
-		}
+		protected override Rect GetCurrentRect(Rect layoutRect, double outlinePadding) => new(layoutRect.X - outlinePadding, layoutRect.Y - outlinePadding, layoutRect.Width + outlinePadding * 2, layoutRect.Height + outlinePadding * 2);
 
-		public override bool IsVisibleOnChart(ChartControl chartControl, ChartScale chartScale, DateTime firstTimeOnChart, DateTime lastTimeOnChart)
-		{
-			return true;
-		}
+		public override bool IsVisibleOnChart(ChartControl chartControl, ChartScale chartScale, DateTime firstTimeOnChart, DateTime lastTimeOnChart) => true;
 
 		protected override void OnStateChange()
 		{
@@ -625,13 +595,12 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 				throw new ArgumentException("Text: Bad barsAgo/time parameters");
 
 			if (string.IsNullOrWhiteSpace(tag))
-				throw new ArgumentException(@"tag cant be null or empty", "tag");
+				throw new ArgumentException(@"tag cant be null or empty", nameof(tag));
 
 			if (isGlobal && tag[0] != GlobalDrawingToolManager.GlobalDrawingToolTagPrefix)
 				tag = GlobalDrawingToolManager.GlobalDrawingToolTagPrefix + tag;
 
-			Text txt = DrawingTool.GetByTagOrNew(owner, typeof(Text), tag, templateName) as Text;
-			if (txt == null)
+			if (DrawingTool.GetByTagOrNew(owner, typeof(Text), tag, templateName) is not Text txt)
 				return null;
 
 			DrawingTool.SetDrawingToolCommonValues(txt, tag, autoScale, owner, isGlobal);
@@ -847,8 +816,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			TextPosition textPosition, Brush textBrush, Gui.Tools.SimpleFont font, Brush outlineBrush,
 			Brush areaBrush, int? areaOpacity, bool isGlobal, string templateName, DashStyleHelper outlineDashStyle, int outlineWidth)
 		{
-			TextFixed txtFixed = DrawingTool.GetByTagOrNew(owner, typeof(TextFixed), tag, templateName) as TextFixed;
-			if (txtFixed == null)
+			if (DrawingTool.GetByTagOrNew(owner, typeof(TextFixed), tag, templateName) is not TextFixed txtFixed)
 				return null;
 
 			DrawingTool.SetDrawingToolCommonValues(txtFixed, tag, false, owner, isGlobal);

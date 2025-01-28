@@ -217,7 +217,10 @@ namespace NinjaTrader.NinjaScript.Optimizers
 				}
 			}
 			else if (State == State.Terminated && oldKeepBestResults > 0)
-				KeepBestResults = oldKeepBestResults;	
+			{
+				KeepBestResults = oldKeepBestResults;
+				oldKeepBestResults = -1;
+			}	
 		}
 
 		// here is how the GA works:

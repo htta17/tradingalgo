@@ -53,7 +53,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			else if(State == State.DataLoaded)
 			{
 				isVolume 		= BarsPeriod.BarsPeriodType == BarsPeriodType.Volume;
-				isVolumeBase 	= (BarsPeriod.BarsPeriodType == BarsPeriodType.HeikenAshi || BarsPeriod.BarsPeriodType == BarsPeriodType.Volumetric) && BarsPeriod.BaseBarsPeriodType == BarsPeriodType.Volume;
+				isVolumeBase 	= (BarsPeriod.BarsPeriodType == BarsPeriodType.HeikenAshi || BarsPeriod.BarsPeriodType == BarsPeriodType.PriceOnVolume || BarsPeriod.BarsPeriodType == BarsPeriodType.Volumetric) && BarsPeriod.BaseBarsPeriodType == BarsPeriodType.Volume;
 			}
 		}
 

@@ -94,7 +94,7 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			HorizontalLine,
 			Line,
 			Ray,
-			VerticalLine,
+			VerticalLine
 		}
 
 		public override IEnumerable<ChartAnchor> Anchors { get { return new[] { StartAnchor, EndAnchor }; } }
@@ -637,10 +637,6 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 				RenderTarget.DrawLine(startVec, endVec, tmpBrush, Stroke.Width, Stroke.StrokeStyle);
 				return;
 			}
-			// we have a line type with extensions (ray / extended line) or additional drawing needed
-			// create a line vector to easily calculate total length
-			Vector lineVector = endPoint - startPoint;
-			lineVector.Normalize();
 
 			if (LineType != ChartLineType.ArrowLine)
 			{
@@ -652,6 +648,10 @@ namespace NinjaTrader.NinjaScript.DrawingTools
 			}
 			else
 			{
+				// we have a line type with extensions (ray / extended line) or additional drawing needed
+				// create a line vector to easily calculate total length
+				Vector lineVector = endPoint - startPoint;
+				lineVector.Normalize();
 				// translate to the angle the line is pointing to simplify drawing the arrow rect
 				// the ArrowPathGeometry is created with 0,0 as arrow point, so transform there as well
 				// note rotation is against zero, not end vector

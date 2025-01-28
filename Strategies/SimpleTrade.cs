@@ -71,6 +71,17 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected bool crossBelow_5m = false;
         #endregion
 
+        private Series<double> TrueRange;
+        private Series<double> DirectionalMovementPlus;
+        private Series<double> DirectionalMovementMinus;
+        private Series<double> SmoothedTrueRange;
+        private Series<double> SmoothedDirectionalMovementPlus;
+        private Series<double> SmoothedDirectionalMovementMinus;
+        private Series<double> DIPlus;
+        private Series<double> DIMinus;
+        private Series<double> DX;
+        private Series<double> ADXSerie;
+
         protected TradeAction currentTradeAction = TradeAction.NoTrade;        
         protected double filledPrice = -1;
 
@@ -87,36 +98,53 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnStateChange()
 		{
-			if (State == State.SetDefaults)
-			{
-				Description									= @"Enter the description for your new custom Strategy here.";
-				Name										= "SimpleTrade";
-				Calculate									= Calculate.OnBarClose;
-				EntriesPerDirection							= 1;
-				EntryHandling								= EntryHandling.AllEntries;
-				IsExitOnSessionCloseStrategy				= true;
-				ExitOnSessionCloseSeconds					= 30;
-				IsFillLimitOnTouch							= false;
-				MaximumBarsLookBack							= MaximumBarsLookBack.TwoHundredFiftySix;
-				OrderFillResolution							= OrderFillResolution.Standard;
-				Slippage									= 0;
-				StartBehavior								= StartBehavior.WaitUntilFlat;
-				TimeInForce									= TimeInForce.Gtc;
-				TraceOrders									= false;
-				RealtimeErrorHandling						= RealtimeErrorHandling.StopCancelClose;
-				StopTargetHandling							= StopTargetHandling.PerEntryExecution;
+            if (State == State.SetDefaults)
+            {
+                Description = @"Enter the description for your new custom Strategy here.";
+                Name = "SimpleTrade";
+                Calculate = Calculate.OnBarClose;
+                EntriesPerDirection = 1;
+                EntryHandling = EntryHandling.AllEntries;
+                IsExitOnSessionCloseStrategy = true;
+                ExitOnSessionCloseSeconds = 30;
+                IsFillLimitOnTouch = false;
+                MaximumBarsLookBack = MaximumBarsLookBack.TwoHundredFiftySix;
+                OrderFillResolution = OrderFillResolution.Standard;
+                Slippage = 0;
+                StartBehavior = StartBehavior.WaitUntilFlat;
+                TimeInForce = TimeInForce.Gtc;
+                TraceOrders = false;
+                RealtimeErrorHandling = RealtimeErrorHandling.IgnoreAllErrors;
+                StopTargetHandling = StopTargetHandling.PerEntryExecution;
                 BarsRequiredToTrade = 20;
                 // Disable this property for performance gains in Strategy Analyzer optimizations
                 // See the Help Guide for additional information
-                IsInstantiatedOnEachOptimizationIteration	= true;
-			}
-			else if (State == State.Configure)
-			{
+                IsInstantiatedOnEachOptimizationIteration = true;
+
+                AddPlot(Brushes.Green, "DI+");
+                AddPlot(Brushes.Red, "DI-");
+                AddPlot(Brushes.Navy, "ADX");
+            }
+            else if (State == State.Configure)
+            {
                 ClearOutputWindow();
                 AddDataSeries(BarsPeriodType.Minute, 5);
                 AddDataSeries(BarsPeriodType.Minute, 1);
             }
-		}
+            else if (State == State.DataLoaded)
+            {
+                TrueRange = new Series<double>(this);
+                DirectionalMovementPlus = new Series<double>(this);
+                DirectionalMovementMinus = new Series<double>(this);
+                SmoothedTrueRange = new Series<double>(this);
+                SmoothedDirectionalMovementPlus = new Series<double>(this);
+                SmoothedDirectionalMovementMinus = new Series<double>(this);
+                DIPlus = new Series<double>(this);
+                DIMinus = new Series<double>(this);
+                DX = new Series<double>(this);
+                ADXSerie = new Series<double>(this);
+            }
+        }
         
 		protected virtual TradeAction ShouldTrade()
         {
@@ -236,6 +264,53 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
+                try
+                {
+                    if (CurrentBar == 0)
+                    {
+                        TrueRange[0] = High[0] - Low[0];
+                        DirectionalMovementPlus[0] = 0;
+                        DirectionalMovementMinus[0] = 0;
+                        SmoothedTrueRange[0] = TrueRange[0];
+                        SmoothedDirectionalMovementPlus[0] = 0;
+                        SmoothedDirectionalMovementMinus[0] = 0;
+                        DIPlus[0] = 0;
+                        DIMinus[0] = 0;
+                        DX[0] = 0;
+                        ADXSerie[0] = 0;
+                        return;
+                    }
+
+                    double priorClose = Close[1];
+                    TrueRange[0] = Math.Max(Math.Max(High[0] - Low[0], Math.Abs(High[0] - priorClose)), Math.Abs(Low[0] - priorClose));
+
+                    DirectionalMovementPlus[0] = (High[0] - High[1] > Low[1] - Low[0])
+                        ? Math.Max(High[0] - High[1], 0) : 0;
+
+                    DirectionalMovementMinus[0] = (Low[1] - Low[0] > High[0] - High[1])
+                        ? Math.Max(Low[1] - Low[0], 0) : 0;
+
+                    SmoothedTrueRange[0] = SmoothedTrueRange[1] - (SmoothedTrueRange[1] / FiveMinutes_Period) + TrueRange[0];
+                    SmoothedDirectionalMovementPlus[0] = SmoothedDirectionalMovementPlus[1] - (SmoothedDirectionalMovementPlus[1] / FiveMinutes_Period) + DirectionalMovementPlus[0];
+                    SmoothedDirectionalMovementMinus[0] = SmoothedDirectionalMovementMinus[1] - (SmoothedDirectionalMovementMinus[1] / FiveMinutes_Period) + DirectionalMovementMinus[0];
+
+                    DIPlus[0] = (SmoothedTrueRange[0] != 0) ? (SmoothedDirectionalMovementPlus[0] / SmoothedTrueRange[0]) * 100 : 0;
+                    DIMinus[0] = (SmoothedTrueRange[0] != 0) ? (SmoothedDirectionalMovementMinus[0] / SmoothedTrueRange[0]) * 100 : 0;
+
+                    DX[0] = (DIPlus[0] + DIMinus[0] != 0) ? (Math.Abs(DIPlus[0] - DIMinus[0]) / (DIPlus[0] + DIMinus[0])) * 100 : 0;
+
+                    ADXSerie[0] = SMA(DX, FiveMinutes_Period)[0];
+
+                    Values[0][0] = DIPlus[0];  // Plot DI+
+                    Values[1][0] = DIMinus[0]; // Plot DI-
+                    Values[2][0] = ADXSerie[0];     // Plot ADX
+                }
+                catch (Exception ex)
+                {
+                    Print(ex.Message);
+                }
+                
+
                 Print($"{Time[0]} - 5 minute frame - {CountOrders} orders - Start");
                 var bollinger = Bollinger(1, 20);
                 var bollingerStd2 = Bollinger(2, 20);

@@ -154,6 +154,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private double PointToMoveGainLoss = 7;
 
+        /// <summary>
+        /// Chỉ vào 1 lệnh ở (half of StopLossInTicks) để xem độ hiệu quả của thuật toán
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Chỉ enter 1 order để test giải thuật",
+            Order = 20,
+            GroupName = "Parameters")]
+        public bool EnterOneTradeForTest { get; set; } = false;
+
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
@@ -180,9 +189,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 IsInstantiatedOnEachOptimizationIteration = true;
                 SetOrderQuantity = SetOrderQuantity.Strategy;
                 DefaultQuantity = 2;
+                EnterOneTradeForTest = false;
 
                 // Set Properties
-               
+
                 WayToTrade = ChickenWayToTrade.EMA2951;
 
                 MaximumDailyLoss = 400;
@@ -358,14 +368,20 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             double price = -1;
 
+            var time = ToTime(Time[0]); 
+
             switch (tradeAction)
             {
                 case TradeAction.Buy_Trending:
-                    price = setPrice + (TickSize * StopLossInTicks / 2);
+                    price = (time > 150000 || time < 083000) // if night time, cut half at 7.5 point
+                        ? 7.5
+                        : setPrice + (TickSize * StopLossInTicks / 2);
                     break;
 
                 case TradeAction.Sell_Trending:
-                    price = setPrice - (TickSize * StopLossInTicks /2);
+                    price = (time > 150000 || time < 083000) // if night time, cut half at 7.5 point
+                        ? 7.5
+                        : setPrice - (TickSize * StopLossInTicks /2);
                     break;
 
                 case TradeAction.Buy_Reversal:
@@ -417,10 +433,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }      
 
-        const string SignalEntry_ReversalHalf = "Entry-ResveralHalf";
-        const string SignalEntry_ReversalFull = "Entry-ReversalFull";
-        const string SignalEntry_TrendingHalf = "Entry-TrendingHalf";
-        const string SignalEntry_TrendingFull = "Entry-TrendingFull";
+        const string SignalEntry_ReversalHalf = "Entry-RH";
+        const string SignalEntry_ReversalFull = "Entry-RF";
+        const string SignalEntry_TrendingHalf = "Entry-TH";
+        const string SignalEntry_TrendingFull = "Entry-TF";
 
         HashSet<string> SignalEntries = new HashSet<string>
         {
@@ -456,7 +472,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 LocalPrint($"Enter {text}  for {quantity} contracts with signal {signal} at {priceToSet:N2}, stop loss: {stoploss:N2}, target: {target:N2}");
             }
-        }
+        }        
 
         protected virtual void EnterOrder(TradeAction tradeAction)
         {
@@ -487,8 +503,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var signalHalf = tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Sell_Trending ? SignalEntry_TrendingHalf : SignalEntry_ReversalHalf;
                 EnterOrderPure(priceToSet, targetHalf, stopLossPrice, signalHalf, DefaultQuantity);
 
-                var signalFull = tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Sell_Trending ? SignalEntry_TrendingFull : SignalEntry_ReversalFull;
-                EnterOrderPure(priceToSet, targetFull, stopLossPrice, signalFull, DefaultQuantity);
+                if (!EnterOneTradeForTest)
+                {
+                    var signalFull = tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Sell_Trending ? SignalEntry_TrendingFull : SignalEntry_ReversalFull;
+                    EnterOrderPure(priceToSet, targetFull, stopLossPrice, signalFull, DefaultQuantity);
+                }
             }
             catch (Exception ex) 
             {
@@ -566,44 +585,44 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var targetOrder = targetOrders.FirstOrDefault();
                     var stopOrder = stopOrders.FirstOrDefault();
 
-                    if (currentTradeAction == TradeAction.Buy_Reversal)
+                    if (currentTradeAction == TradeAction.Buy_Reversal || currentTradeAction == TradeAction.Buy_Trending)
                     {
                         // Dịch stop loss lên break even 
                         if (stopOrder.StopPrice < filledPrice)
                         {
-                            MoveTargetOrStopOrder(filledPrice + 1, stopOrder, false, "BUY", "");
+                            MoveTargetOrStopOrder(filledPrice + 1, stopOrder, false, "BUY", stopOrder.Name);
                         }
 
                         // Dịch stop gain nếu giá quá gần target
                         if (updatedPrice + PointToMoveGainLoss > targetOrder.LimitPrice)
                         {
-                            MoveTargetOrStopOrder(targetOrder.LimitPrice + PointToMoveGainLoss, targetOrder, true, "BUY", "");
+                            MoveTargetOrStopOrder(targetOrder.LimitPrice + PointToMoveGainLoss, targetOrder, true, "BUY", targetOrder.Name);
                         }
 
                         // Dịch chuyển stop loss nếu giá quá xa stop loss
                         if (stopOrder.StopPrice > filledPrice && stopOrder.StopPrice + PointToMoveGainLoss < updatedPrice)
                         {
-                            MoveTargetOrStopOrder(updatedPrice - PointToMoveGainLoss, stopOrder, false, "BUY", "");
+                            MoveTargetOrStopOrder(updatedPrice - PointToMoveGainLoss, stopOrder, false, "BUY", stopOrder.Name);
                         }
                     }
-                    else if (currentTradeAction == TradeAction.Sell_Reversal)
+                    else if (currentTradeAction == TradeAction.Sell_Reversal || currentTradeAction == TradeAction.Sell_Trending)
                     {
                         // Dịch stop loss xuống break even 
                         if (stopOrder.StopPrice > filledPrice)
                         {
-                            MoveTargetOrStopOrder(filledPrice - 1, stopOrder, false, "SELL", "");
+                            MoveTargetOrStopOrder(filledPrice - 1, stopOrder, false, "SELL", stopOrder.Name);
                         }
 
                         // Dịch stop gain nếu giá quá gần target
                         if (updatedPrice - PointToMoveGainLoss < targetOrder.LimitPrice)
                         {
-                            MoveTargetOrStopOrder(targetOrder.LimitPrice - PointToMoveGainLoss, targetOrder, true, "SELL", "");
+                            MoveTargetOrStopOrder(targetOrder.LimitPrice - PointToMoveGainLoss, targetOrder, true, "SELL", targetOrder.Name);
                         }
 
                         // Dịch chuyển stop loss nếu giá quá xa stop loss
                         if (stopOrder.StopPrice < filledPrice && stopOrder.StopPrice - PointToMoveGainLoss > updatedPrice)
                         {
-                            MoveTargetOrStopOrder(updatedPrice + PointToMoveGainLoss, stopOrder, false, "SELL", "");
+                            MoveTargetOrStopOrder(updatedPrice + PointToMoveGainLoss, stopOrder, false, "SELL", stopOrder.Name);
                         }
                     }
                 }
@@ -640,7 +659,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 : order.Name;
 
             LocalPrint(
-                $"OnOrderUpdate - key: {key}, orderType: {order.OrderType}, orderState: {orderState}, " +
+                $"OnOrderUpdate - key: {key}, quantity: {quantity}, filled: {filled}, orderType: {order.OrderType}, orderState: {orderState}, " +
                 $"limitPrice: {limitPrice:N2}, stop: {stopPrice:N2}");
 
             try
@@ -792,6 +811,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 DrawImportantLevels();
 
+                LocalPrint($"{ChickenStatus}");
+
+                if (State != State.Realtime)
+                {
+                    return;
+                }
                 if (ChickenStatus == ChickenStatus.Idle)
                 {
                     var shouldTrade = ShouldTrade();
@@ -851,7 +876,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 waeExplosion_5m = wae.ExplosionVal;
                 waeUptrend_5m = wae.UpTrendVal;
 
-                LocalPrint($"WAE Values: DeadZoneVal: {wae.DeadZoneVal:N2}, ExplosionVal: {wae.ExplosionVal:N2}, DowntrendVal:{wae.DownTrendVal:N2}, UptrendVal: {wae.UpTrendVal:N2}. ADX = {adx_5m:N2}");
+                LocalPrint($"WAE Values: DeadZoneVal: {wae.DeadZoneVal:N2}, ExplosionVal: {wae.ExplosionVal:N2}, DowntrendVal: {wae.DownTrendVal:N2}, UptrendVal: {wae.UpTrendVal:N2}. ADX = {adx_5m:N2}");
             }
         }
         /// <summary>
@@ -962,44 +987,42 @@ namespace NinjaTrader.NinjaScript.Strategies
             
             # region Begin of move pending order
             var newPrice = GetSetPrice(currentTradeAction);
+            
+            var stopLossPrice = GetStopLossPrice(currentTradeAction, newPrice);
 
-            if (Math.Abs(newPrice - filledPrice) > 3)
+            var targetPrice_Half = GetTargetPrice_Half(currentTradeAction, newPrice);
+
+            var targetPrice_Full = GetTargetPrice_Two(currentTradeAction, newPrice);
+
+            foreach (var order in ActiveOrders.Values)
             {
-                var stopLossPrice = GetStopLossPrice(currentTradeAction, newPrice);                        
-
-                var targetPrice_Half = GetTargetPrice_Half(currentTradeAction, newPrice);
-
-                var targetPrice_Full = GetTargetPrice_Two(currentTradeAction, newPrice);
-
-                foreach (var order in ActiveOrders.Values)
+                try
                 {
-                    try
+                    LocalPrint($"Trying to modify waiting order {order.Name}, " +
+                        $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
+                        $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");                        
+
+                    ChangeOrder(order, order.Quantity, newPrice, order.StopPrice);
+
+                    SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
+
+                    if (order.Name == SignalEntry_ReversalHalf || order.Name == SignalEntry_TrendingHalf )
                     {
-                        LocalPrint($"Trying to modify waiting order {order.Name}, " +
-                            $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
-                            $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
-
-                        ChangeOrder(order, order.Quantity, newPrice, order.StopPrice);
-
-                        SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
-
-                        if (order.Name == SignalEntry_ReversalHalf || order.Name == SignalEntry_TrendingHalf )
-                        {
-                            SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Half, false);
-                        }
-                        else if (order.Name == SignalEntry_ReversalFull || order.Name == SignalEntry_TrendingFull)
-                        {
-                            SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
-                        }
-
-                        filledPrice = newPrice;
+                        SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Half, false);
                     }
-                    catch (Exception ex) 
+                    else if (order.Name == SignalEntry_ReversalFull || order.Name == SignalEntry_TrendingFull)
                     {
-                        LocalPrint($"ERROR: {ex.Message}");
+                        SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
                     }
+
+                    filledPrice = newPrice;
+                }
+                catch (Exception ex) 
+                {
+                    LocalPrint($"ERROR: {ex.Message}");
                 }
             }
+            
             #endregion
 
         }

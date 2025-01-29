@@ -1103,5 +1103,20 @@ namespace NinjaTrader.NinjaScript.Strategies
 			End of UpdatePendingOrder
 			*/
         }
+        
+
+        protected override void OnExecutionUpdate(Execution execution, string executionId, double price, int quantity, MarketPosition marketPosition, string orderId, DateTime time)
+        {
+            Print($"OnExecutionUpdate: {execution.Name}");
+
+            base.OnExecutionUpdate(execution, executionId, price, quantity, marketPosition, orderId, time);
+        }
+
+        protected override void OnOrderUpdate(Order order, double limitPrice, double stopPrice, int quantity, int filled, double averageFillPrice, OrderState orderState, DateTime time, ErrorCode error, string comment)
+        {
+            Print($"OnOrderUpdate: {order.Name}");
+
+            base.OnOrderUpdate(order, limitPrice, stopPrice, quantity, filled, averageFillPrice, orderState, time, error, comment);
+        }
     }
 }

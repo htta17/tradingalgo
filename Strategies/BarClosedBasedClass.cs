@@ -69,8 +69,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double waeDowntrend_5m = -1;
         
         private Series<double> deadZoneSeries;
-
-       
         #endregion
 
         protected TradeAction currentTradeAction = TradeAction.NoTrade;        
@@ -152,7 +150,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         public string NewsTimeInput { get; set; } = "0830";
         #endregion
 
-        private List<int> NewsTimes = new List<int>();        
+        private List<int> NewsTimes = new List<int>();
 
         private double PointToMoveGainLoss = 7;
 
@@ -185,14 +183,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Set Properties
                
-                WayToTrade = ChickenWayToTrade.BollingerBand;
+                WayToTrade = ChickenWayToTrade.EMA2951;
 
                 MaximumDailyLoss = 400;
                 DailyTargetProfit = 700;
                 AllowToMoveStopLossGain = true;
                 NewsTimeInput = "0830";
-
-                
             }
             else if (State == State.Configure)
             {
@@ -210,8 +206,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }                
 
                 PointToMoveGainLoss = 5;
-
-
             }
             else if (State == State.DataLoaded)
             {
@@ -232,13 +226,20 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         protected virtual TradeAction ShouldTrade()
-        {   
+        {
             /*
 			* Điều kiện để trade (SHORT) 
 			* 1. currentDEMA < upper & lastDEMA >= upper
 			* 2. currentPrice > lower && currentPrice < upper
 			*/
             var time = ToTime(Time[0]);
+
+            // Từ 3:30pm - 5:05pm thì không nên trade 
+            if (time >= 153000 && time < 170500)
+            {
+                return TradeAction.NoTrade;
+            }
+
             // Cho phép trade reverse (Bollinger Band) từ 8:35 am đến 11:30pm
             if (time >= 083500 && time <= 233000 && currentPrice > lowerBB_5m && currentPrice < upperBB_5m)
             {
@@ -259,15 +260,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Trade theo trending
             if (time >= 083500 && time <= 233000)
             {
-                if (waeDeadVal_5m < waeExplosion_5m && waeExplosion_5m < waeDowntrend_5m)
+                if (waeExplosion_5m < waeDowntrend_5m && waeDeadVal_5m < waeDowntrend_5m /* && waeDeadVal_5m < waeExplosion_5m*/ )
                 {
-                    LocalPrint($"Found SELL signal - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}");
+                    LocalPrint($"Found SELL signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}");
 
                     return TradeAction.Sell_Trending;
                 }
-                else if (waeDeadVal_5m < waeExplosion_5m && waeExplosion_5m < waeUptrend_5m)
+                else if (waeExplosion_5m < waeUptrend_5m && waeDeadVal_5m < waeUptrend_5m /*waeDeadVal_5m < waeExplosion_5m && */ )
                 {
-                    LocalPrint($"Found BUY signal - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeUptrend_5m: {waeUptrend_5m:N2}");
+                    LocalPrint($"Found BUY signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeUptrend_5m: {waeUptrend_5m:N2}");
 
                     return TradeAction.Buy_Trending;
                 }
@@ -285,7 +286,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Draw.TextFixed(
                         this,
                         "RunningAcc",
-                        $"{Account.Name}:${Account.Get(AccountItem.NetLiquidation, Currency.UsDollar):C2}",
+                        $"{Account.Name}: {Account.Get(AccountItem.NetLiquidation, Currency.UsDollar):C2}",
                         TextPosition.BottomLeft,
                         Brushes.DarkBlue,            // Text color
                         new SimpleFont("Arial", 12), // Font and size
@@ -780,38 +781,45 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
-            {   
+            {
                 // Cập nhật EMA29 và EMA51	
-                ema21_1m = EMA(21).Value[0];			
+                ema21_1m = EMA(21).Value[0];
                 ema29_1m = EMA(29).Value[0];
                 ema51_1m = EMA(51).Value[0];
                 ema120_1m = EMA(120).Value[0];
 
                 currentPrice = Close[0];
 
-                DrawImportantLevels();               
+                DrawImportantLevels();
 
                 if (ChickenStatus == ChickenStatus.Idle)
-                {                    
+                {
                     var shouldTrade = ShouldTrade();
+
+                    LocalPrint($"Check trading condition, result: {shouldTrade}");
 
                     if (shouldTrade != TradeAction.NoTrade)
                     {
                         EnterOrder(shouldTrade);
                     }
-                }               
+                }
                 else if (ChickenStatus == ChickenStatus.PendingFill)
-                {                    
-                    UpdatePendingOrder();                                        
+                {
+                    UpdatePendingOrder();
                 }
                 else if (ChickenStatus == ChickenStatus.OrderExists)
                 {
                     // Move to break even
                     MoveStopLossToBreakEvenForBackTest();
-                }                
+                }
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
+                if (BarsInProgress == 0)
+                {
+                    // Current View --> return
+                    return;
+                }
                 var bollinger = Bollinger(1, 20);
                 var bollingerStd2 = Bollinger(2, 20);
 
@@ -932,7 +940,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             // Cancel lệnh hết giờ trade
-            if (ToTime(Time[0]) >= 150000)
+            if (ToTime(Time[0]) >= 150000 && ToTime(firstOrder.Time) < 150000)
             {
                 //Account.CancelAllOrders(Instrument);
                 CancelAllPendingOrder();
@@ -940,7 +948,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            var cancelCausedByPrice = (firstOrder.IsLong && highPrice_5m > upperStd2BB_5m) || (firstOrder.IsShort && lowPrice_5m < lowerStd2BB_5m);
+            var cancelCausedByPrice = 
+                (firstOrder.FromEntrySignal == SignalEntry_ReversalFull || firstOrder.FromEntrySignal == SignalEntry_ReversalHalf) 
+                    && 
+                ((firstOrder.IsLong && highPrice_5m > upperStd2BB_5m ) || (firstOrder.IsShort && lowPrice_5m < lowerStd2BB_5m));
             if (cancelCausedByPrice)
             {
                 //Account.CancelAllOrders(Instrument);

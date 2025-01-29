@@ -108,7 +108,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "Enter order price:",
             Order = 3,
             GroupName = "Importants Configurations")]
-        public ChickenWayToTrade WayToTrade { get; set; } = ChickenWayToTrade.EMA2951;
+        public ChickenWayToTrade WayToTrade { get; set; } = ChickenWayToTrade.BollingerBand;
         #endregion
 
         #region Parameters
@@ -199,7 +199,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Set Properties
 
-                WayToTrade = ChickenWayToTrade.EMA2951;
+                WayToTrade = ChickenWayToTrade.BollingerBand;
 
                 MaximumDailyLoss = 400;
                 DailyTargetProfit = 700;
@@ -218,7 +218,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 catch (Exception e)
                 {
-                    Print(e.Message);
+                    Print($"ERROR: " + e.Message);
                 }                
 
                 PointToMoveGainLoss = 5;
@@ -522,19 +522,18 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         /// <summary>
-        /// Hàm này dùng cho [BACK TEST DATA] only - Move stop loss khi đóng nến để xét % gain/loss của giải thuật
+        /// Move half price target dựa trên giá Bollinger Band Middle
         /// </summary>
-        private void MoveStopLossToBreakEvenForBackTest()
+        private void MoveTargetBasedOnBollinger()
         {
-            if (State != State.Realtime)
-            {
-                /*
-                 * Theo lý thuyết, ActiveOrders sẽ có 4 active orders (2 loss, 2 target). 
-                 * Khi giá đã cắt target 1 (out half), ActiveOrders sẽ có 1 stop loss và 1 target
-                 * 
-                 */
+            var targetHalfPriceOrders = ActiveOrders.Values.Where(c => c.FromEntrySignal == SignalEntry_ReversalHalf).ToList();
 
-               
+            foreach (var order in targetHalfPriceOrders)
+            {
+                if ((IsBuying && middleBB_5m > filledPrice) || (IsSelling && middleBB_5m < filledPrice))
+                {
+                    MoveTargetOrStopOrder(middleBB_5m, order, true, IsBuying ? "BUY" : "SELL", order.FromEntrySignal);
+                }                
             }
         }
         /// <summary>
@@ -664,11 +663,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     var stopOrders = ActiveOrders.Values.Where(order => order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)
                         .ToList();
+
+                    LocalPrint($"StopLoss Order Count: {stopOrders.Count}");
+
                     var targetOrders = ActiveOrders.Values.Where(order => order.OrderState == OrderState.Working && order.OrderType == OrderType.Limit)
                         .ToList();
 
                     foreach (var stopOrder in stopOrders)
                     {
+                        LocalPrint($"StopLoss Order ID: {stopOrder.Id} - Price: {stopOrder.StopPrice}");
                         MoveStopOrder(stopOrder, updatedPrice);
                     }
 
@@ -679,7 +682,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 catch (Exception e)
                 {
-                    LocalPrint(e.Message);
+                    LocalPrint($"ERROR: " + e.Message);
                 }
             }
         }
@@ -721,13 +724,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             ErrorCode error,
             string comment)
         {
-            var focusedOrderState = (orderState == OrderState.Filled || orderState == OrderState.Cancelled || orderState == OrderState.Working);
+            var focusedOrderState = (orderState == OrderState.Filled || orderState == OrderState.Cancelled || orderState == OrderState.Working || orderState == OrderState.Accepted);
 
             if (!focusedOrderState)
             {
                 return;
             }
-
             var key = GenerateKey(order);
 
             LocalPrint(
@@ -745,7 +747,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     ActiveOrders.Remove(key);
                 }
-                else if (orderState == OrderState.Working && !ActiveOrders.ContainsKey(key))
+                else if ((orderState == OrderState.Working || orderState == OrderState.Accepted)&& !ActiveOrders.ContainsKey(key))
                 {
                     ActiveOrders.Add(key, order);
                 }                
@@ -942,8 +944,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (ChickenStatus == ChickenStatus.OrderExists)
                 {
-                    // Move to break even
-                    MoveStopLossToBreakEvenForBackTest();
+                    MoveTargetBasedOnBollinger();
                 }
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute

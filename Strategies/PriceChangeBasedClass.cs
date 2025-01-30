@@ -54,7 +54,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Stop Trading if Profit is ($)", Order = 6, GroupName = "Parameters")]
-        public int StopGainProfit { get; set; } = 600;
+        public int DailyTargetProfit { get; set; } = 600;
 
         [NinjaScriptProperty]
         [Display(Name = "Allow to move stop gain/loss", Order = 7, GroupName = "Parameters")]
@@ -134,7 +134,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 HalfATMName = "Half_MNQ";
 
                 MaximumDayLoss = 400;
-                StopGainProfit = 600;
+                DailyTargetProfit = 600;
                 CheckTradingHour = true;
 
                 NewsTimeInput = "0830";
@@ -145,7 +145,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 AddDataSeries(BarsPeriodType.Minute, 5);
                 AddDataSeries(BarsPeriodType.Minute, 1);
 
-                CalculatePnL();
+                StrategiesUtilities.CalculatePnL(this, Account, Print);
 
                 try
                 {
@@ -192,30 +192,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        private void CalculatePnL()
-        {
-            try
-            {
-                var profitloss = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
-
-                Draw.TextFixed(
-                        this,
-                        "RunningAcc",
-                        $"Run on: {Account.Name} - Net Liquidation: {Account.Get(AccountItem.NetLiquidation, Currency.UsDollar):C2}",
-                        TextPosition.BottomLeft,
-                        Brushes.DarkBlue,            // Text color
-                        new SimpleFont("Arial", 12), // Font and size
-                        Brushes.DarkBlue,      // Background color
-                        Brushes.Transparent,      // Outline color
-                        0                         // Opacity (0 is fully transparent)
-                    );
-            }
-            catch (Exception e)
-            {
-                Print(e.Message);
-            }
-        }
-
         protected virtual string LogInformationTitle { get; set; } = "[DUCK]";
 
         private void LocalPrint(object val)
@@ -228,34 +204,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 Print(val);
             }
-        }
-
-        /// <summary>
-        /// Nếu đã đủ lợi nhuận hoặc đã bị thua lỗ quá nhiều thì dừng (bool reachDailyPnL, double totalPnL, bool isWinDay)
-        /// </summary>
-        /// <returns></returns>
-        private bool ReachMaxDayLossOrDayTarget()
-        {
-            // Calculate today's P&L
-            double todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
-
-            var reachDayLimit = todaysPnL <= -MaximumDayLoss || todaysPnL >= StopGainProfit;
-
-            var additionalText = reachDayLimit ? ". DONE FOR TODAY." : "";
-
-            Draw.TextFixed(
-                        this,
-                        "PnL",
-                        $"PnL: {todaysPnL:C2}{additionalText}",
-                        TextPosition.BottomRight,
-                        todaysPnL >= 0 ? Brushes.Green : Brushes.Red,            // Text color
-                        new SimpleFont("Arial", 12), // Font and size
-                        todaysPnL >= 0 ? Brushes.Green : Brushes.Red,      // Background color
-                        Brushes.Transparent,      // Outline color
-                        0                         // Opacity (0 is fully transparent)
-                    );
-
-            return reachDayLimit;
         }
 
         private void WriteDistance(string text)
@@ -299,7 +247,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // If profit reaches half of daily goal or lose half of daily loss 
                 var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
-                var reacHalf = todaysPnL <= -MaximumDayLoss / 2 || todaysPnL >= StopGainProfit / 2;
+                var reacHalf = todaysPnL <= -MaximumDayLoss / 2 || todaysPnL >= DailyTargetProfit / 2;
                 var atmStragtegyName = reacHalf ? HalfATMName : FullATMName;
 
                 try
@@ -336,34 +284,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        bool NearNewsTime(int time, int newsTime)
-        {
-            // newsTime format: 0700,0830,1300
-            var minute = newsTime % 100;
-            var hour = newsTime / 100;
-
-            var left = -1;
-            var right = -1;
-
-            if (minute >= 5 && minute <= 54) // time is 0806 --> no trade from 080100 to 081100
-            {
-                left = hour * 10000 + (minute - 5) * 100;
-                right = hour * 10000 + (minute + 5) * 100;
-            }
-            else if (minute < 5) // time is 0802 --> no trade from 075700 to 080700
-            {
-                left = (hour - 1) * 10000 + (minute + 55) * 100;
-                right = hour * 10000 + (minute + 5) * 100;
-            }
-            else // minute >= 55 - time is 0856 --> No trade from 085100 to 090100
-            {
-                left = hour * 10000 + (minute - 5) * 100;
-                right = (hour + 1) * 10000 + (minute - 55) * 100;
-            }
-
-            return left < time && time < right;
-        }
-
         // Allow trade if: 
         //  	- Choose ShiftType is morning: Allow trade from 7:00am to 3:00pm
         //  	- Choose ShiftType is afternoon: Allow trade from 5:00pm to 11:00pm
@@ -396,7 +316,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 			*/
 
-            var newTime = NewsTimes.FirstOrDefault(c => NearNewsTime(time, c));
+            var newTime = NewsTimes.FirstOrDefault(c => StrategiesUtilities.NearNewsTime(time, c));
 
             if (newTime != 0)
             {
@@ -663,7 +583,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 return;
                             }
 
-                            var reachDailyPnL = ReachMaxDayLossOrDayTarget();
+                            var reachDailyPnL = StrategiesUtilities.ReachMaxDayLossOrDayTarget(this, Account, MaximumDayLoss, DailyTargetProfit);
 
                             if (reachDailyPnL)
                             {

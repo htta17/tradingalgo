@@ -12,10 +12,7 @@ using NinjaTrader.Gui.Tools;
 using NinjaTrader.Data;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
-using System.IO;
 using System.Windows;
-using NinjaTrader.NinjaScript.Indicators;
-using NinjaTrader.Gui;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -74,12 +71,16 @@ namespace NinjaTrader.NinjaScript.Strategies
         private Series<double> deadZoneSeries;
         #endregion
 
-        protected TradeAction currentTradeAction = TradeAction.NoTrade;        
+        protected TradeAction currentTradeAction = TradeAction.NoTrade;
+
+        protected Trends CurrentTrend = Trends.Unknown;
 
         /// <summary>
         /// Giá fill lệnh ban đầu 
         /// </summary>
-        protected double filledPrice = -1;   
+        protected double filledPrice = -1;
+
+        protected DateTime filledTime = DateTime.Now;
         private ChickenStatus ChickenStatus
         {
             get 
@@ -269,11 +270,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     LocalPrint("Found SELL signal (Reversal)");
 
+                    filledTime = Time[0];
+
                     return TradeAction.Sell_Reversal;
                 }
                 else if (lastDEMA_5m < lastLowerBB_5m && currentDEMA_5m >= lowerBB_5m)
                 {
                     LocalPrint("Found BUY signal (Reversal)");
+
+                    filledTime = Time[0];
 
                     return TradeAction.Buy_Reversal;
                 }
@@ -1084,7 +1089,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             // Cancel lệnh do đợi quá lâu
             var firstOrder = ActiveOrders.First().Value;
-            if ((Time[0] - firstOrder.Time).TotalMinutes > 60)
+            if ((Time[0] - filledTime).TotalMinutes > 60)
             {
                 //Account.CancelAllOrders(Instrument);
                 CancelAllPendingOrder();

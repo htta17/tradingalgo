@@ -84,13 +84,7 @@ namespace NinjaTrader.Custom.Strategies
         /// Đặt lệnh mua tại EMA29/51
         /// </summary>
         Buy_Trending,
-    }
-
-    public enum TimeFrame
-    { 
-        One_Minute, 
-        Five_Minute
-    }
+    }    
 
     public class WEA_ValueSet
     { 
@@ -100,6 +94,13 @@ namespace NinjaTrader.Custom.Strategies
         public double UpTrendVal { get; set; }
 
         public double DownTrendVal { get; set; }
+    }
+
+    public enum Trends
+    {
+        Unknown,
+        Bullish, 
+        Bearish
     }
     
 }

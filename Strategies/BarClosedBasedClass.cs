@@ -289,11 +289,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 LocalPrint($"Found SELL signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}");
 
+                filledTime = Time[0];
+
                 return TradeAction.Sell_Trending;
             }
             else if (waeExplosion_5m < waeUptrend_5m && waeDeadVal_5m < waeUptrend_5m /*waeDeadVal_5m < waeExplosion_5m && */ )
             {
                 LocalPrint($"Found BUY signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeUptrend_5m: {waeUptrend_5m:N2}");
+
+                filledTime = Time[0];
 
                 return TradeAction.Buy_Trending;
             }            

@@ -360,6 +360,7 @@
     <Compile Include="Strategies\%40SampleMultiInstrument.cs" />
     <Compile Include="Strategies\%40SampleMultiTimeFrame.cs" />
     <Compile Include="Strategies\%40Strategy.cs" />
+    <Compile Include="Strategies\BarClosedBasedClass.cs" />
     <Compile Include="SuperDomColumns\%40APQ.cs" />
     <Compile Include="SuperDomColumns\%40Notes.cs" />
     <Compile Include="SuperDomColumns\%40ProfitLoss.cs" />
@@ -371,7 +372,6 @@
     <Compile Include="Indicators\WaddahAttarExplosion.cs" />
     <Compile Include="Strategies\AllStatus.cs" />
     <Compile Include="Strategies\ATMStrategyConverter.cs" />
-    <Compile Include="Strategies\BarClosedBasedClass.cs" />
     <Compile Include="Strategies\Chicken.cs" />
     <Compile Include="Strategies\Duck.cs" />
     <Compile Include="Strategies\Monkey.cs" />

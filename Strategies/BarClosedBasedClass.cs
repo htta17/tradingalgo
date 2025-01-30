@@ -73,6 +73,44 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected TradeAction currentTradeAction = TradeAction.NoTrade;
 
+        /// <summary>
+        /// Lệnh hiện tại là lệnh mua
+        /// </summary>
+        private bool IsBuying
+        {
+            get
+            {
+                return currentTradeAction == TradeAction.Buy_Reversal || currentTradeAction == TradeAction.Buy_Trending;
+            }
+        }
+
+        /// <summary>
+        /// Lệnh hiện tại là lệnh bán 
+        /// </summary>
+        private bool IsSelling
+        {
+            get
+            {
+                return currentTradeAction == TradeAction.Sell_Reversal || currentTradeAction == TradeAction.Sell_Trending;
+            }
+        }
+
+        private bool IsReverseTrade
+        {
+            get
+            {
+                return currentTradeAction == TradeAction.Sell_Reversal || currentTradeAction == TradeAction.Buy_Reversal;
+            }
+        }
+
+        private bool IsTrendingTrade
+        {
+            get
+            {
+                return currentTradeAction == TradeAction.Sell_Trending || currentTradeAction == TradeAction.Sell_Trending;
+            }
+        }
+
         protected Trends CurrentTrend = Trends.Unknown;
 
         /// <summary>
@@ -568,24 +606,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             LocalPrint($"Dịch chuyển {text} {order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice  : order.StopPrice)}] đến [{newPrice}] - {buyOrSell}");
         }
 
-        private bool IsBuying
-        {
-            get 
-            {
-                return currentTradeAction == TradeAction.Buy_Reversal || currentTradeAction == TradeAction.Buy_Trending;
-            }
-        }
-
-        private bool IsSelling
-        {
-            get
-            { 
-                return currentTradeAction == TradeAction.Sell_Reversal || currentTradeAction == TradeAction.Sell_Trending;
-            }
-        }
-
-       
-
         protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice)
         {
             LocalPrint($"Trying to move stop order. Filled Price: [{filledPrice:N2}], current Stop: {stopOrder.StopPrice}, updatedPrice: [{updatedPrice}]");
@@ -595,8 +615,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Dịch stop loss lên break even 
             if (IsBuying)
             {
-                // Dịch chuyển stop loss nếu giá quá xa stop loss
-                if (stopOrder.StopPrice > filledPrice && stopOrder.StopPrice + PointToMoveGainLoss < updatedPrice)
+                // Dịch chuyển stop loss nếu giá quá xa stop loss, tạm thời chỉ dùng cho trending trade
+                if (IsTrendingTrade && stopOrder.StopPrice > filledPrice && stopOrder.StopPrice + PointToMoveGainLoss < updatedPrice)
                 {
                     newPrice = updatedPrice - PointToMoveGainLoss;
                     allowMoving = "BUY";
@@ -610,8 +630,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (IsSelling)
             {
-                // Dịch chuyển stop loss nếu giá quá xa stop loss
-                if (stopOrder.StopPrice < filledPrice && stopOrder.StopPrice - PointToMoveGainLoss > updatedPrice)
+                // Dịch chuyển stop loss nếu giá quá xa stop loss, tạm thời chỉ dùng cho trending trade
+                if (IsTrendingTrade &&  stopOrder.StopPrice < filledPrice && stopOrder.StopPrice - PointToMoveGainLoss > updatedPrice)
                 {
                     newPrice = updatedPrice + PointToMoveGainLoss;
                     allowMoving = "SELL";
@@ -632,14 +652,17 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected virtual void MoveTargetOrder(Order targetOrder, double updatedPrice)
         {
-            // Dịch stop gain nếu giá quá gần target
-            if (IsBuying && updatedPrice + PointToMoveGainLoss > targetOrder.LimitPrice)
-            {
-                MoveTargetOrStopOrder(targetOrder.LimitPrice + PointToMoveGainLoss, targetOrder, true, "BUY", targetOrder.FromEntrySignal);
-            }
-            else if (IsSelling && updatedPrice - PointToMoveGainLoss < targetOrder.LimitPrice)
-            {
-                MoveTargetOrStopOrder(targetOrder.LimitPrice - PointToMoveGainLoss, targetOrder, true, "SELL", targetOrder.FromEntrySignal);
+            // Dịch stop gain nếu giá quá gần target, tạm thời chỉ cho trending
+            if (IsTrendingTrade)
+            {   
+                if (IsBuying && updatedPrice + PointToMoveGainLoss > targetOrder.LimitPrice)
+                {
+                    MoveTargetOrStopOrder(targetOrder.LimitPrice + PointToMoveGainLoss, targetOrder, true, "BUY", targetOrder.FromEntrySignal);
+                }
+                else if (IsSelling && updatedPrice - PointToMoveGainLoss < targetOrder.LimitPrice)
+                {
+                    MoveTargetOrStopOrder(targetOrder.LimitPrice - PointToMoveGainLoss, targetOrder, true, "SELL", targetOrder.FromEntrySignal);
+                }
             }
         }
 

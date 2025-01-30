@@ -730,11 +730,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 return;
             }
-            var key = GenerateKey(order);
-
-            LocalPrint(
-                $"OnOrderUpdate - key: {key}, quantity: {quantity}, filled: {filled}, orderType: {order.OrderType}, orderState: {orderState}, " +
-                $"limitPrice: {limitPrice:N2}, stop: {stopPrice:N2}");
+            var key = GenerateKey(order);            
 
             try
             {
@@ -751,7 +747,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     // Add or update 
                     ActiveOrders[key] = order;
-                }                
+                }
+
+                
             }
             catch (Exception e)
             {
@@ -760,6 +758,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             finally 
             {
                 //LocalPrint($"CountOrders: {ActiveOrders.Count}");
+                LocalPrint(
+                    $"OnOrderUpdate - key: {key}, quantity: {quantity}, filled: {filled}, orderType: {order.OrderType}, orderState: {orderState}, " +
+                    $"limitPrice: {limitPrice:N2}, stop: {stopPrice:N2}. Current number of active orders: {ActiveOrders.Count}");
             }
         }
 

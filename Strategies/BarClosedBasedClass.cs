@@ -111,7 +111,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "Enter order price:",
             Order = 3,
             GroupName = "Importants Configurations")]
-        public ChickenWayToTrade WayToTrade { get; set; } = ChickenWayToTrade.BollingerBand;
+        public ChickenWayToTrade WayToTrade { get; set; } = ChickenWayToTrade.EMA2951;
         #endregion
 
         #region Parameters
@@ -192,7 +192,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Set Properties
 
-                WayToTrade = ChickenWayToTrade.BollingerBand;
+                WayToTrade = ChickenWayToTrade.EMA2951;
 
                 MaximumDailyLoss = 400;
                 DailyTargetProfit = 700;
@@ -1101,16 +1101,17 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             // Cancel cho lệnh theo đánh theo Bollinger (Ngược trend) 
-            var cancelCausedByPrice = 
-                (firstOrder.FromEntrySignal == SignalEntry_ReversalFull || firstOrder.FromEntrySignal == SignalEntry_ReversalHalf) 
-                    && 
-                ((firstOrder.IsLong && highPrice_5m > upperStd2BB_5m ) || (firstOrder.IsShort && lowPrice_5m < lowerStd2BB_5m));
-            if (cancelCausedByPrice)
+            if (firstOrder.FromEntrySignal == SignalEntry_ReversalFull || firstOrder.FromEntrySignal == SignalEntry_ReversalHalf)
             {
-                CancelAllPendingOrder();
-                LocalPrint($"Cancel lệnh do đã chạm Bollinger upper band (over bought) hoặc Bollinger lower band (over sold)");
-                return;
-            }
+                var cancelCausedByPrice = (firstOrder.IsLong && (highPrice_5m > upperStd2BB_5m || currentDEMA_5m > upperBB_5m)) 
+                    || (firstOrder.IsShort && (lowPrice_5m < lowerStd2BB_5m || currentDEMA_5m < lowerBB_5m));
+                if (cancelCausedByPrice)
+                {
+                    CancelAllPendingOrder();
+                    LocalPrint($"Cancel lệnh do đã chạm Bollinger upper band (over bought) hoặc Bollinger lower band (over sold)");
+                    return;
+                }
+            }            
 
             // Cancel các lệnh theo trending
             var cancelCausedByTrendCondition =

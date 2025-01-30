@@ -1,4 +1,4 @@
-#region Using declarations
+﻿#region Using declarations
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -31,9 +31,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			if (State == State.SetDefaults)
 			{
-				Description									= @"Enter the description for your new custom Strategy here.";
-				Name										= "Tiger";
-				Calculate									= Calculate.OnPriceChange;
+				Description									= @"Trade theo live time, dựa theo WAE cho trending và Bollinger band + price action cho reverse.";
+				Name										= Name = this.Name;
+                Calculate									= Calculate.OnPriceChange;
 				EntriesPerDirection							= 1;
 				EntryHandling								= EntryHandling.AllEntries;
 				IsExitOnSessionCloseStrategy				= true;

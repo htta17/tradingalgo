@@ -14,30 +14,12 @@ namespace NinjaTrader.Custom.Strategies
 {
     public class StrategiesUtilities
     {
-        private const int LongDiffAsBig = 15;
-        private const int ShortDiffAsSmall = 3; 
-        public static bool IsRedCandle(double open, double close)
-        { 
-            return close < open;
-        }
-
-        public static bool IsGreenCandle(double open, double close)
-        {
-            return close > open;
-        }
-
-        public static bool IsDojiCandle(double open, double close)
-        {
-            return Math.Abs(close - open) < ShortDiffAsSmall; // Almost the same
-        }
-
-        public static bool IsMarubozuCandle(double open, double high, double low, double close)
-        {
-            return Math.Abs(close - open) >= LongDiffAsBig // Thân dài
-                && Math.Abs(high - Math.Max(open, close)) <= ShortDiffAsSmall // Body gần với High 
-                && Math.Abs(Math.Min(open, close) - low) <= ShortDiffAsSmall;  // Body gần với Low
-        }
-
+        /// <summary>
+        ///  Check xem thời gian hiện tại có gần với thời gian có news không.
+        /// </summary>
+        /// <param name="time">Thời gian hiện tại</param>
+        /// <param name="newsTime">News time</param>
+        /// <returns></returns>
         public static bool NearNewsTime(int time, int newsTime)
         {
             // newsTime format: 0700,0830,1300
@@ -96,6 +78,12 @@ namespace NinjaTrader.Custom.Strategies
             return reachDayLimit;
         }
 
+        /// <summary>
+        /// Tính toán Profit và Loss, sau đó display ở góc dưới trái màn hình
+        /// </summary>
+        /// <param name="owner"></param>
+        /// <param name="Account"></param>
+        /// <param name="action"></param>
         public static void CalculatePnL(NinjaScriptBase owner, Account Account, Action<string> action)
         {
             try
@@ -105,7 +93,7 @@ namespace NinjaTrader.Custom.Strategies
                 Draw.TextFixed(
                         owner,
                         "RunningAcc",
-                        $"Run on: {Account.Name} - Net Liquidation: {Account.Get(AccountItem.NetLiquidation, Currency.UsDollar):C2}",
+                        $"Acc: {Account.Name} - {Account.Get(AccountItem.NetLiquidation, Currency.UsDollar):C2}",
                         TextPosition.BottomLeft,
                         Brushes.DarkBlue,            // Text color
                         new SimpleFont("Arial", 12), // Font and size

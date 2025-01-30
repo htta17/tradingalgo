@@ -13,6 +13,7 @@ using NinjaTrader.Data;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
 using System.Windows;
+using System.Threading.Tasks;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -658,41 +659,43 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     LocalPrint("NOT allow to move stop loss/gain");
                     return;
-                }                
-
-                try
-                {
-                    // Order với half price
-                    var hasHalfPriceOder = ActiveOrders.Values.Any(order => order.FromEntrySignal == SignalEntry_ReversalHalf || order.FromEntrySignal == SignalEntry_TrendingHalf);
-
-                    if (hasHalfPriceOder) // Nếu còn order với half price (Chưa cắt half) --> Không nên làm gì
-                    {
-                        return;
-                    }
-
-                    var stopOrders = ActiveOrders.Values.Where(order => order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)
-                        .ToList();
-
-                    LocalPrint($"StopLoss Order Count: {stopOrders.Count}");
-
-                    var targetOrders = ActiveOrders.Values.Where(order => order.OrderState == OrderState.Working && order.OrderType == OrderType.Limit)
-                        .ToList();
-
-                    foreach (var stopOrder in stopOrders)
-                    {
-                        LocalPrint($"StopLoss Order ID: {stopOrder.Id} - Price: {stopOrder.StopPrice}");
-                        MoveStopOrder(stopOrder, updatedPrice);
-                    }
-
-                    foreach (var targetOrder in targetOrders)
-                    {
-                        MoveTargetOrder(targetOrder, updatedPrice);
-                    }
                 }
-                catch (Exception e)
-                {
-                    LocalPrint($"ERROR: " + e.Message);
-                }
+                Task.Run(() => {
+                    try
+                    {
+                        // Order với half price
+                        var hasHalfPriceOder = ActiveOrders.Values.Any(order => order.FromEntrySignal == SignalEntry_ReversalHalf || order.FromEntrySignal == SignalEntry_TrendingHalf);
+
+                        if (hasHalfPriceOder) // Nếu còn order với half price (Chưa cắt half) --> Không nên làm gì
+                        {
+                            return;
+                        }
+
+                        var stopOrders = ActiveOrders.Values.Where(order => order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)
+                            .ToList();
+
+                        LocalPrint($"StopLoss Order Count: {stopOrders.Count}");
+
+                        var targetOrders = ActiveOrders.Values.Where(order => order.OrderState == OrderState.Working && order.OrderType == OrderType.Limit)
+                            .ToList();
+
+                        foreach (var stopOrder in stopOrders)
+                        {
+                            LocalPrint($"StopLoss Order ID: {stopOrder.Id} - Price: {stopOrder.StopPrice}");
+                            MoveStopOrder(stopOrder, updatedPrice);
+                        }
+
+                        foreach (var targetOrder in targetOrders)
+                        {
+                            MoveTargetOrder(targetOrder, updatedPrice);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        LocalPrint($"ERROR: " + e.Message);
+                    }
+                });
+                
             }
         }
 

@@ -75,8 +75,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         #endregion
 
         protected TradeAction currentTradeAction = TradeAction.NoTrade;        
-        protected double filledPrice = -1;       
 
+        /// <summary>
+        /// Giá fill lệnh ban đầu 
+        /// </summary>
+        protected double filledPrice = -1;   
         private ChickenStatus ChickenStatus
         {
             get 
@@ -160,15 +163,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private double PointToMoveGainLoss = 7;
 
-        /// <summary>
-        /// Chỉ vào 1 lệnh ở (half of StopLossInTicks) để xem độ hiệu quả của thuật toán
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Chỉ enter 1 order để test giải thuật",
-            Order = 20,
-            GroupName = "Parameters")]
-        public bool EnterOneTradeForTest { get; set; } = false;
-
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
@@ -195,7 +189,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 IsInstantiatedOnEachOptimizationIteration = true;
                 SetOrderQuantity = SetOrderQuantity.Strategy;
                 DefaultQuantity = 2;
-                EnterOneTradeForTest = false;
 
                 // Set Properties
 
@@ -219,7 +212,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 catch (Exception e)
                 {
                     Print($"ERROR: " + e.Message);
-                }                
+                }
 
                 PointToMoveGainLoss = 5;
             }
@@ -235,9 +228,21 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 AddChartIndicator(bollinger1);
                 AddChartIndicator(bollinger2);
-                AddChartIndicator(DEMA(9));              
-                
+                AddChartIndicator(DEMA(9));
+
                 deadZoneSeries = new Series<double>(this);
+            }
+            else if (State == State.Realtime)
+            {
+                try
+                {
+                    // Nếu có lệnh đang chờ thì cancel 
+                    TransitionOrdersToLive();
+                }
+                catch (Exception e)
+                {
+                    LocalPrint("ERROR" + e.Message);
+                }
             }
         }
 
@@ -503,28 +508,23 @@ namespace NinjaTrader.NinjaScript.Strategies
             var targetFull = GetTargetPrice_Two(currentTradeAction, priceToSet);
             
             try
-            {
+            {               
                 var signalHalf = tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Sell_Trending ? SignalEntry_TrendingHalf : SignalEntry_ReversalHalf;
                 EnterOrderPure(priceToSet, targetHalf, stopLossPrice, signalHalf, DefaultQuantity);
-
-                if (!EnterOneTradeForTest)
-                {
-                    var signalFull = tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Sell_Trending ? SignalEntry_TrendingFull : SignalEntry_ReversalFull;
-                    EnterOrderPure(priceToSet, targetFull, stopLossPrice, signalFull, DefaultQuantity);
-                }
+                
+                var signalFull = tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Sell_Trending ? SignalEntry_TrendingFull : SignalEntry_ReversalFull;
+                EnterOrderPure(priceToSet, targetFull, stopLossPrice, signalFull, DefaultQuantity);
             }
             catch (Exception ex) 
             {
                 LocalPrint($"ERROR: " + ex.Message);
             }
-
-            CalculatePnL();
         }
 
         /// <summary>
         /// Move half price target dựa trên giá Bollinger Band Middle
         /// </summary>
-        private void MoveTargetBasedOnBollinger()
+        private void MoveTarget1BasedOnBollinger()
         {
             var targetHalfPriceOrders = ActiveOrders.Values.Where(c => c.FromEntrySignal == SignalEntry_ReversalHalf).ToList();
 
@@ -747,9 +747,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     ActiveOrders.Remove(key);
                 }
-                else if ((orderState == OrderState.Working || orderState == OrderState.Accepted)&& !ActiveOrders.ContainsKey(key))
+                else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
                 {
-                    ActiveOrders.Add(key, order);
+                    // Add or update 
+                    ActiveOrders[key] = order;
                 }                
             }
             catch (Exception e)
@@ -911,6 +912,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
+                CalculatePnL();
+
                 // Cập nhật EMA29 và EMA51	
                 ema21_1m = EMA(21).Value[0];
                 ema29_1m = EMA(29).Value[0];
@@ -920,13 +923,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 currentPrice = Close[0];
 
                 DrawImportantLevels();
-
-                //LocalPrint($"{ChickenStatus}");
-
-                if (State != State.Realtime)
-                {
-                    return;
-                }
+                
                 if (ChickenStatus == ChickenStatus.Idle)
                 {
                     var shouldTrade = ShouldTrade();
@@ -944,7 +941,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (ChickenStatus == ChickenStatus.OrderExists)
                 {
-                    MoveTargetBasedOnBollinger();
+                    MoveTarget1BasedOnBollinger();
                 }
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
@@ -1054,6 +1051,24 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        private void TransitionOrdersToLive()
+        {
+            var clonedList = ActiveOrders.Values.ToList();
+            foreach (var order in clonedList)
+            {
+                GetRealtimeOrder(order);
+            }
+        }
+
+        private bool IsHalfPriceOrder(Order order)
+        {
+            return order.Name == SignalEntry_ReversalHalf || order.Name == SignalEntry_TrendingHalf;
+        }
+        private bool IsFullPriceOrder(Order order)
+        {
+            return order.Name == SignalEntry_ReversalFull || order.Name == SignalEntry_TrendingFull;
+        }
+
         // Trong qúa trình chờ lệnh được fill, có thể hết giờ hoặc chờ quá lâu
         protected virtual void UpdatePendingOrder()
         {
@@ -1085,19 +1100,33 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
+            // Cancel cho lệnh theo đánh theo Bollinger (Ngược trend) 
             var cancelCausedByPrice = 
                 (firstOrder.FromEntrySignal == SignalEntry_ReversalFull || firstOrder.FromEntrySignal == SignalEntry_ReversalHalf) 
                     && 
                 ((firstOrder.IsLong && highPrice_5m > upperStd2BB_5m ) || (firstOrder.IsShort && lowPrice_5m < lowerStd2BB_5m));
             if (cancelCausedByPrice)
             {
-                //Account.CancelAllOrders(Instrument);
                 CancelAllPendingOrder();
                 LocalPrint($"Cancel lệnh do đã chạm Bollinger upper band (over bought) hoặc Bollinger lower band (over sold)");
                 return;
             }
-            
-            # region Begin of move pending order
+
+            // Cancel các lệnh theo trending
+            var cancelCausedByTrendCondition =
+                (firstOrder.FromEntrySignal == SignalEntry_TrendingFull || firstOrder.FromEntrySignal == SignalEntry_TrendingHalf) // Lệnh vào theo trending
+                &&
+                ((IsBuying && waeExplosion_5m < waeDowntrend_5m && waeDeadVal_5m < waeDowntrend_5m) // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
+                ||
+                (IsSelling && waeExplosion_5m < waeUptrend_5m && waeDeadVal_5m < waeUptrend_5m)); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
+            if (cancelCausedByTrendCondition)
+            {
+                CancelAllPendingOrder();
+                LocalPrint($"Cancel lệnh do xu hướng hiện tại ngược với lệnh chờ");
+                return;
+            }
+
+            #region Begin of move pending order
             var newPrice = GetSetPrice(currentTradeAction);
             
             var stopLossPrice = GetStopLossPrice(currentTradeAction, newPrice);
@@ -1106,35 +1135,43 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var targetPrice_Full = GetTargetPrice_Two(currentTradeAction, newPrice);
 
-            foreach (var order in ActiveOrders.Values)
+            if (State == State.Historical)
             {
-                try
+                CancelAllPendingOrder();
+
+                EnterOrder(currentTradeAction);
+            }
+            else if (State == State.Realtime)
+            {
+                foreach (var order in ActiveOrders.Values)
                 {
-                    LocalPrint($"Trying to modify waiting order {order.Name}, " +
-                        $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
-                        $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");                        
-
-                    ChangeOrder(order, order.Quantity, newPrice, order.StopPrice);
-
-                    SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
-
-                    if (order.Name == SignalEntry_ReversalHalf || order.Name == SignalEntry_TrendingHalf )
+                    try
                     {
-                        SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Half, false);
-                    }
-                    else if (order.Name == SignalEntry_ReversalFull || order.Name == SignalEntry_TrendingFull)
-                    {
-                        SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
-                    }
+                        LocalPrint($"Trying to modify waiting order {order.Name}, " +
+                            $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
+                            $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
 
-                    filledPrice = newPrice;
-                }
-                catch (Exception ex) 
-                {
-                    LocalPrint($"ERROR: {ex.Message}");
+                        ChangeOrder(order, order.Quantity, newPrice, order.StopPrice);
+
+                        SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
+
+                        if (IsHalfPriceOrder(order))
+                        {
+                            SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Half, false);
+                        }
+                        else if (IsFullPriceOrder(order))
+                        {
+                            SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
+                        }
+
+                        filledPrice = newPrice;
+                    }
+                    catch (Exception ex)
+                    {
+                        LocalPrint($"ERROR: {ex.Message}");
+                    }
                 }
             }
-            
             #endregion
 
         }

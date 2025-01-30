@@ -462,17 +462,16 @@ namespace NinjaTrader.NinjaScript.Strategies
         
         private void EnterOrderPure(double priceToSet, double target, double stoploss, string signal, int quantity = 2)
         {
-            var isBuyAction = currentTradeAction == TradeAction.Buy_Reversal || currentTradeAction == TradeAction.Buy_Trending;
-            var text = isBuyAction ? "LONG" : "SHORT";
+            var text = IsBuying ? "LONG" : "SHORT";
 
             /* 
              * DDiee
              */
-            var allowTrade = (isBuyAction && priceToSet < target) || (!isBuyAction && priceToSet > target);
+            var allowTrade = (IsBuying && priceToSet < target) || (IsSelling && priceToSet > target);
 
             if (allowTrade)
             {
-                if (isBuyAction)
+                if (IsBuying)
                 {
                     EnterLongLimit(2, true, quantity, priceToSet, signal);
                 }                   
@@ -493,7 +492,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Set Trade Action 
             currentTradeAction = tradeAction;            
 
-            var action = tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Buy_Reversal ? OrderAction.Buy : OrderAction.Sell;
+            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
             LocalPrint($"Enter {action} at {Time[0]}");
 
@@ -580,6 +579,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return currentTradeAction == TradeAction.Sell_Reversal || currentTradeAction == TradeAction.Sell_Trending;
             }
         }
+
+       
 
         protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice)
         {

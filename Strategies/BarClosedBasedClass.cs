@@ -74,6 +74,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         private Series<double> deadZoneSeries;
         #endregion
 
+        /// <summary>
+        /// Current Trade action
+        /// </summary>
         protected TradeAction currentTradeAction = TradeAction.NoTrade;
 
         /// <summary>
@@ -208,6 +211,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private List<int> NewsTimes = new List<int>();
 
+        /// <summary>
+        /// Giá hiện tại cách stop loss > [PointToMoveGainLoss] thì di chuyển stop loss. Giá hiện tại cách target &lt; [PointToMoveGainLoss] thì di chuyển target.
+        /// </summary>
         private double PointToMoveGainLoss = 7;
 
         protected override void OnStateChange()
@@ -293,6 +299,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        /// <summary>
+        /// Kiểm tra điều kiện để vào lệnh
+        /// </summary>
+        /// <returns>Trade Action: Sell/Buy, Trending/Reverse</returns>
         protected virtual TradeAction ShouldTrade()
         {
             /*
@@ -379,6 +389,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
         }        
+
+        /// <summary>
+        /// Giá stop loss
+        /// </summary>
+        /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
+        /// <param name="setPrice">Giá đặt lệnh</param>
+        /// <returns></returns>
         protected virtual double GetStopLossPrice(TradeAction tradeAction, double setPrice)
         {
             double price = -1;            
@@ -404,6 +421,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
         }
+
+        /// <summary>
+        /// Giá cho target 1 (Half)
+        /// </summary>
+        /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
+        /// <param name="setPrice">Giá đặt lệnh</param>
+        /// <returns></returns>
         private double GetTargetPrice_Half(TradeAction tradeAction, double setPrice)
         {
             double price = -1;
@@ -435,6 +459,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
         }
+
+        /// <summary>
+        /// Giá cho target 2 (Full)
+        /// </summary>
+        /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
+        /// <param name="setPrice">Giá đặt lệnh</param>
+        /// <returns></returns>
         private double GetTargetPrice_Two(TradeAction tradeAction, double setPrice)
         {
             double price = -1;
@@ -510,6 +541,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }        
 
+        /// <summary>
+        /// Đặt lệnh mua/bán
+        /// </summary>
+        /// <param name="tradeAction"></param>
         protected virtual void EnterOrder(TradeAction tradeAction)
         {
             // Set global values
@@ -560,8 +595,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             var targetHalfPriceOrders = ActiveOrders.Values.Where(c => c.FromEntrySignal == SignalEntry_ReversalHalf && 
                 (c.OrderType == OrderType.StopMarket || c.OrderType == OrderType.StopLimit )).ToList();
 
-            foreach (var order in targetHalfPriceOrders)
+            for (var i=0; i< targetHalfPriceOrders.Count; i++)
             {
+                var order = targetHalfPriceOrders[i];
                 if ((IsBuying && middleBB_5m > filledPrice) || (IsSelling && middleBB_5m < filledPrice))
                 {
                     MoveTargetOrStopOrder(middleBB_5m, order, true, IsBuying ? "BUY" : "SELL", order.FromEntrySignal);
@@ -1017,8 +1053,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         private void CancelAllPendingOrder()
         {
             var clonedList = ActiveOrders.Values.ToList();
-            foreach (var order in clonedList)
+            for (var i=0; i < clonedList.Count; i++)
             { 
+                var order = clonedList[i];
                 CancelOrder(order);
             }
         }
@@ -1063,8 +1100,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 LocalPrint($"Transition to live, convert all pending fill orders to realtime");
                 var clonedList = ActiveOrders.Values.ToList();
-                foreach (var order in clonedList)
+                for (var i=0; i< clonedList.Count; i++)
                 {
+                    var order = clonedList[i];
                     GetRealtimeOrder(order);
                 }
             }            
@@ -1154,8 +1192,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.Realtime)
             {
-                foreach (var order in ActiveOrders.Values)
+                var clonedList = ActiveOrders.Values.ToList();
+
+                for (var i= 0; i < clonedList.Count; i++)
                 {
+                    var order = clonedList[i];
                     try
                     {
                         LocalPrint($"Trying to modify waiting order {order.Name}, " +

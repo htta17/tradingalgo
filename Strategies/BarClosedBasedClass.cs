@@ -264,7 +264,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 catch (Exception e)
                 {
-                    Print($"ERROR: " + e.Message);
+                    Print($"[OnStateChange] - ERROR: " + e.Message);
                 }
 
                 PointToMoveGainLoss = 5;
@@ -583,7 +583,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception ex) 
             {
-                LocalPrint($"ERROR: " + ex.Message);
+                LocalPrint($"[EnterOrder] - ERROR: " + ex.Message);
             }
         }
 
@@ -630,7 +630,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice)
         {
-            LocalPrint($"Trying to move stop order. Filled Price: [{filledPrice:N2}], current Stop: {stopOrder.StopPrice}, updatedPrice: [{updatedPrice}]");
             double newPrice = -1;
             var allowMoving = "";
            
@@ -667,7 +666,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             if (allowMoving != "")
-            {                
+            {
+                LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrder.StopPrice}, updatedPrice: [{updatedPrice}]");
+
                 MoveTargetOrStopOrder(newPrice, stopOrder, false, allowMoving, stopOrder.FromEntrySignal);
             }
         }
@@ -741,7 +742,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 catch (Exception e)
                 {
-                    LocalPrint($"ERROR: " + e.Message);
+                    LocalPrint($"[OnMarketData] - ERROR: " + e.Message);
                 }                
             }
         }
@@ -812,7 +813,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception e)
             {
-                LocalPrint("ERROR: ********" + e.Message + "************");
+                LocalPrint("[OnOrderUpdate] - ERROR: ********" + e.Message + "************");
             }
             finally 
             {
@@ -1135,7 +1136,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 //Account.CancelAllOrders(Instrument);
                 CancelAllPendingOrder();
-                LocalPrint($"Cancel lệnh do đợi quá lâu");
+                LocalPrint($"Cancel lệnh do đợi quá lâu, Time[0]: {Time[0]}, filledTime: {filledTime}");
                 return; 
             }
 
@@ -1220,7 +1221,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     catch (Exception ex)
                     {
-                        LocalPrint($"ERROR: {ex.Message}");
+                        LocalPrint($"[UpdatePendingOrder] - ERROR: {ex.Message}");
                     }
                 }
             }

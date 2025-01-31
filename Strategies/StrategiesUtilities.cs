@@ -145,5 +145,14 @@ namespace NinjaTrader.Custom.Strategies
             SignalEntry_TrendingHalf,
             SignalEntry_TrendingFull
         };
+
+
+    }
+
+    public class SimpleInfoOrder
+    { 
+        public string Name { get; set; }
+
+        public string FromEntrySignal { get; set; }
     }
 }

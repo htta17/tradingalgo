@@ -134,11 +134,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get 
             {
-                if (!ActiveOrders.Any())
+                if (!SimpleActiveOrders.Any())
                 {
                     return ChickenStatus.Idle;
                 }
-                else if (ActiveOrders.Values.Any(order => StrategiesUtilities.SignalEntries.Contains(order.Name)))
+                else if (SimpleActiveOrders.Values.Any(order => StrategiesUtilities.SignalEntries.Contains(order.Name)))
                 {
                     return ChickenStatus.PendingFill;
                 }
@@ -151,6 +151,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Realtime: Dùng order.Id làm key, không phải Realtime: Dùng Name làm key
         /// </summary>
         private Dictionary<string,Order> ActiveOrders = new Dictionary<string, Order>();
+        
+        private Dictionary<string, SimpleInfoOrder> SimpleActiveOrders = new Dictionary<string, SimpleInfoOrder>();
 
         #region Importants Configurations
 
@@ -702,7 +704,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 try
                 {
                     // Order với half price
-                    var hasHalfPriceOder = ActiveOrders.Values.Any(order => order.FromEntrySignal == StrategiesUtilities.SignalEntry_ReversalHalf || order.FromEntrySignal == StrategiesUtilities.SignalEntry_TrendingHalf);
+                    var hasHalfPriceOder = SimpleActiveOrders.Values.Any(order => order.FromEntrySignal == StrategiesUtilities.SignalEntry_ReversalHalf || order.FromEntrySignal == StrategiesUtilities.SignalEntry_TrendingHalf);
 
                     if (hasHalfPriceOder) // Nếu còn order với half price (Chưa cắt half) --> Không nên làm gì
                     {
@@ -790,11 +792,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                     if (orderState == OrderState.Filled || orderState == OrderState.Cancelled)
                     {
                         ActiveOrders.Remove(key);
+                        SimpleActiveOrders.Remove(key);
                     }
                     else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
                     {
                         // Add or update 
                         ActiveOrders[key] = order;
+
+                        // Chỉ add thêm, không update
+                        if (!SimpleActiveOrders.ContainsKey(key))
+                        {
+                            SimpleActiveOrders.Add(key, new SimpleInfoOrder { FromEntrySignal = order.FromEntrySignal, Name = order.Name });
+                        }
                     }
                 }
             }

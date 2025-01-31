@@ -14,7 +14,6 @@ using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
 using System.Windows;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -141,7 +140,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>
         /// Realtime: Dùng order.Id làm key, không phải Realtime: Dùng Name làm key
         /// </summary>
-        private ConcurrentDictionary<string,Order> ActiveOrders = new ConcurrentDictionary<string, Order>();                
+        private Dictionary<string,Order> ActiveOrders = new Dictionary<string, Order>();                
 
         #region Importants Configurations
 
@@ -661,41 +660,43 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint("NOT allow to move stop loss/gain");
                     return;
                 }
-                Task.Run(() => {
-                    try
+                
+                try
+                {
+                    // Order với half price
+                    var hasHalfPriceOder = ActiveOrders.Values.Any(order => order.FromEntrySignal == SignalEntry_ReversalHalf || order.FromEntrySignal == SignalEntry_TrendingHalf);
+
+                    if (hasHalfPriceOder) // Nếu còn order với half price (Chưa cắt half) --> Không nên làm gì
                     {
-                        // Order với half price
-                        var hasHalfPriceOder = ActiveOrders.Values.Any(order => order.FromEntrySignal == SignalEntry_ReversalHalf || order.FromEntrySignal == SignalEntry_TrendingHalf);
-
-                        if (hasHalfPriceOder) // Nếu còn order với half price (Chưa cắt half) --> Không nên làm gì
-                        {
-                            return;
-                        }
-
-                        var stopOrders = ActiveOrders.Values.Where(order => order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)
-                            .ToList();
-
-                        LocalPrint($"StopLoss Order Count: {stopOrders.Count}");
-
-                        var targetOrders = ActiveOrders.Values.Where(order => order.OrderState == OrderState.Working && order.OrderType == OrderType.Limit)
-                            .ToList();
-
-                        foreach (var stopOrder in stopOrders)
-                        {
-                            LocalPrint($"StopLoss Order ID: {stopOrder.Id} - Price: {stopOrder.StopPrice}");
-                            MoveStopOrder(stopOrder, updatedPrice);
-                        }
-
-                        foreach (var targetOrder in targetOrders)
-                        {
-                            MoveTargetOrder(targetOrder, updatedPrice);
-                        }
+                        return;
                     }
-                    catch (Exception e)
+
+                    var stopOrders = ActiveOrders.Values.Where(order => order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)
+                        .ToList();
+
+                    LocalPrint($"StopLoss Order Count: {stopOrders.Count}");
+
+                    var targetOrders = ActiveOrders.Values.Where(order => order.OrderState == OrderState.Working && order.OrderType == OrderType.Limit)
+                        .ToList();
+
+                    for (var i =0; i< stopOrders.Count; i++)
                     {
-                        LocalPrint($"ERROR: " + e.Message);
+                        var stopOrder = stopOrders[i];
+                        LocalPrint($"StopLoss Order ID: {stopOrder.Id} - Price: {stopOrder.StopPrice}");
+                        MoveStopOrder(stopOrder, updatedPrice);
                     }
-                });
+
+                    for (var i = 0; i < targetOrders.Count; i++)
+                    {
+                        var targetOrder = targetOrders[i];
+                        MoveTargetOrder(targetOrder, updatedPrice);
+                    }
+                }
+                catch (Exception e)
+                {
+                    LocalPrint($"ERROR: " + e.Message);
+                }
+                
                 
             }
         }
@@ -754,30 +755,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 */
                 if (orderState == OrderState.Filled || orderState == OrderState.Cancelled)
                 {
-                    if (ActiveOrders.TryRemove(key, out Order val))
-                    {
-                        LocalPrint($"ERROR: Cannot remove order [{key}] from active orders");
-                    }                    
+                    ActiveOrders.Remove(key);
                 }
                 else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
                 {
-                    var isSuccess = false;
-                    if (ActiveOrders.ContainsKey(key))
-                    {
-                        if (ActiveOrders.TryGetValue(key, out Order currentVal))
-                        {
-                            isSuccess = ActiveOrders.TryUpdate(key, order, currentVal);
-                        }
-                    }
-                    else 
-                    {
-                        isSuccess = ActiveOrders.TryAdd(key, order);
-                    }
-                    if (!isSuccess)
-                    {
-                        LocalPrint($"ERROR: Cannot add or update order [{key}] from active orders");
-                    }
+                    // Add or update 
+                    ActiveOrders[key] = order;
                 }
+
+                
             }
             catch (Exception e)
             {

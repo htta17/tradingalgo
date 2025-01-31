@@ -439,19 +439,20 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             double price = -1;
 
-            var time = ToTime(Time[0]); 
+            var time = ToTime(Time[0]);
+            var isNightTime = time > 150000 || time < 083000;
 
             switch (tradeAction)
             {
                 case TradeAction.Buy_Trending:
-                    price = (time > 150000 || time < 083000) // if night time, cut half at 7.5 point
-                        ? setPrice + 7.5
+                    price = isNightTime // if night time, cut half at 7 point
+                        ? setPrice + 7
                         : setPrice + (TickSize * StopLossInTicks / 2);
                     break;
 
                 case TradeAction.Sell_Trending:
-                    price = (time > 150000 || time < 083000) // if night time, cut half at 7.5 point
-                        ? setPrice - 7.5
+                    price = isNightTime // if night time, cut half at 7 point
+                        ? setPrice - 7
                         : setPrice - (TickSize * StopLossInTicks /2);
                     break;
 

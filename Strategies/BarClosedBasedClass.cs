@@ -143,14 +143,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     return ChickenStatus.PendingFill;
                 }
                 
-                return ChickenStatus.OrderExists;                
+                return ChickenStatus.OrderExists;
             }
         }
 
         /// <summary>
         /// Realtime: Dùng order.Id làm key, không phải Realtime: Dùng Name làm key
         /// </summary>
-        private Dictionary<string,Order> ActiveOrders = new Dictionary<string, Order>();                
+        private Dictionary<string,Order> ActiveOrders = new Dictionary<string, Order>();
 
         #region Importants Configurations
 
@@ -321,7 +321,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Cho phép trade reverse (Bollinger Band) từ 8:35 am đến 11:30pm
             if (currentPrice > lowerBB_5m && currentPrice < upperBB_5m)
             {
-                LocalPrint($"**********Kiểm tra điều kiện trade Reversal***************");
                 if (lastDEMA_5m > lastUpperBB_5m && currentDEMA_5m <= upperBB_5m)
                 {
                     LocalPrint("Found SELL signal (Reversal)");
@@ -911,7 +910,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             if (StrategiesUtilities.ReachMaxDayLossOrDayTarget(this, Account, MaximumDailyLoss, DailyTargetProfit))
-            {                
+            {
                 return;
             }
 
@@ -961,7 +960,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 volume_5m = Volume[0];
                 avgEMAVolume_5m = EMA(Volume, FiveMinutes_Period)[0];
-                adx_5m = ADX(FiveMinutes_Period).Value[0];                
+                adx_5m = ADX(FiveMinutes_Period).Value[0];
                 
                 plusDI_5m = DM(FiveMinutes_Period).DiPlus[0];
                 minusDI_5m = DM(FiveMinutes_Period).DiMinus[0];
@@ -1040,7 +1039,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             double bbLowerVal = bbBasis - bbDev;
 
             // Explosion Line
-            double explosionValue = bbUpperVal - bbLowerVal;            
+            double explosionValue = bbUpperVal - bbLowerVal;
 
             return new WEA_ValueSet
             {
@@ -1106,7 +1105,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var order = clonedList[i];
                     GetRealtimeOrder(order);
                 }
-            }            
+            }
         }
 
         private bool IsHalfPriceOrder(Order order)
@@ -1160,7 +1159,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Cancel lệnh do đã chạm Bollinger upper band (over bought) hoặc Bollinger lower band (over sold)");
                     return;
                 }
-            }            
+            }
 
             // Cancel các lệnh theo trending
             var cancelCausedByTrendCondition =

@@ -53,6 +53,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double currentDEMA_5m = -1;
         protected double lastDEMA_5m = -1;
 
+        protected int barIndex_5m = 0;
+
         // Volume 
         protected double volume_5m = -1;
         protected double avgEMAVolume_5m = -1;
@@ -482,10 +484,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private void EnterOrderPure(double priceToSet, double target, double stoploss, string signal, int quantity = 2)
         {
             var text = IsBuying ? "LONG" : "SHORT";
-
-            /* 
-             * DDiee
-             */
+            
             var allowTrade = (IsBuying && priceToSet < target) || (IsSelling && priceToSet > target);
 
             if (allowTrade)
@@ -517,14 +516,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (action == OrderAction.Buy)
             {
-                Draw.ArrowUp(this, $"BuySignal" + CurrentBar, false, 0, Low[0] - TickSize * 10, Brushes.Green);
+                Draw.ArrowUp(this, $"BuySignal" + barIndex_5m, false, 0, lowPrice_5m - TickSize * 10, Brushes.Green);
             }
             else if (action == OrderAction.Sell)
             {
-                Draw.ArrowDown(this, $"SellSignal" + CurrentBar, false, 0, High[0] + TickSize * 10, Brushes.Red);
+                Draw.ArrowDown(this, $"SellSignal" + barIndex_5m, false, 0, highPrice_5m + TickSize * 10, Brushes.Red);
             }            
 
             double priceToSet = GetSetPrice(tradeAction);
+            filledPrice = priceToSet;
             
             var stopLossPrice = GetStopLossPrice(currentTradeAction, priceToSet); 
             var targetHalf = GetTargetPrice_Half(currentTradeAction, priceToSet);
@@ -549,7 +549,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private void MoveTarget1BasedOnBollinger()
         {
-            var targetHalfPriceOrders = ActiveOrders.Values.Where(c => c.FromEntrySignal == SignalEntry_ReversalHalf).ToList();
+            var targetHalfPriceOrders = ActiveOrders.Values.Where(c => c.FromEntrySignal == SignalEntry_ReversalHalf && 
+                (c.OrderType == OrderType.StopMarket || c.OrderType == OrderType.StopLimit )).ToList();
 
             foreach (var order in targetHalfPriceOrders)
             {
@@ -580,7 +581,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             
             var text = isGainStop ? "TARGET" : "LOSS";
 
-            LocalPrint($"Dịch chuyển {text} {order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice  : order.StopPrice)}] đến [{newPrice}] - {buyOrSell}");
+            LocalPrint($"Dịch chuyển order {order.Name}, id: {order.Id}({text}), {order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice  : order.StopPrice)}] đến [{newPrice}] - {buyOrSell}");
         }
 
         protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice)
@@ -773,7 +774,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 //LocalPrint($"CountOrders: {ActiveOrders.Count}");
                 LocalPrint(
-                    $"OnOrderUpdate - key: {key}, quantity: {quantity}, filled: {filled}, orderType: {order.OrderType}, orderState: {orderState}, " +
+                    $"[OnOrderUpdate] - key: [{key}], quantity: {quantity}, filled: {filled}, orderType: {order.OrderType}, orderState: {orderState}, " +
                     $"limitPrice: {limitPrice:N2}, stop: {stopPrice:N2}. Current number of active orders: {ActiveOrders.Count}");
             }
         }
@@ -804,15 +805,17 @@ namespace NinjaTrader.NinjaScript.Strategies
             // EMA 29/51
             var middleEMA2951 = (ema29_1m + ema51_1m) / 2;
             Draw.HorizontalLine(this, "MiddleEMA", middleEMA2951, Brushes.Gold, Gui.DashStyleHelper.Dot, 2);
-            Draw.Text(this, "MiddleEMA_Label", true, $"EMA29/51 [{middleEMA2951:N2}]",
-                0,
+            Draw.Text(this, "MiddleEMA_Label", true, $"[{middleEMA2951:N2}]",
+                -3,
                 middleEMA2951,
                 5,
                 Brushes.Green,
                 new SimpleFont("Arial", 10),
                 TextAlignment.Left,
                 Brushes.Transparent,
-                Brushes.Transparent, 0);            
+                Brushes.Transparent, 0);
+
+            
         }
         
         protected override void OnBarUpdate()
@@ -932,6 +935,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 lowPrice_5m = Low[0];
                 highPrice_5m = High[0];
+                barIndex_5m = CurrentBar;
 
                 currentDEMA_5m = DEMA(DEMA_Period).Value[0];
                 lastDEMA_5m = DEMA(DEMA_Period).Value[1];
@@ -944,7 +948,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 waeExplosion_5m = wae.ExplosionVal;
                 waeUptrend_5m = wae.UpTrendVal;
 
-                LocalPrint($"WAE Values: DeadZoneVal: {wae.DeadZoneVal:N2}, ExplosionVal: {wae.ExplosionVal:N2}, DowntrendVal: {wae.DownTrendVal:N2}, UptrendVal: {wae.UpTrendVal:N2}. ADX = {adx_5m:N2}");
+                LocalPrint($"WAE Values: DeadZoneVal: {wae.DeadZoneVal:N2}, ExplosionVal: {wae.ExplosionVal:N2}, " +
+                    $"DowntrendVal: {wae.DownTrendVal:N2}, " +
+                    $"UptrendVal: {wae.UpTrendVal:N2}. ADX = {adx_5m:N2} " +
+                    $"{(wae.CanTrade ? "--> Can enter Order" : "")}");
             }
         }
         /// <summary>
@@ -1010,13 +1017,51 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        /// <summary>
+        /// Khi State từ Historical sang Realtime thì trong ActiveOrders có thể còn lệnh
+        /// Nếu ChickenStatus == ChickenStatus.OrderExists thì các lệnh trong đó là các lệnh fake
+        /// Nếu ChickenStatus == ChickenStatus.PendingFill thì phải transite các lệnh này sang chế độ LIVE
+        /// </summary>
         private void TransitionOrdersToLive()
         {
-            var clonedList = ActiveOrders.Values.ToList();
-            foreach (var order in clonedList)
+            if (ChickenStatus == ChickenStatus.OrderExists)
             {
-                GetRealtimeOrder(order);
+                LocalPrint($"Transition to live, clear all ActiveOrders");
+                /*
+                if (IsBuying)
+                {
+                    ExitLong();
+                }
+                else if (IsSelling)
+                {
+                    ExitShort();
+                }
+                */
+
+                var clonedList = ActiveOrders.Values.Where(c => c.OrderType == OrderType.Limit).ToList();
+
+                for (var i = 0; i < clonedList.Count; i++)
+                { 
+                    var order = clonedList[i];
+                    if (IsBuying)
+                    {
+                        ExitLong(order.Quantity, "Close market", order.FromEntrySignal);
+                    }
+                    else if (IsSelling)
+                    {
+                        ExitShort(order.Quantity, "Close market", order.FromEntrySignal);
+                    }
+                }
             }
+            else if (ChickenStatus == ChickenStatus.PendingFill)
+            {
+                LocalPrint($"Transition to live, convert all pending fill orders to realtime");
+                var clonedList = ActiveOrders.Values.ToList();
+                foreach (var order in clonedList)
+                {
+                    GetRealtimeOrder(order);
+                }
+            }            
         }
 
         private bool IsHalfPriceOrder(Order order)

@@ -94,6 +94,19 @@ namespace NinjaTrader.Custom.Strategies
         public double UpTrendVal { get; set; }
 
         public double DownTrendVal { get; set; }
+
+        private bool? _canTrade = null;
+        public bool CanTrade 
+        { 
+            get 
+            {
+                if (_canTrade == null)
+                {
+                    _canTrade = (UpTrendVal > ExplosionVal && UpTrendVal > DeadZoneVal) || (DownTrendVal > ExplosionVal && DownTrendVal > DeadZoneVal);
+                }
+                return _canTrade.Value;
+            }  
+        }
     }
 
     public enum Trends

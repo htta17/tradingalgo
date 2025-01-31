@@ -27,7 +27,25 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public class Tiger : Strategy
 	{
-		protected override void OnStateChange()
+        private DateTime LastExecutionTime = DateTime.MinValue;
+
+        private int executionCount = 0;
+
+        #region Một số key levels quan trọng
+        private double YesterdayHigh = -1;
+        private double YesterdayLow = -1;
+        private double YesterdayMiddle = -1;
+
+        private double PreMarketHigh = double.MinValue;
+        private double PreMarketLow = double.MaxValue;
+        private double PreMarketMiddle = 0;
+
+        private double AsianHigh = double.MinValue;
+        private double AsianLow = double.MaxValue;
+        private double AsianMiddle = double.MaxValue;
+        #endregion
+
+        protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
 			{
@@ -57,9 +75,62 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 		}
 
+        private void FindAndDrawKeyLevels()
+        {
+            if (Bars.IsFirstBarOfSession)
+            {
+                YesterdayHigh = PriorDayOHLC().PriorHigh[0];
+                YesterdayLow = PriorDayOHLC().PriorLow[0];
+                YesterdayMiddle = (YesterdayHigh + YesterdayLow) / 2;
+                Draw.HorizontalLine(this, "YesterdayHigh", YesterdayHigh, Brushes.Blue, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "YesterdayLow", YesterdayLow, Brushes.Blue, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "YesterdayMiddle", YesterdayMiddle, Brushes.Blue, DashStyleHelper.Dash, 1);
+
+                PreMarketHigh = double.MinValue;
+                PreMarketLow = double.MaxValue;
+                AsianHigh = double.MinValue;
+                AsianLow = double.MaxValue;
+            }
+
+            // Define pre-market time range (12:00 AM to 8:30 AM CST)
+            if (ToTime(Time[0]) >= 0 && ToTime(Time[0]) < 83000)
+            {
+                PreMarketHigh = Math.Max(PreMarketHigh, High[0]);
+                PreMarketLow = Math.Min(PreMarketLow, Low[0]);
+                PreMarketMiddle = (PreMarketLow + PreMarketHigh) / 2;
+            }
+            // Define Asian session time range (6:00 PM to 3:00 AM CST)
+            if (ToTime(Time[0]) >= 180000 || ToTime(Time[0]) < 30000)
+            {
+                AsianHigh = Math.Max(AsianHigh, High[0]);
+                AsianLow = Math.Min(AsianLow, Low[0]);
+                AsianMiddle = (AsianHigh + AsianLow) / 2;
+            }
+
+            if (ToTime(Time[0]) == 83000)
+            {
+                Draw.HorizontalLine(this, "PreMarketHigh", PreMarketHigh, Brushes.Orange, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "PreMarketLow", PreMarketLow, Brushes.Orange, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "PreMarketMiddle", PreMarketMiddle, Brushes.Orange, DashStyleHelper.Dash, 1);
+            }
+            else if (ToTime(Time[0]) == 30000)
+            {
+                Draw.HorizontalLine(this, "AsianHigh", AsianHigh, Brushes.Green, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "AsianLow", AsianLow, Brushes.Green, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "AsianMiddle", AsianMiddle, Brushes.Green, DashStyleHelper.Dash, 1);
+            }
+        }
 		protected override void OnBarUpdate()
 		{
-			//Add your custom strategy logic here.
-		}
+            FindAndDrawKeyLevels();
+
+
+
+            if (DateTime.Now.Subtract(LastExecutionTime).TotalSeconds < 1)
+            {
+                return;
+            }
+            LastExecutionTime = DateTime.Now;
+        }
 	}
 }

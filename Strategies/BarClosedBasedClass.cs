@@ -14,6 +14,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
 using System.Windows;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -140,7 +141,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>
         /// Realtime: Dùng order.Id làm key, không phải Realtime: Dùng Name làm key
         /// </summary>
-        private Dictionary<string,Order> ActiveOrders = new Dictionary<string, Order>();                
+        private ConcurrentDictionary<string,Order> ActiveOrders = new ConcurrentDictionary<string, Order>();                
 
         #region Importants Configurations
 
@@ -753,15 +754,30 @@ namespace NinjaTrader.NinjaScript.Strategies
                 */
                 if (orderState == OrderState.Filled || orderState == OrderState.Cancelled)
                 {
-                    ActiveOrders.Remove(key);
+                    if (ActiveOrders.TryRemove(key, out Order val))
+                    {
+                        LocalPrint($"ERROR: Cannot remove order [{key}] from active orders");
+                    }                    
                 }
                 else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
                 {
-                    // Add or update 
-                    ActiveOrders[key] = order;
+                    var isSuccess = false;
+                    if (ActiveOrders.ContainsKey(key))
+                    {
+                        if (ActiveOrders.TryGetValue(key, out Order currentVal))
+                        {
+                            isSuccess = ActiveOrders.TryUpdate(key, order, currentVal);
+                        }
+                    }
+                    else 
+                    {
+                        isSuccess = ActiveOrders.TryAdd(key, order);
+                    }
+                    if (!isSuccess)
+                    {
+                        LocalPrint($"ERROR: Cannot add or update order [{key}] from active orders");
+                    }
                 }
-
-                
             }
             catch (Exception e)
             {

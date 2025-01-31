@@ -65,13 +65,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Check Trading Hour", Order = 8, GroupName = "Parameters")]
-        public bool CheckTradingHour { get; set; } = true;
-
-        /*
-		[NinjaScriptProperty]
-		[Display(Name = "Shift Type (AM/PM/Night)", Order = 9, GroupName = "Parameters")]
-		public ShiftType ShiftType { get; set; } = ShiftType.Moning_0700_1500;
-		*/
+        public bool CheckTradingHour { get; set; } = true;        
 
         [NinjaScriptProperty]
         [Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = "Parameters")]

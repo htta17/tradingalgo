@@ -107,5 +107,43 @@ namespace NinjaTrader.Custom.Strategies
                 action(e.Message);
             }
         }
+
+
+        public static bool IsCorrectShift(int time, ShiftType shiftType, Action<string> action)
+        {	
+			if (shiftType == ShiftType.Moning_0700_1500 && (time < 070000 || time > 150000))
+			{
+                action($"Time: {time} - Shift {shiftType} --> Not trading hour");
+				return false; 
+			}
+			else if (shiftType == ShiftType.Afternoon_1700_2300 && (time < 170000 || time > 230000))
+			{
+                action($"Time: {time} - Shift {shiftType} --> Not trading hour");
+				return false; 
+			} 
+			else if (shiftType == ShiftType.Night_2300_0700 && (time >= 070000 && time <= 230000))
+			{
+                action($"Time: {time} - Shift {shiftType} --> Not trading hour");
+				return false;
+			}
+
+            return true;
+        }
+
+        public const string StopLoss_SignalName = "Stop loss";
+        public const string ProfitTarget_SignalName = "Profit target";
+
+        public const string SignalEntry_ReversalHalf = "Entry-RH";
+        public const string SignalEntry_ReversalFull = "Entry-RF";
+        public const string SignalEntry_TrendingHalf = "Entry-TH";
+        public const string SignalEntry_TrendingFull = "Entry-TF";
+
+        public static HashSet<string> SignalEntries = new HashSet<string>
+        {
+            SignalEntry_ReversalHalf,
+            SignalEntry_ReversalFull,
+            SignalEntry_TrendingHalf,
+            SignalEntry_TrendingFull
+        };
     }
 }

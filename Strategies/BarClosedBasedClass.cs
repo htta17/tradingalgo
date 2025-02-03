@@ -946,7 +946,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 currentPrice = Close[0];
 
                 DrawImportantLevels();
-                
+
+                if (State != State.Realtime)
+                {
+                    return;
+                }
+
                 if (ChickenStatus == ChickenStatus.Idle)
                 {
                     var shouldTrade = ShouldTrade();
@@ -974,6 +979,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Current View --> return
                     return;
                 }
+                
                 var bollinger = Bollinger(1, 20);
                 var bollingerStd2 = Bollinger(2, 20);
 

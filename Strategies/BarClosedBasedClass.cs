@@ -587,7 +587,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private void MoveTarget1BasedOnBollinger()
         {
-            var targetHalfPriceOrders = ActiveOrders.Values.Where(c => c.FromEntrySignal == StrategiesUtilities.SignalEntry_ReversalHalf && 
+            var targetHalfPriceOrders = ActiveOrders.Values.ToList().Where(c => c.FromEntrySignal == StrategiesUtilities.SignalEntry_ReversalHalf && 
                 (c.OrderType == OrderType.StopMarket || c.OrderType == OrderType.StopLimit )).ToList();
 
             var len = targetHalfPriceOrders.Count;
@@ -610,39 +610,47 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <param name="buyOrSell">Lệnh này là bán hay mua (dùng cho logger nên không quá quan trọng)</param>
         /// <param name="fromEntrySignal">Entry Signal</param>
         private void MoveTargetOrStopOrder(double newPrice, Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
-        {            
-            if (isGainStop)
+        {
+            try
             {
-                SetProfitTarget(fromEntrySignal, CalculationMode.Price, newPrice);
-            }
-            else
-            {
-                SetStopLoss(fromEntrySignal, CalculationMode.Price, newPrice, false);
-            }
-            
-            var text = isGainStop ? "TARGET" : "LOSS";
+                if (isGainStop)
+                {
+                    SetProfitTarget(fromEntrySignal, CalculationMode.Price, newPrice);
+                }
+                else
+                {
+                    SetStopLoss(fromEntrySignal, CalculationMode.Price, newPrice, false);
+                }
 
-            LocalPrint($"Dịch chuyển order {order.Name}, id: {order.Id}({text}), " +
-                $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
-                $"đến [{newPrice}] - {buyOrSell}");
+                var text = isGainStop ? "TARGET" : "LOSS";
+
+                LocalPrint($"Dịch chuyển order {order.Name}, id: {order.Id}({text}), " +
+                    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
+                    $"đến [{newPrice}] - {buyOrSell}");
+            }
+            catch (Exception ex)
+            {
+                LocalPrint($"[MoveTargetOrStopOrder] - ERROR: {ex.Message}");
+            }
         }
 
         protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice)
         {
             double newPrice = -1;
             var allowMoving = "";
-           
+            var stopOrderPrice = stopOrder.StopPrice;
+
             // Dịch stop loss lên break even 
             if (IsBuying)
             {
                 // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
-                if (startMovingStoploss && stopOrder.StopPrice > filledPrice && stopOrder.StopPrice + PointToMoveLoss < updatedPrice)
+                if (startMovingStoploss && stopOrderPrice > filledPrice &&   + PointToMoveLoss < updatedPrice)
                 {
                     newPrice = updatedPrice - PointToMoveLoss;
                     allowMoving = "BUY";
                 }
                 // Kéo về break even
-                else if (stopOrder.StopPrice < filledPrice && filledPrice + 1 < updatedPrice)
+                else if (stopOrderPrice < filledPrice && filledPrice + 1 < updatedPrice)
                 {
                     newPrice = filledPrice + 1;
                     allowMoving = "BUY";
@@ -651,13 +659,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             else if (IsSelling)
             {
                 // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
-                if (startMovingStoploss &&  stopOrder.StopPrice < filledPrice && stopOrder.StopPrice - PointToMoveLoss > updatedPrice)
+                if (startMovingStoploss && stopOrderPrice < filledPrice && stopOrderPrice - PointToMoveLoss > updatedPrice)
                 {
                     newPrice = updatedPrice + PointToMoveLoss;
                     allowMoving = "SELL";
                 }
                 // Kéo về break even
-                else if (stopOrder.StopPrice > filledPrice && filledPrice - 1 > updatedPrice)
+                else if (stopOrderPrice > filledPrice && filledPrice - 1 > updatedPrice)
                 {
                     newPrice = filledPrice - 1;
                     allowMoving = "SELL";
@@ -666,7 +674,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (allowMoving != "")
             {
-                LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrder.StopPrice}, updatedPrice: [{updatedPrice}]");
+                LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
 
                 MoveTargetOrStopOrder(newPrice, stopOrder, false, allowMoving, stopOrder.FromEntrySignal);
             }
@@ -674,20 +682,21 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected virtual void MoveTargetOrder(Order targetOrder, double updatedPrice)
         {
+            var targetOrderPrice = targetOrder.LimitPrice;
+
             // Dịch stop gain nếu giá quá gần target            
-            if (IsBuying && updatedPrice + PointToMoveTarget > targetOrder.LimitPrice)
+            if (IsBuying && updatedPrice + PointToMoveTarget > targetOrderPrice)
             {
-                MoveTargetOrStopOrder(targetOrder.LimitPrice + PointToMoveTarget, targetOrder, true, "BUY", targetOrder.FromEntrySignal);
+                MoveTargetOrStopOrder(targetOrderPrice + PointToMoveTarget, targetOrder, true, "BUY", targetOrder.FromEntrySignal);
 
                 startMovingStoploss = true;
             }
-            else if (IsSelling && updatedPrice - PointToMoveTarget < targetOrder.LimitPrice)
+            else if (IsSelling && updatedPrice - PointToMoveTarget < targetOrderPrice)
             {
-                MoveTargetOrStopOrder(targetOrder.LimitPrice - PointToMoveTarget, targetOrder, true, "SELL", targetOrder.FromEntrySignal);
+                MoveTargetOrStopOrder(targetOrderPrice - PointToMoveTarget, targetOrder, true, "SELL", targetOrder.FromEntrySignal);
 
                 startMovingStoploss = true;
-            }
-            
+            }            
         }
 
         // Kéo stop loss/gain
@@ -718,24 +727,29 @@ namespace NinjaTrader.NinjaScript.Strategies
                         return;
                     }
 
-                    var stopOrders = ActiveOrders.Values.Where(order => order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)
-                        .ToList();                    
-
-                    var targetOrders = ActiveOrders.Values.Where(order => order.OrderState == OrderState.Working && order.OrderType == OrderType.Limit)
-                        .ToList();
-
-                    var lenStop = stopOrders.Count; 
-                    for (var i = 0; i< lenStop; i++)
+                    lock (lockOjbject)
                     {
-                        var stopOrder = stopOrders[i];                        
-                        MoveStopOrder(stopOrder, updatedPrice);
-                    }
+                        var stopOrders = ActiveOrders.Values.ToList()
+                                            .Where(order => order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)
+                                            .ToList();
 
-                    var lenTarget = targetOrders.Count;
-                    for (var i = 0; i < lenTarget; i++)
-                    {
-                        var targetOrder = targetOrders[i];
-                        MoveTargetOrder(targetOrder, updatedPrice);
+                        var targetOrders = ActiveOrders.Values.ToList()
+                                            .Where(order => order.OrderState == OrderState.Working && order.OrderType == OrderType.Limit)
+                                            .ToList();
+
+                        var lenStop = stopOrders.Count;
+                        for (var i = 0; i < lenStop; i++)
+                        {
+                            var stopOrder = stopOrders[i];
+                            MoveStopOrder(stopOrder, updatedPrice);
+                        }
+
+                        var lenTarget = targetOrders.Count;
+                        for (var i = 0; i < lenTarget; i++)
+                        {
+                            var targetOrder = targetOrders[i];
+                            MoveTargetOrder(targetOrder, updatedPrice);
+                        }
                     }
                 }
                 catch (Exception e)
@@ -1083,7 +1097,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 */
 
-                var clonedList = ActiveOrders.Values.Where(c => c.OrderType == OrderType.Limit).ToList();
+                var clonedList = ActiveOrders.Values.ToList().Where(c => c.OrderType == OrderType.Limit).ToList();
                 var len = clonedList.Count;
 
                 for (var i = 0; i < len; i++)

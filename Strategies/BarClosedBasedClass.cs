@@ -815,7 +815,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
                     {
                         // Add or update 
-                        ActiveOrders[key] = order;
+                        //ActiveOrders[key] = order;
+                        if (!ActiveOrders.ContainsKey(key))
+                        {
+                            ActiveOrders.Add(key, order);
+                        }
 
                         // Chỉ add thêm, không update
                         if (!SimpleActiveOrders.ContainsKey(key))

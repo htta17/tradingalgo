@@ -9,7 +9,7 @@ namespace NinjaTrader.Custom.Strategies
     /// <summary>
     /// Lựa chọn điểm vào lệnh (Theo EMA29/51 hay theo Bollinger bands)
     /// </summary>
-    public enum ChickenWayToTrade
+    public enum WayToTrade
     {       
         EMA2951,
         BollingerBand
@@ -18,7 +18,7 @@ namespace NinjaTrader.Custom.Strategies
     /// <summary>
     /// Trạng thái hiện tại của giải thuật
     /// </summary>
-    public enum ChickenStatus
+    public enum TradingStatus
     {
         Idle, // Đang không có lệnh 
         PendingFill, // Lệnh đã submit nhưng chưa được fill do giá chưa đúng
@@ -38,7 +38,7 @@ namespace NinjaTrader.Custom.Strategies
     {
         Idle,
         WaitingForGoodPrice, // Có tín hiệu B-line nhưng giá vẫn chưa pass EMA29/51 
-        FillOrderPendingDuck,
+        FillOrderPending,
         OrderExist
     }
 

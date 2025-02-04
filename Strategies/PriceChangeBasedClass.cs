@@ -591,13 +591,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                             LocalPrint($"I'm waiting - {DuckStatus} - Check to enter LONG: {enterLong}, check to ebter SHORT: {enterShort}");
 
-                            if (enterLong == DuckStatus.FillOrderPendingDuck || enterLong == DuckStatus.OrderExist)  // Vào lệnh LONG market hoặc set lệnh LONG LIMIT
+                            if (enterLong == DuckStatus.FillOrderPending || enterLong == DuckStatus.OrderExist)  // Vào lệnh LONG market hoặc set lệnh LONG LIMIT
                             {
                                 DuckStatus = enterLong;
                                 EnterOrder(OrderAction.Buy, State, enterLong);
                                 Print("Enter Long");
                             }
-                            else if (enterShort == DuckStatus.FillOrderPendingDuck || enterShort == DuckStatus.OrderExist)
+                            else if (enterShort == DuckStatus.FillOrderPending || enterShort == DuckStatus.OrderExist)
                             {
                                 DuckStatus = enterShort;
                                 EnterOrder(OrderAction.Sell, State, enterShort);
@@ -633,7 +633,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             MoveStopGainOrLoss(currentPrice);
                         }
                     }
-                    else if (DuckStatus == DuckStatus.FillOrderPendingDuck)
+                    else if (DuckStatus == DuckStatus.FillOrderPending)
                     {
                         // Move LIMIT order nếu giá di chuyển quá nhiều
                         var activeOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted);
@@ -675,7 +675,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 DuckStatus = DuckStatus.OrderExist;
                                 LocalPrint($"Chuyển sang trạng thái ORDER_EXISTS từ WaitingForGoodPrice");
                             }
-                            else if (!existingOrders && (newStatus == DuckStatus.OrderExist || newStatus == DuckStatus.FillOrderPendingDuck))
+                            else if (!existingOrders && (newStatus == DuckStatus.OrderExist || newStatus == DuckStatus.FillOrderPending))
                             {
                                 EnterOrder(currentAction, State, newStatus);
                             }
@@ -760,7 +760,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         Math.Max(ema29_1m, ema51_1m) < bigCloudVal && bigCloudVal - Math.Max(ema29_1m, ema51_1m) < 10)
                 {
                     LocalPrint("Chờ fill lệnh BUY");
-                    return DuckStatus.FillOrderPendingDuck;
+                    return DuckStatus.FillOrderPending;
                 }
                 else
                 {
@@ -804,7 +804,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (adx_5m > 25 && minusDI_5m < plusDI_5m && Math.Min(ema29_1m, ema51_1m) > bigCloudVal && bigCloudVal - Math.Min(ema29_1m, ema51_1m) < 10)
                 {
                     LocalPrint("Chờ fill lệnh SELL");
-                    return DuckStatus.FillOrderPendingDuck;
+                    return DuckStatus.FillOrderPending;
                 }
                 else
                 {
@@ -877,7 +877,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         Math.Max(ema29_1m, ema51_1m) < bigCloudVal && bigCloudVal - Math.Max(ema29_1m, ema51_1m) < 10)
                 {
                     LocalPrint("Chờ fill lệnh BUY");
-                    return DuckStatus.FillOrderPendingDuck;
+                    return DuckStatus.FillOrderPending;
                 }
                 else
                 {
@@ -934,7 +934,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     else if (adx_5m > 25 && minusDI_5m < plusDI_5m && Math.Min(ema29_1m, ema51_1m) > bigCloudVal && bigCloudVal - Math.Min(ema29_1m, ema51_1m) < 10)
                     {
                         LocalPrint("Chờ fill lệnh SELL");
-                        return DuckStatus.FillOrderPendingDuck;
+                        return DuckStatus.FillOrderPending;
                     }
                     else
                     {
@@ -951,7 +951,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private void UpdatePendingOrder(Order pendingOrder)
         {
-            if (DuckStatus != DuckStatus.FillOrderPendingDuck)
+            if (DuckStatus != DuckStatus.FillOrderPending)
             {
                 return;
             }

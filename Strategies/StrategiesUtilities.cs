@@ -110,22 +110,22 @@ namespace NinjaTrader.Custom.Strategies
 
 
         public static bool IsCorrectShift(int time, ShiftType shiftType, Action<string> action)
-        {	
-			if (shiftType == ShiftType.Moning_0700_1500 && (time < 070000 || time > 150000))
-			{
+        {
+            if (shiftType == ShiftType.Moning_0700_1500 && (time < 070000 || time > 150000))
+            {
                 action($"Time: {time} - Shift {shiftType} --> Not trading hour");
-				return false; 
-			}
-			else if (shiftType == ShiftType.Afternoon_1700_2300 && (time < 170000 || time > 230000))
-			{
+                return false;
+            }
+            else if (shiftType == ShiftType.Afternoon_1700_2300 && (time < 170000 || time > 230000))
+            {
                 action($"Time: {time} - Shift {shiftType} --> Not trading hour");
-				return false; 
-			} 
-			else if (shiftType == ShiftType.Night_2300_0700 && (time >= 070000 && time <= 230000))
-			{
+                return false;
+            }
+            else if (shiftType == ShiftType.Night_2300_0700 && (time >= 070000 && time <= 230000))
+            {
                 action($"Time: {time} - Shift {shiftType} --> Not trading hour");
-				return false;
-			}
+                return false;
+            }
 
             return true;
         }
@@ -145,6 +145,38 @@ namespace NinjaTrader.Custom.Strategies
             SignalEntry_TrendingHalf,
             SignalEntry_TrendingFull
         };
+
+        public static string GenerateKey(Order order)
+        {
+            // Order là Entry thì dùng Name làm Key
+            if (SignalEntries.Any(signal => signal == order.Name))
+            {
+                return order.Name;
+            }
+            // Order không phải entry --> Name sẽ có dạng "Stop loss" hoặc "Profit target"
+            else if (order.Name == StopLoss_SignalName || order.Name == ProfitTarget_SignalName)
+            {
+                // Back test data, không có Id
+                if (order.Id == -1)
+                {
+                    return $"{order.Name}-{order.FromEntrySignal}";
+                }
+                else
+                {
+                    return $"{order.Id}";
+                }
+            }
+            return $"{order.Name}-{order.FromEntrySignal}-{order.Id}";
+        }
+
+        public static bool IsHalfPriceOrder(Order order)
+        {
+            return order.Name == SignalEntry_ReversalHalf || order.Name == SignalEntry_TrendingHalf;
+        }
+        public static bool IsFullPriceOrder(Order order)
+        {
+            return order.Name == SignalEntry_ReversalFull || order.Name == SignalEntry_TrendingFull;
+        }
 
 
     }

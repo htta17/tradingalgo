@@ -372,9 +372,7 @@
     <Compile Include="Indicators\WaddahAttarExplosion.cs" />
     <Compile Include="Strategies\AllStatus.cs" />
     <Compile Include="Strategies\ATMStrategyConverter.cs" />
-    <Compile Include="Strategies\Chicken.cs" />
     <Compile Include="Strategies\Duck.cs" />
-    <Compile Include="Strategies\Monkey.cs" />
     <Compile Include="Strategies\PriceChangeBasedClass.cs" />
     <Compile Include="Strategies\SimpleTrade.cs" />
     <Compile Include="Strategies\StrategiesUtilities.cs" />

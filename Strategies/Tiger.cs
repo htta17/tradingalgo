@@ -177,6 +177,86 @@ namespace NinjaTrader.NinjaScript.Strategies
         public WayToTrade WayToTrade { get; set; } = WayToTrade.BollingerBand;
 
         /// <summary>
+        /// Đưa hết các properties vào 1 nơi
+        /// </summary>
+        protected void SetDefaultProperties()
+        {
+            WayToTrade = WayToTrade.BollingerBand;
+
+            MaximumDailyLoss = 400;
+            DailyTargetProfit = 700;
+            AllowToMoveStopLossGain = true;
+            NewsTimeInput = "0830,1500,1700";
+
+            PointToMoveTarget = 3;
+            PointToMoveLoss = 7;
+        }
+
+        
+
+        protected override void OnStateChange()
+        {
+            if (State == State.SetDefaults)
+            {
+                Description = @"Trade theo live time, dựa theo WAE cho trending và Bollinger band + price action cho reverse.";
+                Name = Name = this.Name;
+                Calculate = Calculate.OnPriceChange;
+                EntriesPerDirection = 1;
+                EntryHandling = EntryHandling.AllEntries;
+                IsExitOnSessionCloseStrategy = true;
+                ExitOnSessionCloseSeconds = 30;
+                IsFillLimitOnTouch = false;
+                MaximumBarsLookBack = MaximumBarsLookBack.TwoHundredFiftySix;
+                OrderFillResolution = OrderFillResolution.Standard;
+                Slippage = 0;
+                StartBehavior = StartBehavior.WaitUntilFlat;
+                TimeInForce = TimeInForce.Gtc;
+                TraceOrders = false;
+                RealtimeErrorHandling = RealtimeErrorHandling.StopCancelClose;
+                StopTargetHandling = StopTargetHandling.PerEntryExecution;
+                BarsRequiredToTrade = 20;
+                // Disable this property for performance gains in Strategy Analyzer optimizations
+                // See the Help Guide for additional information
+                IsInstantiatedOnEachOptimizationIteration = true;
+
+                SetDefaultProperties();
+            }
+            else if (State == State.Configure)
+            {
+                ClearOutputWindow();
+                AddDataSeries(BarsPeriodType.Minute, 5);
+                AddDataSeries(BarsPeriodType.Minute, 1);
+
+                StrategiesUtilities.CalculatePnL(this, Account, Print);
+
+                try
+                {
+                    NewsTimes = NewsTimeInput.Split(',').Select(c => int.Parse(c)).ToList();
+                }
+                catch (Exception e)
+                {
+                    Print(e.Message);
+                }
+            }
+            else if (State == State.DataLoaded)
+            {
+                var bollinger1 = Bollinger(1, 20);
+                bollinger1.Plots[0].Brush = bollinger1.Plots[2].Brush = Brushes.DarkCyan;
+                bollinger1.Plots[1].Brush = Brushes.DeepPink;
+
+                var bollinger2 = Bollinger(2, 20);
+                bollinger2.Plots[0].Brush = bollinger2.Plots[2].Brush = Brushes.DarkCyan;
+                bollinger2.Plots[1].Brush = Brushes.DeepPink;
+
+                AddChartIndicator(bollinger1);
+                AddChartIndicator(bollinger2);
+                AddChartIndicator(DEMA(9));
+
+                deadZoneSeries = new Series<double>(this);
+            }
+        }
+
+        /// <summary>
         /// Tìm giá để set dựa theo EMA29/51 hoặc dựa theo Bollinger bands
         /// </summary>        
         /// <param name="tradeAction">NoTrade, Sell_Reversal, Buy_Reversal, Sell_Trending, Buy_Trending</param>
@@ -483,69 +563,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 LocalPrint($"[MoveTargetOrStopOrder] - ERROR: {ex.Message}");
             }
-        }
-
-        protected override void OnStateChange()
-		{
-			if (State == State.SetDefaults)
-			{
-				Description									= @"Trade theo live time, dựa theo WAE cho trending và Bollinger band + price action cho reverse.";
-				Name										= Name = this.Name;
-                Calculate									= Calculate.OnPriceChange;
-				EntriesPerDirection							= 1;
-				EntryHandling								= EntryHandling.AllEntries;
-				IsExitOnSessionCloseStrategy				= true;
-				ExitOnSessionCloseSeconds					= 30;
-				IsFillLimitOnTouch							= false;
-				MaximumBarsLookBack							= MaximumBarsLookBack.TwoHundredFiftySix;
-				OrderFillResolution							= OrderFillResolution.Standard;
-				Slippage									= 0;
-				StartBehavior								= StartBehavior.WaitUntilFlat;
-				TimeInForce									= TimeInForce.Gtc;
-				TraceOrders									= false;
-				RealtimeErrorHandling						= RealtimeErrorHandling.StopCancelClose;
-				StopTargetHandling							= StopTargetHandling.PerEntryExecution;
-				BarsRequiredToTrade							= 20;
-				// Disable this property for performance gains in Strategy Analyzer optimizations
-				// See the Help Guide for additional information
-				IsInstantiatedOnEachOptimizationIteration	= true;
-
-                NewsTimeInput = "0830,0500";
-            }
-			else if (State == State.Configure)
-			{
-                ClearOutputWindow();
-                AddDataSeries(BarsPeriodType.Minute, 5);
-                AddDataSeries(BarsPeriodType.Minute, 1);
-
-                StrategiesUtilities.CalculatePnL(this, Account, Print);
-
-                try
-                {
-                    NewsTimes = NewsTimeInput.Split(',').Select(c => int.Parse(c)).ToList();
-                }
-                catch (Exception e)
-                {
-                    Print(e.Message);
-                }
-            }
-            else if (State == State.DataLoaded)
-            {
-                var bollinger1 = Bollinger(1, 20);
-                bollinger1.Plots[0].Brush = bollinger1.Plots[2].Brush = Brushes.DarkCyan;
-                bollinger1.Plots[1].Brush = Brushes.DeepPink;
-
-                var bollinger2 = Bollinger(2, 20);
-                bollinger2.Plots[0].Brush = bollinger2.Plots[2].Brush = Brushes.DarkCyan;
-                bollinger2.Plots[1].Brush = Brushes.DeepPink;
-
-                AddChartIndicator(bollinger1);
-                AddChartIndicator(bollinger2);
-                AddChartIndicator(DEMA(9));
-
-                deadZoneSeries = new Series<double>(this);
-            }
-		}
+        }        
 
         private void FindAndDrawKeyLevels()
         {
@@ -651,7 +669,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (val.GetType() == typeof(string))
             {
-                Print($"[TIGER]-{Time[0]}-" + val);
+                Print($"[TIGER]-{Time[0]}-({DateTime.Now:HH:mm:ss}):" + val);
             }
             else
             {
@@ -834,7 +852,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     return;
                 }
-
                 
                 var stopOrders = ActiveOrders.Values.ToList()
                                     .Where(order => order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)

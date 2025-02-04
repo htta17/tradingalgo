@@ -223,6 +223,22 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private double PointToMoveLoss = 7;
 
+        /// <summary>
+        /// Đưa hết các properties vào 1 nơi
+        /// </summary>
+        protected void SetDefaultProperties()
+        {
+            WayToTrade = WayToTrade.BollingerBand;
+
+            MaximumDailyLoss = 400;
+            DailyTargetProfit = 700;
+            AllowToMoveStopLossGain = true;
+            NewsTimeInput = "0830,1500,1700";
+
+            PointToMoveTarget = 3;
+            PointToMoveLoss = 7;
+        }
+
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
@@ -247,20 +263,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Disable this property for performance gains in Strategy Analyzer optimizations
                 // See the Help Guide for additional information
                 IsInstantiatedOnEachOptimizationIteration = true;
+                
                 SetOrderQuantity = SetOrderQuantity.Strategy;
                 DefaultQuantity = 2;
-
                 // Set Properties
 
-                WayToTrade = WayToTrade.BollingerBand;
-
-                MaximumDailyLoss = 400;
-                DailyTargetProfit = 700;
-                AllowToMoveStopLossGain = true;
-                NewsTimeInput = "0830,1500,1700";
-
-                PointToMoveTarget = 3;
-                PointToMoveLoss = 7;
+                SetDefaultProperties();
             }
             else if (State == State.Configure)
             {

@@ -671,7 +671,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (IsBuying)
             {
                 // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
-                if (startMovingStoploss && stopOrderPrice > filledPrice &&   + PointToMoveLoss < updatedPrice)
+                if (startMovingStoploss && stopOrderPrice > filledPrice && stopOrderPrice + PointToMoveLoss < updatedPrice)
                 {
                     newPrice = updatedPrice - PointToMoveLoss;
                     allowMoving = "BUY";

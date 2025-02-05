@@ -356,7 +356,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             // Trade theo trending
-            if (waeExplosion_5m < waeDowntrend_5m && waeDeadVal_5m < waeDowntrend_5m && waeDeadVal_5m < waeExplosion_5m)
+            if (waeDeadVal_5m < waeDowntrend_5m /*waeExplosion_5m < waeDowntrend_5m &&  && waeDeadVal_5m < waeExplosion_5m*/)
             {
                 LocalPrint($"Found SELL signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}");
 
@@ -364,7 +364,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 return TradeAction.Sell_Trending;
             }
-            else if (waeExplosion_5m < waeUptrend_5m && waeDeadVal_5m < waeUptrend_5m && waeDeadVal_5m < waeExplosion_5m)
+            else if (waeDeadVal_5m < waeUptrend_5m /*waeExplosion_5m < waeUptrend_5m &&  && waeDeadVal_5m < waeExplosion_5m*/)
             {
                 LocalPrint($"Found BUY signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeUptrend_5m: {waeUptrend_5m:N2}");
 

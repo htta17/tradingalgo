@@ -177,8 +177,6 @@ namespace NinjaTrader.Custom.Strategies
         {
             return order.Name == SignalEntry_ReversalFull || order.Name == SignalEntry_TrendingFull;
         }
-
-
     }
 
     public class SimpleInfoOrder

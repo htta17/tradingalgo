@@ -174,14 +174,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "Enter order price:",
             Order = 3,
             GroupName = "Importants Configurations")]
-        public WayToTrade WayToTrade { get; set; } = WayToTrade.BollingerBand;
+        public PlaceToSetOrder WayToTrade { get; set; } = PlaceToSetOrder.BollingerBand;
 
         /// <summary>
         /// Đưa hết các properties vào 1 nơi
         /// </summary>
         protected void SetDefaultProperties()
         {
-            WayToTrade = WayToTrade.BollingerBand;
+            WayToTrade = PlaceToSetOrder.BollingerBand;
 
             MaximumDailyLoss = 400;
             DailyTargetProfit = 700;
@@ -274,11 +274,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     break;
 
                 case TradeAction.Sell_Reversal:
-                    price = WayToTrade == WayToTrade.EMA2951 ? middleEMA : upperBB_5m;
+                    price = WayToTrade == PlaceToSetOrder.EMA2951 ? middleEMA : upperBB_5m;
                     break;
 
                 case TradeAction.Buy_Reversal:
-                    price = WayToTrade == WayToTrade.EMA2951 ? middleEMA : lowerBB_5m;
+                    price = WayToTrade == PlaceToSetOrder.EMA2951 ? middleEMA : lowerBB_5m;
                     break;
             }
 

@@ -9,7 +9,7 @@ namespace NinjaTrader.Custom.Strategies
     /// <summary>
     /// Lựa chọn điểm vào lệnh (Theo EMA29/51 hay theo Bollinger bands)
     /// </summary>
-    public enum WayToTrade
+    public enum PlaceToSetOrder
     {       
         EMA2951,
         BollingerBand
@@ -115,5 +115,8 @@ namespace NinjaTrader.Custom.Strategies
         Bullish, 
         Bearish
     }
+
+
+    
     
 }

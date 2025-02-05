@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class BarClosedBasedClass : Strategy
+    public class Chicken : Strategy
     {
         private const int DEMA_Period = 9;
         private const int FiveMinutes_Period = 14;
@@ -78,6 +78,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         protected TradeAction currentTradeAction = TradeAction.NoTrade;
 
+
+        private Trends CurrentTrend = Trends.Unknown;
+
+
         /// <summary>
         /// Biến này dùng để di chuyển stop loss khi giá BẮT ĐẦU gần chạm đến target2 (để room cho chạy).
         /// </summary>
@@ -119,9 +123,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 return currentTradeAction == TradeAction.Buy_Trending || currentTradeAction == TradeAction.Sell_Trending;
             }
-        }
-
-        protected Trends CurrentTrend = Trends.Unknown;
+        }        
 
         /// <summary>
         /// Giá fill lệnh ban đầu 
@@ -159,11 +161,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Điểm vào lệnh (Theo EMA29/51 hay Bollinger band)
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Enter order price:",
+        [Display(Name = "Điểm vào lệnh (cho reversal):",
             Order = 3,
             GroupName = "Importants Configurations")]
-        public WayToTrade WayToTrade { get; set; } = WayToTrade.BollingerBand;
-        #endregion
+        public PlaceToSetOrder PlaceToSetOrder { get; set; } = PlaceToSetOrder.BollingerBand;
+        #endregion       
 
         #region Parameters
         /// <summary>
@@ -214,6 +216,21 @@ namespace NinjaTrader.NinjaScript.Strategies
         private List<int> NewsTimes = new List<int>();
 
         /// <summary>
+        /// Cho phép trade theo trending
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Trending Trade?", Order = 1, GroupName = "Parameters")]
+        public bool AllowTrendingTrade { get; set; } = true;
+
+
+        /// <summary>
+        /// Cho phép trade theo trending
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Reversal Trade?", Order = 2, GroupName = "Parameters")]
+        public bool AllowReversalTrade { get; set; } = true;
+
+        /// <summary>
         /// Giá hiện tại cách target &lt; [PointToMoveTarget] thì di chuyển target.
         /// </summary>
         private double PointToMoveTarget = 3;
@@ -228,7 +245,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         protected void SetDefaultProperties()
         {
-            WayToTrade = WayToTrade.BollingerBand;
+            PlaceToSetOrder = PlaceToSetOrder.BollingerBand;
 
             MaximumDailyLoss = 400;
             DailyTargetProfit = 700;
@@ -237,6 +254,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             PointToMoveTarget = 3;
             PointToMoveLoss = 7;
+
+            AllowTrendingTrade = true;
+            AllowReversalTrade = true;
         }
 
         protected override void OnStateChange()
@@ -334,44 +354,51 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return TradeAction.NoTrade;
             }
 
-            // Cho phép trade reverse (Bollinger Band) từ 8:35 am đến 11:30pm
-            if (currentPrice > lowerBB_5m && currentPrice < upperBB_5m)
+            // Configure cho phép trade reversal 
+            if (AllowTrendingTrade)
             {
-                if (lastDEMA_5m > lastUpperBB_5m && currentDEMA_5m <= upperBB_5m)
+                // Cho phép trade reverse (Bollinger Band) từ 8:35 am đến 11:30pm
+                if (currentPrice > lowerBB_5m && currentPrice < upperBB_5m)
                 {
-                    LocalPrint("Found SELL signal (Reversal)");
+                    if (lastDEMA_5m > lastUpperBB_5m && currentDEMA_5m <= upperBB_5m)
+                    {
+                        LocalPrint("Found SELL signal (Reversal)");
 
-                    filledTime = Time[0];
+                        filledTime = Time[0];
 
-                    return TradeAction.Sell_Reversal;
-                }
-                else if (lastDEMA_5m < lastLowerBB_5m && currentDEMA_5m >= lowerBB_5m)
-                {
-                    LocalPrint("Found BUY signal (Reversal)");
+                        return TradeAction.Sell_Reversal;
+                    }
+                    else if (lastDEMA_5m < lastLowerBB_5m && currentDEMA_5m >= lowerBB_5m)
+                    {
+                        LocalPrint("Found BUY signal (Reversal)");
 
-                    filledTime = Time[0];
+                        filledTime = Time[0];
 
-                    return TradeAction.Buy_Reversal;
+                        return TradeAction.Buy_Reversal;
+                    }
                 }
             }
 
-            // Trade theo trending
-            if (waeDeadVal_5m < waeDowntrend_5m /*waeExplosion_5m < waeDowntrend_5m &&  && waeDeadVal_5m < waeExplosion_5m*/)
+            if (AllowReversalTrade)
             {
-                LocalPrint($"Found SELL signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}");
+                // Trade theo reversal
+                if (waeDeadVal_5m < waeDowntrend_5m /*waeExplosion_5m < waeDowntrend_5m &&  && waeDeadVal_5m < waeExplosion_5m*/)
+                {
+                    LocalPrint($"Found SELL signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}");
 
-                filledTime = Time[0];
+                    filledTime = Time[0];
 
-                return TradeAction.Sell_Trending;
-            }
-            else if (waeDeadVal_5m < waeUptrend_5m /*waeExplosion_5m < waeUptrend_5m &&  && waeDeadVal_5m < waeExplosion_5m*/)
-            {
-                LocalPrint($"Found BUY signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeUptrend_5m: {waeUptrend_5m:N2}");
+                    return TradeAction.Sell_Trending;
+                }
+                else if (waeDeadVal_5m < waeUptrend_5m /*waeExplosion_5m < waeUptrend_5m &&  && waeDeadVal_5m < waeExplosion_5m*/)
+                {
+                    LocalPrint($"Found BUY signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeUptrend_5m: {waeUptrend_5m:N2}");
 
-                filledTime = Time[0];
+                    filledTime = Time[0];
 
-                return TradeAction.Buy_Trending;
-            }            
+                    return TradeAction.Buy_Trending;
+                }
+            }    
 
             return TradeAction.NoTrade;
         }        
@@ -394,11 +421,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     break; 
 
                 case TradeAction.Sell_Reversal: 
-                    price = WayToTrade == WayToTrade.EMA2951 ? middleEMA : upperBB_5m;
+                    price = PlaceToSetOrder == PlaceToSetOrder.EMA2951 ? middleEMA : upperBB_5m;
                     break;
 
                 case TradeAction.Buy_Reversal:
-                    price = WayToTrade == WayToTrade.EMA2951 ? middleEMA : lowerBB_5m;
+                    price = PlaceToSetOrder == PlaceToSetOrder.EMA2951 ? middleEMA : lowerBB_5m;
                     break;
             }            
 

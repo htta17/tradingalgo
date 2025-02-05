@@ -482,7 +482,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
         /// <returns></returns>
-        private double GetTargetPrice_Two(TradeAction tradeAction, double setPrice)
+        private double GetTargetPrice_Full(TradeAction tradeAction, double setPrice)
         {
             double price = -1;
 
@@ -574,7 +574,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             
             var stopLossPrice = GetStopLossPrice(currentTradeAction, priceToSet); 
             var targetHalf = GetTargetPrice_Half(currentTradeAction, priceToSet);
-            var targetFull = GetTargetPrice_Two(currentTradeAction, priceToSet);
+            var targetFull = GetTargetPrice_Full(currentTradeAction, priceToSet);
             
             try
             {               
@@ -593,8 +593,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>
         /// Move half price target dựa trên giá Bollinger Band Middle
         /// </summary>
-        private void MoveTarget1BasedOnBollinger()
+        private void MoveTargetsBasedOnBollinger()
         {
+            // Move target 1
             var targetHalfPriceOrders = ActiveOrders.Values.ToList().Where(c => c.FromEntrySignal == StrategiesUtilities.SignalEntry_ReversalHalf && 
                 (c.OrderType == OrderType.StopMarket || c.OrderType == OrderType.StopLimit )).ToList();
 
@@ -608,6 +609,24 @@ namespace NinjaTrader.NinjaScript.Strategies
                     MoveTargetOrStopOrder(middleBB_5m, order, true, IsBuying ? "BUY" : "SELL", order.FromEntrySignal);
                 }                
             }
+
+            // Move target 2            
+            var targetFullPriceOrders = ActiveOrders.Values.ToList().Where(c => c.FromEntrySignal == StrategiesUtilities.SignalEntry_ReversalFull &&
+                (c.OrderType == OrderType.StopMarket || c.OrderType == OrderType.StopLimit)).ToList();
+
+            var lenFull = targetHalfPriceOrders.Count;
+
+            for (var i = 0; i < lenFull; i++)
+            {
+                var order = targetFullPriceOrders[i];
+                var newFullPrice = GetTargetPrice_Full(currentTradeAction, filledPrice); 
+
+                if ((IsBuying && newFullPrice > filledPrice) || (IsSelling && newFullPrice < filledPrice))
+                {
+                    MoveTargetOrStopOrder(newFullPrice, order, true, IsBuying ? "BUY" : "SELL", order.FromEntrySignal);
+                }
+            }
+
         }
         /// <summary>
         /// Dịch chuyển 1 stop loss hoặc target order
@@ -959,7 +978,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (ChickenStatus == TradingStatus.OrderExists)
                 {
-                    MoveTarget1BasedOnBollinger();
+                    MoveTargetsBasedOnBollinger();
                 }
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
@@ -1203,7 +1222,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var targetPrice_Half = GetTargetPrice_Half(currentTradeAction, newPrice);
 
-            var targetPrice_Full = GetTargetPrice_Two(currentTradeAction, newPrice);
+            var targetPrice_Full = GetTargetPrice_Full(currentTradeAction, newPrice);
 
             if (State == State.Historical)
             {

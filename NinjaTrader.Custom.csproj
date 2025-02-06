@@ -360,7 +360,7 @@
     <Compile Include="Strategies\%40SampleMultiInstrument.cs" />
     <Compile Include="Strategies\%40SampleMultiTimeFrame.cs" />
     <Compile Include="Strategies\%40Strategy.cs" />
-	<Compile Include="Strategies\Chicken.cs" />
+    <Compile Include="Strategies\Chicken.cs" />
     <Compile Include="SuperDomColumns\%40APQ.cs" />
     <Compile Include="SuperDomColumns\%40Notes.cs" />
     <Compile Include="SuperDomColumns\%40ProfitLoss.cs" />
@@ -382,6 +382,7 @@
     <Compile Include="Strategies\PriceActionUtilities.cs" />
     <Compile Include="Strategies\PriceAction.cs" />
     <Compile Include="Strategies\FVG.cs" />
+    <Compile Include="Strategies\BarClosedBaseClass.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

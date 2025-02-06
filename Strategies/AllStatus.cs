@@ -58,33 +58,7 @@ namespace NinjaTrader.Custom.Strategies
         BasedOnBollinger,
     }
 
-    /// <summary>
-    /// Hành động gì tiếp theo đây? Trade theo xu hướng, ngược xu hướng, không trade, etc.
-    /// </summary>
-    public enum TradeAction
-    {         
-        NoTrade,
-
-        /// <summary>
-        /// Đặt lệnh bán tại upper Bollinger (5m) band hoặc EMA29/51 (1m) tùy vào setting
-        /// </summary>
-        Sell_Reversal,
-
-        /// <summary>
-        /// Đặt lệnh bán tại upper Bollinger (5m) band hoặc EMA29/51 (1m) tùy vào setting
-        /// </summary>
-        Buy_Reversal, 
-
-        /// <summary>
-        /// Đặt lệnh bán tại EMA29/51
-        /// </summary>
-        Sell_Trending,
-
-        /// <summary>
-        /// Đặt lệnh mua tại EMA29/51
-        /// </summary>
-        Buy_Trending,
-    }    
+    
 
     public class WEA_ValueSet
     { 
@@ -116,7 +90,43 @@ namespace NinjaTrader.Custom.Strategies
         Bearish
     }
 
+    /// <summary>
+    /// Hành động gì tiếp theo đây? Trade theo xu hướng, ngược xu hướng, không trade, etc.
+    /// </summary>
+    public enum TradeAction
+    {
+        NoTrade = 0,
 
+        /// <summary>
+        /// Đặt lệnh bán tại upper Bollinger (5m) band hoặc EMA29/51 (1m) tùy vào setting
+        /// </summary>
+        Sell_Reversal = 1,
+
+        /// <summary>
+        /// Đặt lệnh bán tại upper Bollinger (5m) band hoặc EMA29/51 (1m) tùy vào setting
+        /// </summary>
+        Buy_Reversal = 2,
+
+        /// <summary>
+        /// Đặt lệnh bán tại EMA29/51
+        /// </summary>
+        Sell_Trending = 3,
+
+        /// <summary>
+        /// Đặt lệnh mua tại EMA29/51
+        /// </summary>
+        Buy_Trending = 4,
+    }
+
+    public enum FVGTradeAction
+    {
+        NoTrade =0,
+
+        // Start from 5, do [TradeAction] đã có từ 1-4
+        Buy = 5, 
+
+        Sell = 6,
+    }
     
     
 }

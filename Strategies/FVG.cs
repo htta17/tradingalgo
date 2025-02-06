@@ -20,46 +20,42 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
+using NinjaTrader.Custom.Strategies;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class FVG : Strategy
+    public class FVG : BarClosedBaseClass<FVGTradeAction>
 	{
 		protected override void OnStateChange()
 		{
-			if (State == State.SetDefaults)
-			{
-				Description									= @"Enter the description for your new custom Strategy here.";
-				Name										= "FVG";
-				Calculate									= Calculate.OnBarClose;
-				EntriesPerDirection							= 1;
-				EntryHandling								= EntryHandling.AllEntries;
-				IsExitOnSessionCloseStrategy				= true;
-				ExitOnSessionCloseSeconds					= 30;
-				IsFillLimitOnTouch							= false;
-				MaximumBarsLookBack							= MaximumBarsLookBack.TwoHundredFiftySix;
-				OrderFillResolution							= OrderFillResolution.Standard;
-				Slippage									= 0;
-				StartBehavior								= StartBehavior.WaitUntilFlat;
-				TimeInForce									= TimeInForce.Gtc;
-				TraceOrders									= false;
-				RealtimeErrorHandling						= RealtimeErrorHandling.StopCancelClose;
-				StopTargetHandling							= StopTargetHandling.PerEntryExecution;
-				BarsRequiredToTrade							= 20;
-				// Disable this property for performance gains in Strategy Analyzer optimizations
-				// See the Help Guide for additional information
-				IsInstantiatedOnEachOptimizationIteration	= true;
-			}
-			else if (State == State.Configure)
-			{
-			}
+			base.OnStateChange();
 		}
 
 		protected override void OnBarUpdate()
 		{
 			//Add your custom strategy logic here.
 		}
-	}
+
+        protected override double GetTargetPrice_Half(FVGTradeAction tradeAction, double setPrice)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override double GetTargetPrice_Full(FVGTradeAction tradeAction, double setPrice)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override FVGTradeAction ShouldTrade()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override double GetSetPrice(FVGTradeAction tradeAction)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

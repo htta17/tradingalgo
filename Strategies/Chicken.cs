@@ -19,8 +19,14 @@ using System.Threading.Tasks;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class Chicken : Strategy
+    public class Chicken : BarClosedBaseClass<TradeAction>
     {
+        public Chicken() : 
+            base("CHICKEN")
+        { 
+        }
+
+
         private const int DEMA_Period = 9;
         private const int FiveMinutes_Period = 14;
 
@@ -165,55 +171,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             Order = 3,
             GroupName = "Importants Configurations")]
         public PlaceToSetOrder PlaceToSetOrder { get; set; } = PlaceToSetOrder.BollingerBand;
-        #endregion       
-
-        #region Parameters
-        /// <summary>
-        /// If loss is more than [MaximumDayLoss], stop trading for that day
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Maximum Day Loss ($)",
-            Order = 5,
-            GroupName = "Parameters")]
-        public int MaximumDailyLoss { get; set; } = 400;
-
-        /// <summary>
-        /// If gain is more than [StopWhenGain], stop trading for that day 
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Stop Trading if daily Profit is ($)",
-            Order = 6,
-            GroupName = "Parameters")]
-        public int DailyTargetProfit { get; set; } = 700;
-
-        /// <summary>
-        /// Cho phép dịch chuyển stop loss và target
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Allow to move stop loss/profit target",
-            Order = 8,
-            GroupName = "Parameters")]
-        public bool AllowToMoveStopLossGain { get; set; } = true;
-
-        /// <summary>
-        /// Số ticks cho stop loss khi đặt stoploss dựa theo BollingerBand
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Stop loss (Ticks):", 
-            Order = 8, 
-            GroupName = "Parameters")]
-        public int StopLossInTicks { get; set; } = 120; // 25 points for MNQ
-
-        /// <summary>
-        /// Thời gian có news, dừng trade trước và sau thời gian có news 5 phút. 
-        /// Có 3 mốc quan trọng mặc định là 8:30am (Mở cửa Mỹ), 3:00pm (Đóng cửa Mỹ) và 5:00pm (Mở cửa châu Á).
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = "Parameters")]
-        public string NewsTimeInput { get; set; } = "0830,1500,1700";
         #endregion
-
-        private List<int> NewsTimes = new List<int>();
 
         /// <summary>
         /// Cho phép trade theo trending
@@ -230,80 +188,40 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "Reversal Trade?", Order = 2, GroupName = "Parameters")]
         public bool AllowReversalTrade { get; set; } = true;
 
-        /// <summary>
-        /// Giá hiện tại cách target &lt; [PointToMoveTarget] thì di chuyển target.
-        /// </summary>
-        private double PointToMoveTarget = 3;
-
-        /// <summary>
-        /// Giá hiện tại cách stop loss > [PointToMoveLoss] thì di chuyển stop loss.
-        /// </summary>
-        private double PointToMoveLoss = 7;
+        
 
         /// <summary>
         /// Đưa hết các properties vào 1 nơi
         /// </summary>
-        protected void SetDefaultProperties()
+        protected override void SetDefaultProperties()
         {
+            base.SetDefaultProperties();
+
             PlaceToSetOrder = PlaceToSetOrder.BollingerBand;
-
-            MaximumDailyLoss = 400;
-            DailyTargetProfit = 700;
-            AllowToMoveStopLossGain = true;
-            NewsTimeInput = "0830,1500,1700";
-
-            PointToMoveTarget = 3;
-            PointToMoveLoss = 7;
 
             AllowTrendingTrade = true;
             AllowReversalTrade = true;
+          
+            Target1InTicks = 40; 
         }
 
         protected override void OnStateChange()
         {
+            base.OnStateChange();
+
             if (State == State.SetDefaults)
             {
                 Description = @"Play on 5 minutes frame.";
-                Name = this.Name;
-                Calculate = Calculate.OnBarClose;
-                EntriesPerDirection = 2; // Multiple 
-                EntryHandling = EntryHandling.AllEntries;
-                IsExitOnSessionCloseStrategy = true;
-                ExitOnSessionCloseSeconds = 30;
-                IsFillLimitOnTouch = false;
-                MaximumBarsLookBack = MaximumBarsLookBack.TwoHundredFiftySix;
-                OrderFillResolution = OrderFillResolution.Standard;
-                Slippage = 0;
-                StartBehavior = StartBehavior.WaitUntilFlat;
-                TimeInForce = TimeInForce.Gtc;
-                TraceOrders = false;
-                RealtimeErrorHandling = RealtimeErrorHandling.IgnoreAllErrors;
-                StopTargetHandling = StopTargetHandling.PerEntryExecution;
-                BarsRequiredToTrade = 30;
-                // Disable this property for performance gains in Strategy Analyzer optimizations
-                // See the Help Guide for additional information
-                IsInstantiatedOnEachOptimizationIteration = true;
+                Name = "Chicken";
                 
                 SetOrderQuantity = SetOrderQuantity.Strategy;
-                DefaultQuantity = 2;
-                // Set Properties
-
-                SetDefaultProperties();
+                DefaultQuantity = 2;                
             }
             else if (State == State.Configure)
             {
                 ClearOutputWindow();
                 AddDataSeries(BarsPeriodType.Minute, 5);
                 AddDataSeries(BarsPeriodType.Minute, 1);
-
-                try
-                {
-                    NewsTimes = NewsTimeInput.Split(',').Select(c => int.Parse(c)).ToList();
-                }
-                catch (Exception e)
-                {
-                    Print($"[OnStateChange] - ERROR: " + e.Message);
-                }
             }
             else if (State == State.DataLoaded)
             {
@@ -339,7 +257,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Kiểm tra điều kiện để vào lệnh
         /// </summary>
         /// <returns>Trade Action: Sell/Buy, Trending/Reverse</returns>
-        protected virtual TradeAction ShouldTrade()
+        protected override TradeAction ShouldTrade()
         {
             /*
 			* Điều kiện để trade (SHORT) 
@@ -408,7 +326,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>        
         /// <param name="tradeAction">NoTrade, Sell_Reversal, Buy_Reversal, Sell_Trending, Buy_Trending</param>
         /// <returns></returns>
-        protected virtual double GetSetPrice(TradeAction tradeAction)
+        protected override double GetSetPrice(TradeAction tradeAction)
         {
             double price = -1;
             var middleEMA = (ema29_1m + ema51_1m) / 2.0;
@@ -433,44 +351,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         }        
 
         /// <summary>
-        /// Giá stop loss
-        /// </summary>
-        /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
-        /// <param name="setPrice">Giá đặt lệnh</param>
-        /// <returns></returns>
-        protected virtual double GetStopLossPrice(TradeAction tradeAction, double setPrice)
-        {
-            double price = -1;            
-
-            switch (tradeAction)
-            {
-                case TradeAction.Buy_Trending:
-                    price = setPrice - TickSize * StopLossInTicks;
-                    break;
-
-                case TradeAction.Sell_Trending:
-                    price = setPrice + TickSize * StopLossInTicks;
-                    break;
-
-                case TradeAction.Buy_Reversal:
-                    price = setPrice - TickSize * StopLossInTicks;
-                    break;
-
-                case TradeAction.Sell_Reversal:
-                    price = setPrice + TickSize * StopLossInTicks;
-                    break;
-            }
-
-            return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
-        }
-
-        /// <summary>
         /// Giá cho target 1 (Half)
         /// </summary>
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
         /// <returns></returns>
-        private double GetTargetPrice_Half(TradeAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Half(TradeAction tradeAction, double setPrice)
         {
             double price = -1;
 
@@ -482,13 +368,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 case TradeAction.Buy_Trending:
                     price = isNightTime // if night time, cut half at 7 point
                         ? setPrice + 7
-                        : setPrice + (TickSize * StopLossInTicks / 2);
+                        : setPrice + (TickSize * Target1InTicks);
                     break;
 
                 case TradeAction.Sell_Trending:
                     price = isNightTime // if night time, cut half at 7 point
                         ? setPrice - 7
-                        : setPrice - (TickSize * StopLossInTicks /2);
+                        : setPrice - (TickSize * Target1InTicks);
                     break;
 
                 case TradeAction.Buy_Reversal:
@@ -509,7 +395,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
         /// <returns></returns>
-        private double GetTargetPrice_Full(TradeAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Full(TradeAction tradeAction, double setPrice)
         {
             double price = -1;
 
@@ -534,42 +420,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
         }
-
-        private void LocalPrint(object val)
-        {
-            if (val.GetType() == typeof(string))
-            {
-                Print($"[CHICKEN]-{Time[0]}-" + val);
-            }
-            else
-            {
-                Print(val);
-            }
-        }             
-        
-        private void EnterOrderPure(double priceToSet, double target, double stoploss, string signal, int quantity = 2)
-        {
-            var text = IsBuying ? "LONG" : "SHORT";
-            
-            var allowTrade = (IsBuying && priceToSet < target) || (IsSelling && priceToSet > target);
-
-            if (allowTrade)
-            {
-                if (IsBuying)
-                {
-                    EnterLongLimit(2, true, quantity, priceToSet, signal);
-                }                   
-                else
-                {
-                    EnterShortLimit(2, true, quantity, priceToSet, signal);
-                }
-
-                SetStopLoss(signal, CalculationMode.Price, stoploss, false);
-                SetProfitTarget(signal, CalculationMode.Price, target);
-
-                LocalPrint($"Enter {text}  for {quantity} contracts with signal {signal} at {priceToSet:N2}, stop loss: {stoploss:N2}, target: {target:N2}");
-            }
-        }        
 
         /// <summary>
         /// Đặt lệnh mua/bán
@@ -606,10 +456,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             try
             {               
                 var signalHalf = IsTrendingTrade ? StrategiesUtilities.SignalEntry_TrendingHalf : StrategiesUtilities.SignalEntry_ReversalHalf;
-                EnterOrderPure(priceToSet, targetHalf, stopLossPrice, signalHalf, DefaultQuantity);
+                EnterOrderPure(priceToSet, targetHalf, stopLossPrice, signalHalf, DefaultQuantity, IsBuying, IsSelling);
                 
                 var signalFull = IsTrendingTrade ? StrategiesUtilities.SignalEntry_TrendingFull : StrategiesUtilities.SignalEntry_ReversalFull;
-                EnterOrderPure(priceToSet, targetFull, stopLossPrice, signalFull, DefaultQuantity);
+                EnterOrderPure(priceToSet, targetFull, stopLossPrice, signalFull, DefaultQuantity, IsBuying, IsSelling);
             }
             catch (Exception ex) 
             {
@@ -653,40 +503,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     MoveTargetOrStopOrder(newFullPrice, order, true, IsBuying ? "BUY" : "SELL", order.FromEntrySignal);
                 }
             }
-
-        }
-        /// <summary>
-        /// Dịch chuyển 1 stop loss hoặc target order
-        /// </summary>
-        /// <param name="newPrice">Giá mới cần chuyển đến</param>
-        /// <param name="order">Order</param>
-        /// <param name="isGainStop">isGainStop = true: Profit order, isGainStop = false : Profit order</param>
-        /// <param name="buyOrSell">Lệnh này là bán hay mua (dùng cho logger nên không quá quan trọng)</param>
-        /// <param name="fromEntrySignal">Entry Signal</param>
-        private void MoveTargetOrStopOrder(double newPrice, Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
-        {
-            try
-            {
-                if (isGainStop)
-                {
-                    SetProfitTarget(fromEntrySignal, CalculationMode.Price, newPrice);
-                }
-                else
-                {
-                    SetStopLoss(fromEntrySignal, CalculationMode.Price, newPrice, false);
-                }
-
-                var text = isGainStop ? "TARGET" : "LOSS";
-
-                LocalPrint($"Dịch chuyển order {order.Name}, id: {order.Id}({text}), " +
-                    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
-                    $"đến [{newPrice}] - {buyOrSell}");
-            }
-            catch (Exception ex)
-            {
-                LocalPrint($"[MoveTargetOrStopOrder] - ERROR: {ex.Message}");
-            }
-        }
+        }       
 
         protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice)
         {

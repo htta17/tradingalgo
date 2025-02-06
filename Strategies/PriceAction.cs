@@ -13,19 +13,15 @@ using System.Windows.Media;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class FVGStrategy : Strategy
+    public class PriceAction : Strategy
     {
-        private double fvgHigh;
-        private double fvgLow;
-        private bool fvgExists;
-
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
             {
                 Description = "Fair Value Gap (FVG) Strategy";
-                Name = "FVG Strategy";
-                Calculate = Calculate.OnBarClose;
+                Name = "Price Action";
+                Calculate = Calculate.OnPriceChange;
                 EntriesPerDirection = 1;
                 EntryHandling = EntryHandling.AllEntries;
                 IsExitOnSessionCloseStrategy = true;
@@ -38,53 +34,61 @@ namespace NinjaTrader.NinjaScript.Strategies
                 BarsRequiredToTrade = 10;
                 IsInstantiatedOnEachOptimizationIteration = true;
             }
+            else if (State == State.Configure)
+            {
+                ClearOutputWindow();
+                AddDataSeries(BarsPeriodType.Minute, 5);
+                AddDataSeries(BarsPeriodType.Minute, 1);
+            }
         }
+
+        private DateTime lastExecutionTime_5m = DateTime.MinValue;
+        private DateTime lastExecutionTime_1m = DateTime.MinValue;
+
+        int lastBar_5m = -1;
+        int lastBar_1m = -1;
+
+        int lastProgressBar = 0; 
 
         protected override void OnBarUpdate()
         {
-            if (CurrentBar < 3) return;  // Ensure enough bars exist
-
-            // Define FVG Conditions (Bullish and Bearish)
-            bool bullishFVG = Low[2] > High[0];  // Previous Low > Current High
-            bool bearishFVG = High[2] < Low[0];  // Previous High < Current Low
-
-            // Store FVG Levels
-            if (bullishFVG)
+            if (BarsInProgress == 0)
             {
-                fvgHigh = Low[2];
-                fvgLow = High[0];
-                fvgExists = true;
-
-                // Draw FVG using custom Rectangle method
-                Draw.Rectangle(this, "FVG_Bullish_" + CurrentBar, 1, fvgHigh, -1, fvgLow, Brushes.Green);
+                return; 
             }
-            else if (bearishFVG)
+            else if (BarsInProgress == 1)
             {
-                fvgHigh = Low[0];
-                fvgLow = High[2];
-                fvgExists = true;
-
-                // Draw FVG using custom Rectangle method
-                Draw.Rectangle(this, "FVG_Bearish_" + CurrentBar, 1, fvgHigh, -1, fvgLow, Brushes.Red);
+                if (DateTime.Now.Subtract(lastExecutionTime_5m).TotalSeconds < 1)
+                {
+                    return;
+                }
+                lastExecutionTime_5m = DateTime.Now;
             }
-            else
+            else if (BarsInProgress == 2)
             {
-                fvgExists = false;
+                if (DateTime.Now.Subtract(lastExecutionTime_1m).TotalSeconds < 1)
+                {
+                    return;
+                }
+                lastExecutionTime_1m = DateTime.Now;
             }
 
-            // Trade Entry Conditions
-            if (fvgExists && Close[1] < fvgHigh && Close[0] > fvgHigh)  // Bullish FVG Entry
+
+            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
-                EnterLong("FVG_Buy");
-				SetStopLoss("FVG_Buy", CalculationMode.Ticks, 120, false);
-                SetProfitTarget("FVG_Buy", CalculationMode.Ticks, 120);
+                Print($"{lastExecutionTime_5m} - {Time[0]} - {(lastBar_1m != CurrentBar ?  "New bar" : "")} - {BarsInProgress}");
+
+                lastBar_1m = CurrentBar;
             }
-            else if (fvgExists && Close[1] > fvgLow && Close[0] < fvgLow)  // Bearish FVG Entry
+            else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) //1 minute
             {
-                EnterShort("FVG_Sell");
-				SetStopLoss("FVG_Sell",CalculationMode.Ticks, 120, false);
-				SetProfitTarget("FVG_Sell",CalculationMode.Ticks, 120);
+                Print($"{lastExecutionTime_5m} - {Time[0]} - {(lastBar_5m != CurrentBar ? "New bar": "" )} - {BarsInProgress}");
+
+                lastBar_5m = CurrentBar;
             }
+
+            
+
         }
 
        

@@ -185,4 +185,21 @@ namespace NinjaTrader.Custom.Strategies
 
         public string FromEntrySignal { get; set; }
     }
+
+    public class  OrderDetail 
+    {
+        public double Price { get; set; }
+
+        public OrderAction Action { get; set; }
+
+        public int StopLossInTicks_1 { get; set; }
+
+        public int StopLossInTicks_2 { get; set; }
+
+        public int TargetProfitInTicks_1 { get; set; }
+
+        public int TargetProfitInTicks_2 { get; set; }
+
+        public int Quantity { get; set; }
+    }
 }

@@ -60,26 +60,45 @@ namespace NinjaTrader.Custom.Strategies
 
     
 
-    public class WEA_ValueSet
+    public class WAE_ValueSet
     { 
         public double DeadZoneVal { get; set; }
         public double ExplosionVal { get; set; }
-
         public double UpTrendVal { get; set; }
-
         public double DownTrendVal { get; set; }
 
-        private bool? _canTrade = null;
-        public bool CanTrade 
+        private bool? hasBullVolume = null;
+
+        /// <summary>
+        /// Định nghĩa điều kiện để có bear volume. Điều kiện hiện tại: UpTrendVal > DeadZoneVal
+        /// </summary>
+        public bool HasBullVolume
         { 
             get 
             {
-                if (_canTrade == null)
+                if (hasBullVolume == null)
                 {
-                    _canTrade = (UpTrendVal > ExplosionVal && UpTrendVal > DeadZoneVal) || (DownTrendVal > ExplosionVal && DownTrendVal > DeadZoneVal);
+                    hasBullVolume = UpTrendVal > DeadZoneVal;
                 }
-                return _canTrade.Value;
+                return hasBullVolume.Value;
             }  
+        }
+
+        private bool? hasBearVolume = null;
+
+        /// <summary>
+        /// Định nghĩa điều kiện để có bear volume.  Điều kiện hiện tại: DownTrendVal > DeadZoneVal
+        /// </summary>
+        public bool HasBearVolume
+        {
+            get
+            {
+                if (hasBearVolume == null)
+                {
+                    hasBearVolume = DownTrendVal > DeadZoneVal;
+                }
+                return hasBearVolume.Value;
+            }
         }
     }
 

@@ -21,8 +21,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public class Chicken : BarClosedBaseClass<TradeAction>
     {
-        public Chicken() : 
-            base("CHICKEN")
+        public Chicken() : base("CHICKEN")
         { 
         }
 
@@ -77,16 +76,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double waeDowntrend_5m = -1;
         
         private Series<double> deadZoneSeries;
+        private Series<WAE_ValueSet> waeValuesSeries;
         #endregion
-
-        /// <summary>
-        /// Current Trade action
-        /// </summary>
-        protected TradeAction currentTradeAction = TradeAction.NoTrade;
-
-
-        private Trends CurrentTrend = Trends.Unknown;
-
 
         /// <summary>
         /// Biến này dùng để di chuyển stop loss khi giá BẮT ĐẦU gần chạm đến target2 (để room cho chạy).
@@ -137,29 +128,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double filledPrice = -1;
 
         protected DateTime filledTime = DateTime.Now;
-        private TradingStatus ChickenStatus
-        {
-            get 
-            {
-                if (!SimpleActiveOrders.Any())
-                {
-                    return TradingStatus.Idle;
-                }
-                else if (SimpleActiveOrders.Values.Any(order => StrategiesUtilities.SignalEntries.Contains(order.Name)))
-                {
-                    return TradingStatus.PendingFill;
-                }
-                
-                return TradingStatus.OrderExists;
-            }
-        }
-
-        /// <summary>
-        /// Realtime: Dùng order.Id làm key, không phải Realtime: Dùng Name làm key
-        /// </summary>
-        private Dictionary<string,Order> ActiveOrders = new Dictionary<string, Order>();
-        
-        private Dictionary<string, SimpleInfoOrder> SimpleActiveOrders = new Dictionary<string, SimpleInfoOrder>();
 
         #region Importants Configurations
 
@@ -180,15 +148,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "Trending Trade?", Order = 1, GroupName = "Parameters")]
         public bool AllowTrendingTrade { get; set; } = true;
 
-
         /// <summary>
         /// Cho phép trade theo trending
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Reversal Trade?", Order = 2, GroupName = "Parameters")]
-        public bool AllowReversalTrade { get; set; } = true;
-
-        
+        public bool AllowReversalTrade { get; set; } = true;        
 
         /// <summary>
         /// Đưa hết các properties vào 1 nơi
@@ -222,6 +187,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ClearOutputWindow();
                 AddDataSeries(BarsPeriodType.Minute, 5);
                 AddDataSeries(BarsPeriodType.Minute, 1);
+
+                currentTradeAction = TradeAction.NoTrade;
             }
             else if (State == State.DataLoaded)
             {
@@ -238,6 +205,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 AddChartIndicator(DEMA(9));
 
                 deadZoneSeries = new Series<double>(this);
+                waeValuesSeries = new Series<WAE_ValueSet>(this);
             }
             else if (State == State.Realtime)
             {
@@ -273,7 +241,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             // Configure cho phép trade reversal 
-            if (AllowTrendingTrade)
+            if (AllowReversalTrade)
             {
                 // Cho phép trade reverse (Bollinger Band) từ 8:35 am đến 11:30pm
                 if (currentPrice > lowerBB_5m && currentPrice < upperBB_5m)
@@ -297,10 +265,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
 
-            if (AllowReversalTrade)
+            if (AllowTrendingTrade)
             {
-                // Trade theo reversal
-                if (waeDeadVal_5m < waeDowntrend_5m /*waeExplosion_5m < waeDowntrend_5m &&  && waeDeadVal_5m < waeExplosion_5m*/)
+                // Có 2 cây nến kề nhau có cùng volume
+                if (waeValuesSeries[0].HasBearVolume && waeValuesSeries[1].HasBearVolume)
                 {
                     LocalPrint($"Found SELL signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}");
 
@@ -308,7 +276,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     return TradeAction.Sell_Trending;
                 }
-                else if (waeDeadVal_5m < waeUptrend_5m /*waeExplosion_5m < waeUptrend_5m &&  && waeDeadVal_5m < waeExplosion_5m*/)
+                else if (waeValuesSeries[0].HasBullVolume && waeValuesSeries[1].HasBullVolume)
                 {
                     LocalPrint($"Found BUY signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeUptrend_5m: {waeUptrend_5m:N2}");
 
@@ -570,6 +538,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }            
         }
 
+        private readonly object lockOjbject = new Object();
         private void MoveTargetAndStopOrdersWithNewPrice(double updatedPrice)
         {
             if (!AllowToMoveStopLossGain)
@@ -630,88 +599,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            if (ChickenStatus == TradingStatus.OrderExists)
+            if (TradingStatus == TradingStatus.OrderExists)
             {
                 MoveTargetAndStopOrdersWithNewPrice(updatedPrice);
             }
         }
 
-        private readonly object lockOjbject = new Object();
-        protected override void OnOrderUpdate(Order order,
-            double limitPrice,
-            double stopPrice,
-            int quantity,
-            int filled,
-            double averageFillPrice,
-            OrderState orderState,
-            DateTime time,
-            ErrorCode error,
-            string comment)
-        {
-            var focusedOrderState = (orderState == OrderState.Filled || orderState == OrderState.Cancelled || orderState == OrderState.Working || orderState == OrderState.Accepted);
-
-            if (!focusedOrderState)
-            {
-                return;
-            }
-            var key = StrategiesUtilities.GenerateKey(order);            
-
-            try
-            {
-                lock (lockOjbject)
-                {
-                    if (orderState == OrderState.Filled || orderState == OrderState.Cancelled)
-                    {
-                        ActiveOrders.Remove(key);
-                        SimpleActiveOrders.Remove(key);
-                    }
-                    else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
-                    {
-                        // Add or update 
-                        //ActiveOrders[key] = order;
-                        if (!ActiveOrders.ContainsKey(key))
-                        {
-                            ActiveOrders.Add(key, order);
-                        }
-
-                        // Chỉ add thêm, không update
-                        if (!SimpleActiveOrders.ContainsKey(key))
-                        {
-                            SimpleActiveOrders.Add(key, new SimpleInfoOrder { FromEntrySignal = order.FromEntrySignal, Name = order.Name });
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                LocalPrint("[OnOrderUpdate] - ERROR: ********" + e.Message + "************");
-            }
-            finally 
-            {
-                //LocalPrint($"CountOrders: {ActiveOrders.Count}");
-                LocalPrint(
-                    $"[OnOrderUpdate] - key: [{key}], quantity: {quantity}, filled: {filled}, orderType: {order.OrderType}, orderState: {orderState}, " +
-                    $"limitPrice: {limitPrice:N2}, stop: {stopPrice:N2}. Current number of active orders: {ActiveOrders.Count}");
-            }
-        }
-
-        
-
         // Check if current time is still from 8:05:10 AM to 3:00 PM.
-        private bool IsTradingHour()
-        {
-            var time = ToTime(Time[0]);
-
-            var newTime = NewsTimes.FirstOrDefault(c => StrategiesUtilities.NearNewsTime(time, c));
-
-            if (newTime != 0)
-            {
-                LocalPrint($"News at {newTime} --> Not trading hour");
-                return false;
-            }
-
-            return true;
-        }
+        
 
         /// <summary>
         /// Hàm này sử dụng cho khung 1 phút
@@ -733,58 +628,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
         
         protected override void OnBarUpdate()
-        {            
-            if (CurrentBar < BarsRequiredToTrade)
-            {
-                //LocalPrint($"Not ENOUGH bars");
-                return;
-            }
-
-            if (!IsTradingHour())
-            {
-                if (ChickenStatus == TradingStatus.Idle)
-                {
-                    return;
-                }
-                else if (ChickenStatus == TradingStatus.PendingFill)
-                {
-                    LocalPrint($"Gần giờ có news, cancel những lệnh chờ đang có");
-                    CancelAllPendingOrder();
-                    return;
-                }
-                /*
-                else if (ChickenStatus == ChickenStatus.OrderExists) // Đang có lệnh
-                {
-                    var unrealizedProfit = Account.Get(AccountItem.UnrealizedProfitLoss, Currency.UsDollar);
-
-                    // Đang lỗ lệnh này --> Tiếp tục keep và hi vọng tương lai tương sáng với news
-                    if (unrealizedProfit < 0)
-                    {
-                        return; 
-                    }
-
-                    if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1)
-                    {
-                        var updatedPrice = Close[0];
-
-                        // Nếu đang có lời thì dời toàn bộ stop loss lên break even 
-                        var stopLossOrders = IsBuying
-                            ? ActiveOrders.Values.Where(c => c.OrderType == OrderType.StopLimit && c.StopPrice < filledPrice && filledPrice < updatedPrice).ToList()
-                            : ActiveOrders.Values.Where(c => c.OrderType == OrderType.StopLimit && c.StopPrice > filledPrice && filledPrice > updatedPrice).ToList();
-
-                        foreach (var stopLossOrder in stopLossOrders)
-                        {
-                            MoveTargetOrStopOrder(filledPrice, stopLossOrder, false, IsBuying ? "BUY" : "SELL", stopLossOrder.FromEntrySignal); 
-                        }
-                    }
-                }
-                */
-            }
-
-            if (StrategiesUtilities.ReachMaxDayLossOrDayTarget(this, Account, MaximumDailyLoss, DailyTargetProfit))
-            {
-                return;
-            }
+        {
+            base.OnBarUpdate();
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
@@ -805,7 +650,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     return;
                 }
 
-                if (ChickenStatus == TradingStatus.Idle)
+                if (TradingStatus == TradingStatus.Idle)
                 {
                     var shouldTrade = ShouldTrade();
 
@@ -816,11 +661,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                         EnterOrder(shouldTrade);
                     }
                 }
-                else if (ChickenStatus == TradingStatus.PendingFill)
+                else if (TradingStatus == TradingStatus.PendingFill)
                 {
                     UpdatePendingOrder();
                 }
-                else if (ChickenStatus == TradingStatus.OrderExists)
+                else if (TradingStatus == TradingStatus.OrderExists)
                 {
                     MoveTargetsBasedOnBollinger();
                 }
@@ -867,18 +712,20 @@ namespace NinjaTrader.NinjaScript.Strategies
                 waeDowntrend_5m = wae.DownTrendVal;
                 waeExplosion_5m = wae.ExplosionVal;
                 waeUptrend_5m = wae.UpTrendVal;
+                
+                waeValuesSeries[0] = wae;
 
                 LocalPrint($"WAE Values: DeadZoneVal: {wae.DeadZoneVal:N2}, ExplosionVal: {wae.ExplosionVal:N2}, " +
                     $"DowntrendVal: {wae.DownTrendVal:N2}, " +
                     $"UptrendVal: {wae.UpTrendVal:N2}. ADX = {adx_5m:N2} " +
-                    $"{(wae.CanTrade ? "--> Can enter Order" : "")}");
+                    $"{(wae.HasBullVolume ? "--> BULL Volume" : wae.HasBearVolume ? "--> BEAR Volume" : "")}");
             }
         }
         /// <summary>
         /// Tìm các giá trị của Waddah Attar Explosion ở khung 5 phút
         /// </summary>
         /// <returns></returns>
-        private WEA_ValueSet FindWaddahAttarExplosion()
+        private WAE_ValueSet FindWaddahAttarExplosion()
         {
             int sensitivity = 150;
             int fastLength = 20;
@@ -919,25 +766,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Explosion Line
             double explosionValue = bbUpperVal - bbLowerVal;
 
-            return new WEA_ValueSet
+            return new WAE_ValueSet
             {
                 DeadZoneVal = deadZone, 
                 DownTrendVal = trendCalculation < 0 ? -trendCalculation : 0,
                 ExplosionVal = explosionValue,
                 UpTrendVal = trendCalculation >= 0 ? trendCalculation : 0
             };
-        }
-
-        private void CancelAllPendingOrder()
-        {
-            var clonedList = ActiveOrders.Values.ToList();
-            var len = clonedList.Count;
-            for (var i=0; i < len; i++)
-            { 
-                var order = clonedList[i];
-                CancelOrder(order);
-            }
-        }
+        }        
 
         /// <summary>
         /// Khi State từ Historical sang Realtime thì trong ActiveOrders có thể còn lệnh
@@ -946,19 +782,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private void TransitionOrdersToLive()
         {
-            if (ChickenStatus == TradingStatus.OrderExists)
+            if (TradingStatus == TradingStatus.OrderExists)
             {
-                LocalPrint($"Transition to live, clear all ActiveOrders");
-                /*
-                if (IsBuying)
-                {
-                    ExitLong();
-                }
-                else if (IsSelling)
-                {
-                    ExitShort();
-                }
-                */
+                LocalPrint($"Transition to live, clear all ActiveOrders");               
 
                 var clonedList = ActiveOrders.Values.ToList().Where(c => c.OrderType == OrderType.Limit).ToList();
                 var len = clonedList.Count;
@@ -976,7 +802,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                 }
             }
-            else if (ChickenStatus == TradingStatus.PendingFill)
+            else if (TradingStatus == TradingStatus.PendingFill)
             {
                 LocalPrint($"Transition to live, convert all pending fill orders to realtime");
                 var clonedList = ActiveOrders.Values.ToList();
@@ -994,7 +820,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         protected virtual void UpdatePendingOrder()
         {
-            if (ChickenStatus != TradingStatus.PendingFill)
+            if (TradingStatus != TradingStatus.PendingFill)
             {
                 return;
             }
@@ -1047,9 +873,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (IsTrendingTrade) 
             {
                 var cancelCausedByTrendCondition =
-                    ((IsBuying && waeExplosion_5m < waeDowntrend_5m && waeDeadVal_5m < waeDowntrend_5m) // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
-                    ||
-                    (IsSelling && waeExplosion_5m < waeUptrend_5m && waeDeadVal_5m < waeUptrend_5m)); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
+                    (IsBuying && waeValuesSeries[0].HasBearVolume) // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
+                    || (IsSelling && waeValuesSeries[0].HasBearVolume); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
                 if (cancelCausedByTrendCondition)
                 {
                     CancelAllPendingOrder();
@@ -1116,5 +941,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         /*
 		This should be blank to easy to see the function
 		*/
+       
     }
 }

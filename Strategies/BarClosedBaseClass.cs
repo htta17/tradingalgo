@@ -26,6 +26,8 @@ namespace NinjaTrader.Custom.Strategies
         {
         }
 
+        protected T currentTradeAction { get; set;}
+
         /// <summary>
         /// Thời gian có news, dừng trade trước và sau thời gian có news 5 phút. 
         /// Có 3 mốc quan trọng mặc định là 8:30am (Mở cửa Mỹ), 3:00pm (Đóng cửa Mỹ) và 5:00pm (Mở cửa châu Á).
@@ -92,8 +94,6 @@ namespace NinjaTrader.Custom.Strategies
             GroupName = "Parameters")]
         public int Target2InTicks { get; set; } = 120; // 25 points for MNQ
 
-        
-
         /// <summary>
         /// Tự tính toán sizing và stop loss/target.
         /// </summary>
@@ -129,6 +129,38 @@ namespace NinjaTrader.Custom.Strategies
 
             PointToMoveTarget = 3;
             PointToMoveLoss = 7;
+        }
+
+        protected bool IsTradingHour()
+        {
+            var time = ToTime(Time[0]);
+
+            var newTime = NewsTimes.FirstOrDefault(c => StrategiesUtilities.NearNewsTime(time, c));
+
+            if (newTime != 0)
+            {
+                LocalPrint($"News at {newTime} --> Not trading hour");
+                return false;
+            }
+
+            return true;
+        }
+
+        protected TradingStatus TradingStatus
+        {
+            get
+            {
+                if (!SimpleActiveOrders.Any())
+                {
+                    return TradingStatus.Idle;
+                }
+                else if (SimpleActiveOrders.Values.Any(order => StrategiesUtilities.SignalEntries.Contains(order.Name)))
+                {
+                    return TradingStatus.PendingFill;
+                }
+
+                return TradingStatus.OrderExists;
+            }
         }
 
         protected override void OnStateChange()
@@ -171,9 +203,138 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
+        protected void CancelAllPendingOrder()
+        {
+            var clonedList = ActiveOrders.Values.ToList();
+            var len = clonedList.Count;
+            for (var i = 0; i < len; i++)
+            {
+                var order = clonedList[i];
+                CancelOrder(order);
+            }
+        }
+
         protected override void OnBarUpdate()
         {
-            //Add your custom strategy logic here.
+            // Không đủ số lượng Bar
+            if (CurrentBar < BarsRequiredToTrade)
+            {   
+                return;
+            }
+
+            // Không phải trading hour
+            if (!IsTradingHour())
+            {
+                if (TradingStatus == TradingStatus.Idle)
+                {
+                    return;
+                }
+                else if (TradingStatus == TradingStatus.PendingFill)
+                {
+                    LocalPrint($"Gần giờ có news, cancel những lệnh chờ đang có");
+                    CancelAllPendingOrder();
+                    return;
+                }
+                /*
+                else if (ChickenStatus == ChickenStatus.OrderExists) // Đang có lệnh
+                {
+                    var unrealizedProfit = Account.Get(AccountItem.UnrealizedProfitLoss, Currency.UsDollar);
+
+                    // Đang lỗ lệnh này --> Tiếp tục keep và hi vọng tương lai tương sáng với news
+                    if (unrealizedProfit < 0)
+                    {
+                        return; 
+                    }
+
+                    if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1)
+                    {
+                        var updatedPrice = Close[0];
+
+                        // Nếu đang có lời thì dời toàn bộ stop loss lên break even 
+                        var stopLossOrders = IsBuying
+                            ? ActiveOrders.Values.Where(c => c.OrderType == OrderType.StopLimit && c.StopPrice < filledPrice && filledPrice < updatedPrice).ToList()
+                            : ActiveOrders.Values.Where(c => c.OrderType == OrderType.StopLimit && c.StopPrice > filledPrice && filledPrice > updatedPrice).ToList();
+
+                        foreach (var stopLossOrder in stopLossOrders)
+                        {
+                            MoveTargetOrStopOrder(filledPrice, stopLossOrder, false, IsBuying ? "BUY" : "SELL", stopLossOrder.FromEntrySignal); 
+                        }
+                    }
+                }
+                */
+            }
+
+            // Đủ target loss/gain trong ngày
+            if (StrategiesUtilities.ReachMaxDayLossOrDayTarget(this, Account, MaximumDailyLoss, DailyTargetProfit))
+            {
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Realtime: Dùng order.Id làm key, không phải Realtime: Dùng Name làm key
+        /// </summary>
+        protected Dictionary<string, Order> ActiveOrders = new Dictionary<string, Order>();
+
+        protected Dictionary<string, SimpleInfoOrder> SimpleActiveOrders = new Dictionary<string, SimpleInfoOrder>();
+
+        private readonly object lockOjbject = new Object();
+        protected override void OnOrderUpdate(Order order,
+            double limitPrice,
+            double stopPrice,
+            int quantity,
+            int filled,
+            double averageFillPrice,
+            OrderState orderState,
+            DateTime time,
+            ErrorCode error,
+            string comment)
+        {
+            var focusedOrderState = (orderState == OrderState.Filled || orderState == OrderState.Cancelled || orderState == OrderState.Working || orderState == OrderState.Accepted);
+
+            if (!focusedOrderState)
+            {
+                return;
+            }
+            var key = StrategiesUtilities.GenerateKey(order);
+
+            try
+            {
+                lock (lockOjbject)
+                {
+                    if (orderState == OrderState.Filled || orderState == OrderState.Cancelled)
+                    {
+                        ActiveOrders.Remove(key);
+                        SimpleActiveOrders.Remove(key);
+                    }
+                    else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
+                    {
+                        // Add or update 
+                        //ActiveOrders[key] = order;
+                        if (!ActiveOrders.ContainsKey(key))
+                        {
+                            ActiveOrders.Add(key, order);
+                        }
+
+                        // Chỉ add thêm, không update
+                        if (!SimpleActiveOrders.ContainsKey(key))
+                        {
+                            SimpleActiveOrders.Add(key, new SimpleInfoOrder { FromEntrySignal = order.FromEntrySignal, Name = order.Name });
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                LocalPrint("[OnOrderUpdate] - ERROR: ********" + e.Message + "************");
+            }
+            finally
+            {
+                //LocalPrint($"CountOrders: {ActiveOrders.Count}");
+                LocalPrint(
+                    $"[OnOrderUpdate] - key: [{key}], quantity: {quantity}, filled: {filled}, orderType: {order.OrderType}, orderState: {orderState}, " +
+                    $"limitPrice: {limitPrice:N2}, stop: {stopPrice:N2}. Current number of active orders: {ActiveOrders.Count}");
+            }
         }
 
         /// <summary>
@@ -188,6 +349,7 @@ namespace NinjaTrader.Custom.Strategies
 
             switch (tradeAction)
             {
+                #region Chicken stop loss price 
                 case TradeAction.Buy_Trending:
                     price = setPrice - TickSize * StopLossInTicks;
                     break;
@@ -203,6 +365,14 @@ namespace NinjaTrader.Custom.Strategies
                 case TradeAction.Sell_Reversal:
                     price = setPrice + TickSize * StopLossInTicks;
                     break;
+                #endregion
+
+                #region FVG stop loss price 
+                case FVGTradeAction.Buy:
+                    break;
+                case FVGTradeAction.Sell:
+                    break; 
+                #endregion
             }
 
             return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;

@@ -28,24 +28,55 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public class FVG : BarClosedBaseClass<FVGTradeAction>
 	{
-		protected override void OnStateChange()
-		{
-			base.OnStateChange();
-		}
+        protected override void OnStateChange()
+        {
+            base.OnStateChange();
 
-		protected override void OnBarUpdate()
-		{
-			//Add your custom strategy logic here.
-		}
+            if (State == State.SetDefaults)
+            {
+                Description = @"Fair Value Gap";
+                Name = "FVG";
+                BarsRequiredToTrade = 10;
+                Target1InTicks = 40;
+            }
+            else if (State == State.Configure)
+            {
+                ClearOutputWindow();
+
+                // Add data for trading
+                AddDataSeries(BarsPeriodType.Minute, 5);
+
+                currentTradeAction = FVGTradeAction.NoTrade;
+            }
+        }
+
+        protected override void OnBarUpdate()
+        {
+            base.OnBarUpdate();
+
+            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
+            {                
+                if (TradingStatus == TradingStatus.Idle)
+                {
+                    // Find the FVG value 
+                }
+                
+            }
+        }
+
 
         protected override double GetTargetPrice_Half(FVGTradeAction tradeAction, double setPrice)
         {
-            throw new NotImplementedException();
+            return currentTradeAction == FVGTradeAction.Buy 
+                ? setPrice + (Target1InTicks * TickSize)
+                : -setPrice - (Target1InTicks * TickSize);
         }
 
         protected override double GetTargetPrice_Full(FVGTradeAction tradeAction, double setPrice)
         {
-            throw new NotImplementedException();
+            return currentTradeAction == FVGTradeAction.Buy
+                ? setPrice + (Target2InTicks * TickSize)
+                : -setPrice - (Target2InTicks * TickSize);
         }
 
         protected override FVGTradeAction ShouldTrade()

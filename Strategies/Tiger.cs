@@ -615,7 +615,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Tìm các giá trị của Waddah Attar Explosion ở khung 5 phút
         /// </summary>
         /// <returns></returns>
-        private WEA_ValueSet FindWaddahAttarExplosion()
+        private WAE_ValueSet FindWaddahAttarExplosion()
         {
             int sensitivity = 150;
             int fastLength = 20;
@@ -656,7 +656,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Explosion Line
             double explosionValue = bbUpperVal - bbLowerVal;
 
-            return new WEA_ValueSet
+            return new WAE_ValueSet
             {
                 DeadZoneVal = deadZone,
                 DownTrendVal = trendCalculation < 0 ? -trendCalculation : 0,

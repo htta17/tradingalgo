@@ -383,6 +383,7 @@
     <Compile Include="Strategies\PriceAction.cs" />
     <Compile Include="Strategies\FVG.cs" />
     <Compile Include="Strategies\BarClosedBaseClass.cs" />
+    <Compile Include="Strategies\Rooster.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

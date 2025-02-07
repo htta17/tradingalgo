@@ -25,7 +25,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         { 
         }
 
-
         private const int DEMA_Period = 9;
         private const int FiveMinutes_Period = 14;
 
@@ -335,13 +334,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 case TradeAction.Buy_Trending:
                     price = isNightTime // if night time, cut half at 7 point
-                        ? setPrice + 7
+                        ? setPrice + 5
                         : setPrice + (TickSize * Target1InTicks);
                     break;
 
                 case TradeAction.Sell_Trending:
                     price = isNightTime // if night time, cut half at 7 point
-                        ? setPrice - 7
+                        ? setPrice - 5
                         : setPrice - (TickSize * Target1InTicks);
                     break;
 

@@ -55,7 +55,7 @@ namespace NinjaTrader.Custom.Strategies
         [Display(Name = "Stop Trading if daily Profit is ($)",
             Order = 6,
             GroupName = "Parameters")]
-        public int DailyTargetProfit { get; set; } = 700;
+        public int DailyTargetProfit { get; set; } = 500;
 
         /// <summary>
         /// Cho phép dịch chuyển stop loss và target
@@ -116,7 +116,7 @@ namespace NinjaTrader.Custom.Strategies
         protected virtual void SetDefaultProperties()
         {
             MaximumDailyLoss = 400;
-            DailyTargetProfit = 700;
+            DailyTargetProfit = 500;
             AllowToMoveStopLossGain = true;
             NewsTimeInput = "0830,1500,1700";
 

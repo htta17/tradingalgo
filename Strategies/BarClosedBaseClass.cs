@@ -168,7 +168,7 @@ namespace NinjaTrader.Custom.Strategies
             if (State == State.SetDefaults)
             {
                 Description = @"Based Class for all Strategies which is triggered to execute with [Calculate] is [OnBarClose].";
-                Name = "[BASED CLASS - NOT FOR RUNNING]";
+                // Let not set Name here, each inheritted class will set by itself
                 Calculate = Calculate.OnBarClose;
                 EntriesPerDirection = 2;
                 EntryHandling = EntryHandling.AllEntries;

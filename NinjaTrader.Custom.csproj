@@ -62,7 +62,7 @@
       <HintPath>C:\Program Files\NinjaTrader 8\bin\SharpDX.Direct2D1.dll</HintPath>
     </Reference>
     <Reference Include="NinjaTrader.Vendor">
-      <HintPath>$(DocumentsFolder)\NinjaTrader 8\bin\Custom\NinjaTrader.Vendor.dll</HintPath>
+      <HintPath>C:\Users\14242\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Vendor.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase">
       <HintPath>C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll</HintPath>

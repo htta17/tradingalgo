@@ -61,7 +61,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnBarUpdate()
         {
-            base.OnBarUpdate();
+            var passTradeCondition = CheckingTradeCondition();
+            if (!passTradeCondition)
+            {
+                return;
+            }
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {                

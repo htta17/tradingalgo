@@ -28,12 +28,14 @@ namespace NinjaTrader.Custom.Strategies
 
         protected T currentTradeAction { get; set;}
 
+        #region Allow Trade Parameters
+
         /// <summary>
         /// Thời gian có news, dừng trade trước và sau thời gian có news 5 phút. 
         /// Có 3 mốc quan trọng mặc định là 8:30am (Mở cửa Mỹ), 3:00pm (Đóng cửa Mỹ) và 5:00pm (Mở cửa châu Á).
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = "Parameters")]
+        [Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = "Allow Trade Parameters")]
         public string NewsTimeInput { get; set; } = "0830,1500,1700";
 
 
@@ -45,7 +47,7 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Maximum Day Loss ($)",
             Order = 5,
-            GroupName = "Parameters")]
+            GroupName = "Allow Trade Parameters")]
         public int MaximumDailyLoss { get; set; } = 400;
 
         /// <summary>
@@ -54,8 +56,12 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Stop Trading if daily Profit is ($)",
             Order = 6,
-            GroupName = "Parameters")]
+            GroupName = "Allow Trade Parameters")]
         public int DailyTargetProfit { get; set; } = 500;
+        #endregion
+
+
+        #region Stoploss/Profit
 
         /// <summary>
         /// Cho phép dịch chuyển stop loss và target
@@ -63,7 +69,7 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Allow to move stop loss/profit target",
             Order = 14,
-            GroupName = "Parameters")]
+            GroupName = "Stoploss/Profit")]
         public bool AllowToMoveStopLossGain { get; set; } = true;
 
         /// <summary>
@@ -72,7 +78,7 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Stop loss (Ticks):",
             Order = 15,
-            GroupName = "Parameters")]
+            GroupName = "Stoploss/Profit")]
         public int StopLossInTicks { get; set; } = 120; // 25 points for MNQ
 
         /// <summary>
@@ -81,7 +87,7 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Target 1 Profit (Ticks):",
             Order = 16,
-            GroupName = "Parameters")]
+            GroupName = "Stoploss/Profit")]
         public int Target1InTicks { get; set; } = 60; // 25 points for MNQ
 
 
@@ -91,7 +97,7 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Target 2 Profit (Ticks):",
             Order = 17,
-            GroupName = "Parameters")]
+            GroupName = "Stoploss/Profit")]
         public int Target2InTicks { get; set; } = 120; // 25 points for MNQ
 
         /// <summary>
@@ -100,7 +106,7 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Tự tính toán sizing và stop loss/target",
             Order = 8,
-            GroupName = "Parameters")]
+            GroupName = "Stoploss/Profit")]
         public bool AutoCalculateSizing { get; set; }
 
         /// <summary>
@@ -112,6 +118,7 @@ namespace NinjaTrader.Custom.Strategies
         /// Giá hiện tại cách stop loss > [PointToMoveLoss] thì di chuyển stop loss.
         /// </summary>
         protected double PointToMoveLoss = 7;
+        #endregion
 
         protected virtual void SetDefaultProperties()
         {
@@ -214,12 +221,12 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
-        protected override void OnBarUpdate()
+        protected virtual bool CheckingTradeCondition()
         {
             // Không đủ số lượng Bar
             if (CurrentBar < BarsRequiredToTrade)
-            {   
-                return;
+            {
+                return false;
             }
 
             // Không phải trading hour
@@ -227,13 +234,13 @@ namespace NinjaTrader.Custom.Strategies
             {
                 if (TradingStatus == TradingStatus.Idle)
                 {
-                    return;
+                    return false;
                 }
                 else if (TradingStatus == TradingStatus.PendingFill)
                 {
                     LocalPrint($"Gần giờ có news, cancel những lệnh chờ đang có");
                     CancelAllPendingOrder();
-                    return;
+                    return false;
                 }
                 /*
                 else if (ChickenStatus == ChickenStatus.OrderExists) // Đang có lệnh
@@ -267,9 +274,11 @@ namespace NinjaTrader.Custom.Strategies
             // Đủ target loss/gain trong ngày
             if (StrategiesUtilities.ReachMaxDayLossOrDayTarget(this, Account, MaximumDailyLoss, DailyTargetProfit))
             {
-                return;
+                return false;
             }
-        }
+
+            return true;
+        }        
 
         /// <summary>
         /// Realtime: Dùng order.Id làm key, không phải Realtime: Dùng Name làm key
@@ -460,5 +469,89 @@ namespace NinjaTrader.Custom.Strategies
         }
 
         protected abstract double GetSetPrice(T tradeAction);
+
+        /// <summary>
+        /// Dịch chuyển stop loss. Có 2 trường hợp: (1) - Sau khi giá chạm vào target 1, kéo stop loss lên break even. 
+        /// (2) - Khi giá gần chạm đến target 2, kéo stop loss lên gần với giá. 
+        /// </summary>
+        /// <param name="stopOrder"></param>
+        /// <param name="updatedPrice"></param>
+        /// <param name="filledPrice"></param>
+        /// <param name="isBuying"></param>
+        /// <param name="isSelling"></param>
+        /// <param name="startMovingStoploss"></param>
+        protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling, bool startMovingStoploss)
+        {
+            double newPrice = -1;
+            var allowMoving = "";
+            var stopOrderPrice = stopOrder.StopPrice;
+
+            // Dịch stop loss lên break even 
+            if (isBuying)
+            {
+                // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
+                if (startMovingStoploss && stopOrderPrice > filledPrice && stopOrderPrice + PointToMoveLoss < updatedPrice)
+                {
+                    newPrice = updatedPrice - PointToMoveLoss;
+                    allowMoving = "BUY";
+                }
+                // Kéo về break even
+                else if (stopOrderPrice < filledPrice && filledPrice + 1 < updatedPrice)
+                {
+                    newPrice = filledPrice + 1;
+                    allowMoving = "BUY";
+                }
+            }
+            else if (isSelling)
+            {
+                // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
+                if (startMovingStoploss && stopOrderPrice < filledPrice && stopOrderPrice - PointToMoveLoss > updatedPrice)
+                {
+                    newPrice = updatedPrice + PointToMoveLoss;
+                    allowMoving = "SELL";
+                }
+                // Kéo về break even
+                else if (stopOrderPrice > filledPrice && filledPrice - 1 > updatedPrice)
+                {
+                    newPrice = filledPrice - 1;
+                    allowMoving = "SELL";
+                }
+            }
+
+            if (allowMoving != "")
+            {
+                LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
+
+                MoveTargetOrStopOrder(newPrice, stopOrder, false, allowMoving, stopOrder.FromEntrySignal);
+            }
+        }
+
+        /// <summary>
+        /// Move target order
+        /// </summary>
+        /// <param name="targetOrder"></param>
+        /// <param name="updatedPrice"></param>
+        /// <param name="filledPrice"></param>
+        /// <param name="isBuying"></param>
+        /// <param name="isSelling"></param>
+        /// <param name="startMovingStoploss"></param>
+        protected virtual void MoveTargetOrder(Order targetOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling, bool startMovingStoploss)
+        {
+            var targetOrderPrice = targetOrder.LimitPrice;
+
+            // Dịch stop gain nếu giá quá gần target            
+            if (isBuying && updatedPrice + PointToMoveTarget > targetOrderPrice)
+            {
+                MoveTargetOrStopOrder(targetOrderPrice + PointToMoveTarget, targetOrder, true, "BUY", targetOrder.FromEntrySignal);
+
+                startMovingStoploss = true;
+            }
+            else if (isSelling && updatedPrice - PointToMoveTarget < targetOrderPrice)
+            {
+                MoveTargetOrStopOrder(targetOrderPrice - PointToMoveTarget, targetOrder, true, "SELL", targetOrder.FromEntrySignal);
+
+                startMovingStoploss = true;
+            }
+        }
     }
 }

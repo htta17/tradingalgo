@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class Chicken : BarClosedBaseClass<TradeAction>
+    public class Chicken : BarClosedBaseClass<TradeAction, TradeAction>
     {
         public Chicken()
             : base("CHICKEN")
@@ -78,10 +78,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private Series<WAE_ValueSet> waeValuesSeries;
         #endregion       
 
-        /// <summary>
-        /// Biến này dùng để di chuyển stop loss khi giá BẮT ĐẦU gần chạm đến target2 (để room cho chạy).
-        /// </summary>
-        private bool startMovingStoploss = false;
+        
 
         /// <summary>
         /// Lệnh hiện tại là lệnh mua
@@ -281,7 +278,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Có 2 cây nến kề nhau có cùng volume
                 if (waeValuesSeries[0].HasBearVolume && waeValuesSeries[1].HasBearVolume)
                 {
-                    LocalPrint($"Found SELL signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}");
+                    LocalPrint($"Found SELL signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}, " +
+                        $"waeDeadVal_5m[-1]: {waeValuesSeries[1].DeadZoneVal:N2}, waeDowntrend_5m[-1]: {waeValuesSeries[1].DownTrendVal:N2}");
 
                     filledTime = Time[0];
 
@@ -289,7 +287,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (waeValuesSeries[0].HasBullVolume && waeValuesSeries[1].HasBullVolume)
                 {
-                    LocalPrint($"Found BUY signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeExplosion_5m: {waeExplosion_5m:N2}, waeUptrend_5m: {waeUptrend_5m:N2}");
+                    LocalPrint($"Found BUY signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeDowntrend_5m: {waeUptrend_5m:N2}, " +
+                        $"waeDeadVal_5m[-1]: {waeValuesSeries[1].DeadZoneVal:N2}, waeDowntrend_5m[-1]: {waeValuesSeries[1].UpTrendVal:N2}");
 
                     filledTime = Time[0];
 
@@ -396,6 +395,34 @@ namespace NinjaTrader.NinjaScript.Strategies
                 case TradeAction.Sell_Reversal:
                     price = lowerBB_5m;
                     break;
+            }
+
+            return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
+        }
+
+        protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice)
+        {
+            double price = -1;
+
+            switch (tradeAction)
+            {
+                #region Chicken stop loss price 
+                case TradeAction.Buy_Trending:
+                    price = setPrice - TickSize * StopLossInTicks;
+                    break;
+
+                case TradeAction.Sell_Trending:
+                    price = setPrice + TickSize * StopLossInTicks;
+                    break;
+
+                case TradeAction.Buy_Reversal:
+                    price = setPrice - TickSize * StopLossInTicks;
+                    break;
+
+                case TradeAction.Sell_Reversal:
+                    price = setPrice + TickSize * StopLossInTicks;
+                    break;
+                    #endregion
             }
 
             return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
@@ -517,14 +544,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     for (var i = 0; i < lenStop; i++)
                     {
                         var stopOrder = stopOrders[i];
-                        MoveStopOrder(stopOrder, updatedPrice, filledPrice, IsBuying, IsSelling, startMovingStoploss);
+                        MoveStopOrder(stopOrder, updatedPrice, filledPrice, IsBuying, IsSelling);
                     }
 
                     var lenTarget = targetOrders.Count;
                     for (var i = 0; i < lenTarget; i++)
                     {
                         var targetOrder = targetOrders[i];
-                        MoveTargetOrder(targetOrder, updatedPrice, filledPrice, IsBuying, IsSelling, startMovingStoploss);
+                        MoveTargetOrder(targetOrder, updatedPrice, filledPrice, IsBuying, IsSelling);
                     }
                 }
             }

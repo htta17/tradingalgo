@@ -26,7 +26,7 @@ using NinjaTrader.Custom.Strategies;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class FVG : BarClosedBaseClass<FVGTradeAction>
+    public class FVG : BarClosedBaseClass<FVGTradeAction, FVGTradeDetail>
 	{
         /// <summary>
         /// Khoảng cách tối thiểu giữa điểm cao (thấp) nhất của cây nến 1 và điểm thấp (cao) nhất của cây nến 3
@@ -68,72 +68,127 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
-            {                
+            {
                 if (TradingStatus == TradingStatus.Idle)
                 {
                     // Find the FVG value 
                     var shouldTrade = ShouldTrade();
 
-                    LocalPrint($"Check trading condition, result: {shouldTrade}");
+                    LocalPrint($"Check trading condition, result: {shouldTrade.FVGTradeAction}");
 
-                    if (shouldTrade != FVGTradeAction.NoTrade)
+                    if (shouldTrade.FVGTradeAction != FVGTradeAction.NoTrade)
                     {
                         EnterOrder(shouldTrade);
                     }
                 }
-                
+                else if (TradingStatus == TradingStatus.PendingFill)
+                {
+                    var shouldChangeVal = ShouldTrade();
+
+                    // Nếu có vùng giá mới thì cập nhật
+                    if (shouldChangeVal.FVGTradeAction == FVGTradeAction.NoTrade)
+                    {
+                        return;
+                    }
+                    
+                    // Hủy lệnh cũ và order lệnh mới 
+                    CancelAllPendingOrder();
+
+                    EnterOrder(shouldChangeVal);
+                }
+                else if (TradingStatus == TradingStatus.OrderExists)
+                { 
+                    // Cập nhật lại target 2 
+                }
             }
         }
 
-        private void EnterOrder(FVGTradeAction fVGTradeAction)
+        private void EnterOrder(FVGTradeDetail fVGTradeDetail)
         {
-            currentTradeAction = fVGTradeAction; 
+            // Set global values
+            currentTradeAction = fVGTradeDetail.FVGTradeAction;
 
+            // Chưa cho move stop loss
+            startMovingStoploss = false;
 
+            var orderAction = fVGTradeDetail.FVGTradeAction == FVGTradeAction.Buy ? OrderAction.Buy : OrderAction.Sell;
+
+            try
+            {
+                double priceToSet = GetSetPrice(fVGTradeDetail);
+                filledPrice = priceToSet;
+
+                var stopLossPrice = GetStopLossPrice(fVGTradeDetail, priceToSet);
+                var targetHalf = GetTargetPrice_Half(fVGTradeDetail, priceToSet);
+                var targetFull = GetTargetPrice_Full(fVGTradeDetail, priceToSet);
+
+                EnterOrderPure(priceToSet, targetHalf, stopLossPrice,
+                    StrategiesUtilities.SignalEntry_FVGFull, DefaultQuantity,
+                    fVGTradeDetail.FVGTradeAction == FVGTradeAction.Buy,
+                    fVGTradeDetail.FVGTradeAction == FVGTradeAction.Sell);
+            }
+            catch (Exception ex)
+            {
+                LocalPrint($"[EnterOrder] - ERROR: " + ex.Message);
+            }            
         }
 
-        protected override double GetTargetPrice_Half(FVGTradeAction tradeAction, double setPrice)
+        protected override double GetStopLossPrice(FVGTradeDetail tradeAction, double setPrice)
+        {
+            return tradeAction.StopLossPrice;
+        }
+
+        protected override double GetTargetPrice_Half(FVGTradeDetail tradeDetail, double setPrice)
         {
             return currentTradeAction == FVGTradeAction.Buy 
                 ? setPrice + (Target1InTicks * TickSize)
                 : -setPrice - (Target1InTicks * TickSize);
         }
 
-        protected override double GetTargetPrice_Full(FVGTradeAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Full(FVGTradeDetail tradeDetail, double setPrice)
         {
-            return currentTradeAction == FVGTradeAction.Buy
-                ? setPrice + (Target2InTicks * TickSize)
-                : -setPrice - (Target2InTicks * TickSize);
+            return tradeDetail.TargetProfitPrice;
         }
 
         double filledPrice = -1;
         DateTime filledTime = DateTime.Now;
-        double stopLoss = -1;
-        double targetProfit = -1; 
-
-        protected override FVGTradeAction ShouldTrade()
+        protected override FVGTradeDetail ShouldTrade()
         {
             // 
             if (High[2] < Low[0] &&  Low[0] - High[2] > MinDistanceToDetectFVG)
             {
-                filledPrice = High[2];
-                filledTime = DateTime.Now;
+                filledTime = Time[0];
 
-
-                return FVGTradeAction.Buy;
+                return new FVGTradeDetail
+                {
+                    FilledPrice = High[2],
+                    FVGTradeAction = FVGTradeAction.Buy,
+                    StopLossPrice = Low[2],
+                    TargetProfitPrice = High[0]
+                }; 
             }
             else if (Low[2] > High[0] && Low[2] - High[0] > MinDistanceToDetectFVG)
             {
-                filledPrice = Low[2];
-                filledTime = DateTime.Now;
-                return FVGTradeAction.Sell;
+                return new FVGTradeDetail
+                {
+                    FilledPrice = High[2],
+                    FVGTradeAction = FVGTradeAction.Buy,
+                    StopLossPrice = Low[2],
+                    TargetProfitPrice = High[0]
+                };
             }
-            return FVGTradeAction.NoTrade; 
+            return new FVGTradeDetail
+            {
+                FilledPrice = -1,
+                FVGTradeAction = FVGTradeAction.NoTrade,
+                StopLossPrice = -1,
+                TargetProfitPrice = -1
+            };
         }
 
-        protected override double GetSetPrice(FVGTradeAction tradeAction)
+        protected override double GetSetPrice(FVGTradeDetail tradeAction)
         {
-            throw new NotImplementedException();
+            return tradeAction.FilledPrice; 
         }
     }
 }

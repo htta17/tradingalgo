@@ -14,7 +14,7 @@ namespace NinjaTrader.Custom.Strategies
      * Based Class cho các Strategies sử dụng tính toán khi đóng cây nến [OnBarClose]. Lưu ý các điểm sau: 
      * 1. Luôn luôn vào 2 order, 1 half size và 1 full size. Dịch stop loss khi break even hiện tại đang dựa khi số lượng order là 1
      */
-    public abstract class BarClosedBaseClass<T> : NinjaTrader.NinjaScript.Strategies.Strategy        
+    public abstract class BarClosedBaseClass<T1, T2> : NinjaTrader.NinjaScript.Strategies.Strategy        
     {
         private string LogPrefix { get; set; }
         public BarClosedBaseClass(string logPrefix)
@@ -26,7 +26,12 @@ namespace NinjaTrader.Custom.Strategies
         {
         }
 
-        protected T currentTradeAction { get; set;}
+        protected T1 currentTradeAction { get; set;}
+
+        /// <summary>
+        /// Biến này dùng để di chuyển stop loss khi giá BẮT ĐẦU gần chạm đến target2 (để room cho chạy).
+        /// </summary>
+        protected bool startMovingStoploss = false;
 
         #region Allow Trade Parameters
 
@@ -352,40 +357,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
         /// <returns></returns>
-        protected virtual double GetStopLossPrice(T tradeAction, double setPrice)
-        {
-            double price = -1;
-
-            switch (tradeAction)
-            {
-                #region Chicken stop loss price 
-                case TradeAction.Buy_Trending:
-                    price = setPrice - TickSize * StopLossInTicks;
-                    break;
-
-                case TradeAction.Sell_Trending:
-                    price = setPrice + TickSize * StopLossInTicks;
-                    break;
-
-                case TradeAction.Buy_Reversal:
-                    price = setPrice - TickSize * StopLossInTicks;
-                    break;
-
-                case TradeAction.Sell_Reversal:
-                    price = setPrice + TickSize * StopLossInTicks;
-                    break;
-                #endregion
-
-                #region FVG stop loss price 
-                case FVGTradeAction.Buy:
-                    break;
-                case FVGTradeAction.Sell:
-                    break; 
-                #endregion
-            }
-
-            return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
-        }
+        protected abstract double GetStopLossPrice(T2 tradeAction, double setPrice);         
 
         protected void LocalPrint(object val)
         {
@@ -399,17 +371,19 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
+        protected abstract double GetSetPrice(T2 tradeAction);
+
         /// <summary>
         /// Giải thuật nào sử dụng thì implement hàm này
         /// </summary>
         /// <param name="tradeAction"></param>
         /// <param name="setPrice"></param>
         /// <returns></returns>
-        protected abstract double GetTargetPrice_Half(T tradeAction, double setPrice);
+        protected abstract double GetTargetPrice_Half(T2 tradeAction, double setPrice);
 
-        protected abstract double GetTargetPrice_Full(T tradeAction, double setPrice);
+        protected abstract double GetTargetPrice_Full(T2 tradeAction, double setPrice);
 
-        protected abstract T ShouldTrade();
+        protected abstract T2 ShouldTrade();
 
         protected void EnterOrderPure(double priceToSet, double target, double stoploss, string signal, int quantity, bool isBuying , bool isSelling )
         {
@@ -468,7 +442,7 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
-        protected abstract double GetSetPrice(T tradeAction);
+        
 
         /// <summary>
         /// Dịch chuyển stop loss. Có 2 trường hợp: (1) - Sau khi giá chạm vào target 1, kéo stop loss lên break even. 
@@ -478,9 +452,8 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="updatedPrice"></param>
         /// <param name="filledPrice"></param>
         /// <param name="isBuying"></param>
-        /// <param name="isSelling"></param>
-        /// <param name="startMovingStoploss"></param>
-        protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling, bool startMovingStoploss)
+        /// <param name="isSelling"></param>        
+        protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)
         {
             double newPrice = -1;
             var allowMoving = "";
@@ -533,9 +506,8 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="updatedPrice"></param>
         /// <param name="filledPrice"></param>
         /// <param name="isBuying"></param>
-        /// <param name="isSelling"></param>
-        /// <param name="startMovingStoploss"></param>
-        protected virtual void MoveTargetOrder(Order targetOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling, bool startMovingStoploss)
+        /// <param name="isSelling"></param>        
+        protected virtual void MoveTargetOrder(Order targetOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)
         {
             var targetOrderPrice = targetOrder.LimitPrice;
 

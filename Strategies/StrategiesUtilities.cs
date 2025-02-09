@@ -138,12 +138,20 @@ namespace NinjaTrader.Custom.Strategies
         public const string SignalEntry_TrendingHalf = "Entry-TH";
         public const string SignalEntry_TrendingFull = "Entry-TF";
 
+        public const string SignalEntry_FVGHalf = "Entry-FH";
+        public const string SignalEntry_FVGFull = "Entry-FF";
+
         public static HashSet<string> SignalEntries = new HashSet<string>
         {
+            // Chicken 
             SignalEntry_ReversalHalf,
             SignalEntry_ReversalFull,
             SignalEntry_TrendingHalf,
-            SignalEntry_TrendingFull
+            SignalEntry_TrendingFull,
+
+            // FVG 
+            SignalEntry_FVGHalf, 
+            SignalEntry_FVGFull
         };
 
         public static string GenerateKey(Order order)
@@ -201,5 +209,33 @@ namespace NinjaTrader.Custom.Strategies
         public int TargetProfitInTicks_2 { get; set; }
 
         public int Quantity { get; set; }
+    }
+
+    public class  FVGTradeDetail
+    {
+        public FVGTradeAction FVGTradeAction { get; set; }
+
+        public double FilledPrice { get; set; }
+
+        public double StopLossPrice { get; set; }
+
+        public double TargetProfitPrice { get; set; }
+
+        private int _noOfContracts = 0;
+        public int NoOfContracts
+        { 
+            get 
+            {
+                if (_noOfContracts == 0)
+                {
+                    _noOfContracts = (int) Math.Round(120 / Math.Abs(FilledPrice - StopLossPrice));
+                    if (_noOfContracts == 0)
+                    {
+                        _noOfContracts = 1; 
+                    }
+                }
+                return _noOfContracts;
+            }
+        }
     }
 }

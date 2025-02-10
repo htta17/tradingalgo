@@ -176,8 +176,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                         // Hủy lệnh cũ và order lệnh mới 
                         CancelAllPendingOrder();
 
-                        Thread.Sleep(5000);
-
                         EnterOrder(shouldChangeVal);
                     }
 

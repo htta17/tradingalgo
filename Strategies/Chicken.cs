@@ -13,7 +13,6 @@ using NinjaTrader.Data;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
 using System.Windows;
-using System.Threading.Tasks;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -160,7 +159,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
             // General properties
             Description = @"Play on 5 minutes frame.";
-            Name = "Rooster";
+            Name = this.Name;
             BarsRequiredToTrade = 20;
 
             SetOrderQuantity = SetOrderQuantity.Strategy;

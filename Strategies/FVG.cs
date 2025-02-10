@@ -83,6 +83,19 @@ namespace NinjaTrader.NinjaScript.Strategies
             else if (State == State.DataLoaded)
             {
                 deadZoneSeries = new Series<double>(this);
+                waeValuesSeries = new Series<WAE_ValueSet>(this);
+            }
+            else if (State == State.Realtime)
+            {
+                try
+                {
+                    // Nếu có lệnh đang chờ thì cancel 
+                    TransitionOrdersToLive();
+                }
+                catch (Exception e)
+                {
+                    LocalPrint("[OnStateChange] - ERROR" + e.Message);
+                }
             }
         }
 
@@ -101,6 +114,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
                 waeValueSet_5m = FindWaddahAttarExplosion();
+                waeValuesSeries[0] = waeValueSet_5m;
 
                 if (TradingStatus == TradingStatus.Idle)
                 {   

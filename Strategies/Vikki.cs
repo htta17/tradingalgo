@@ -65,23 +65,55 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.Configure)
             {
-                AddPlot(Brushes.Blue, "EMA20");
-                AddPlot(Brushes.Red, "EMA50");
-                AddPlot(Brushes.Green, "EMA100");
+                ClearOutputWindow();
+                AddDataSeries(BarsPeriodType.Minute, 5);
             }
             else if (State == State.DataLoaded)
             {
                 ema20_5m = EMA(20);
+                ema20_5m.Plots[0].Brush = Brushes.DarkCyan;
+
                 ema50_5m = EMA(50);
+                ema50_5m.Plots[0].Brush = Brushes.DeepPink;
+
                 ema100_5m = EMA(100);
+
                 rsi_5m = RSI(14, 2);
+
+                AddChartIndicator(ema20_5m);
+                AddChartIndicator(ema50_5m);
+                AddChartIndicator(ema100_5m);
+                AddChartIndicator(rsi_5m);
             }
 		}
 
 		protected override void OnBarUpdate()
 		{
-			//Add your custom strategy logic here.
-		}
+            var passTradeCondition = CheckingTradeCondition();
+            if (!passTradeCondition)
+            {
+                return;
+            }
+
+            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
+            {
+                if (TradingStatus == TradingStatus.Idle)
+                {
+                    if (rsi_5m[0] > 40 && (CrossAbove(ema20_5m, ema50_5m, 1) || CrossAbove(ema20_5m, ema50_5m, 2)) && Close[0] > ema100_5m[0])
+                    {
+                        EnterLong(StrategiesUtilities.SignalEntry_VikkiFull);
+                        SetStopLoss(StrategiesUtilities.SignalEntry_VikkiFull, CalculationMode.Ticks, StopLossInTicks, false);
+                        SetProfitTarget(StrategiesUtilities.SignalEntry_VikkiFull, CalculationMode.Ticks, Target2InTicks, false);
+                    }
+                    else if (rsi_5m[0] < 60 && (CrossBelow(ema20_5m, ema50_5m, 1) || CrossBelow(ema20_5m, ema50_5m, 2)) && Close[0] < ema100_5m[0])
+                    {
+                        EnterShort(StrategiesUtilities.SignalEntry_VikkiFull);
+                        SetStopLoss(StrategiesUtilities.SignalEntry_VikkiFull, CalculationMode.Ticks, StopLossInTicks, false);
+                        SetProfitTarget(StrategiesUtilities.SignalEntry_VikkiFull, CalculationMode.Ticks, Target2InTicks, false);
+                    }
+                }
+            }
+        }
 
         protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice)
         {

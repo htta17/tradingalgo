@@ -608,5 +608,46 @@ namespace NinjaTrader.Custom.Strategies
         protected abstract bool IsHalfPriceOrder(Order order);
 
         protected abstract bool IsFullPriceOrder(Order order);
+
+
+        /// <summary>
+        /// Khi State từ Historical sang Realtime thì trong ActiveOrders có thể còn lệnh
+        /// Nếu ChickenStatus == ChickenStatus.OrderExists thì các lệnh trong đó là các lệnh fake
+        /// Nếu ChickenStatus == ChickenStatus.PendingFill thì phải transite các lệnh này sang chế độ LIVE
+        /// </summary>
+        protected void TransitionOrdersToLive()
+        {
+            if (TradingStatus == TradingStatus.OrderExists)
+            {
+                LocalPrint($"Transition to live, clear all ActiveOrders");
+
+                var clonedList = ActiveOrders.Values.ToList().Where(c => c.OrderType == OrderType.Limit).ToList();
+                var len = clonedList.Count;
+
+                for (var i = 0; i < len; i++)
+                {
+                    var order = clonedList[i];
+                    if (IsBuying)
+                    {
+                        ExitLong(order.Quantity, "Close market", order.FromEntrySignal);
+                    }
+                    else if (IsSelling)
+                    {
+                        ExitShort(order.Quantity, "Close market", order.FromEntrySignal);
+                    }
+                }
+            }
+            else if (TradingStatus == TradingStatus.PendingFill)
+            {
+                LocalPrint($"Transition to live, convert all pending fill orders to realtime");
+                var clonedList = ActiveOrders.Values.ToList();
+                var len = clonedList.Count;
+                for (var i = 0; i < len; i++)
+                {
+                    var order = clonedList[i];
+                    GetRealtimeOrder(order);
+                }
+            }
+        }
     }
 }

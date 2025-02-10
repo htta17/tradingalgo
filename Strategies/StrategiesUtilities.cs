@@ -14,6 +14,24 @@ namespace NinjaTrader.Custom.Strategies
 {
     public class StrategiesUtilities
     {
+        // Ninja Trader default signal 
+        public const string StopLoss_SignalName = "Stop loss";
+        public const string ProfitTarget_SignalName = "Profit target";
+
+        // Chicken 
+        public const string SignalEntry_ReversalHalf = "Entry-RH";
+        public const string SignalEntry_ReversalFull = "Entry-RF";
+        public const string SignalEntry_TrendingHalf = "Entry-TH";
+        public const string SignalEntry_TrendingFull = "Entry-TF";
+
+        // FVG 
+        public const string SignalEntry_FVGHalf = "Entry-FH";
+        public const string SignalEntry_FVGFull = "Entry-FF";
+
+        // Vikki
+        public const string SignalEntry_VikkiHalf = "Entry-VH";
+        public const string SignalEntry_VikkiFull = "Entry-VF";
+
         /// <summary>
         ///  Check xem thời gian hiện tại có gần với thời gian có news không.
         /// </summary>
@@ -92,7 +110,7 @@ namespace NinjaTrader.Custom.Strategies
 
                 Draw.TextFixed(
                         owner,
-                        "RunningAcc",
+                        $"Running with {owner}",
                         $"Acc: {Account.Name} - {Account.Get(AccountItem.NetLiquidation, Currency.UsDollar):C2}",
                         TextPosition.BottomLeft,
                         Brushes.DarkBlue,            // Text color
@@ -129,18 +147,7 @@ namespace NinjaTrader.Custom.Strategies
 
             return true;
         }
-
-        public const string StopLoss_SignalName = "Stop loss";
-        public const string ProfitTarget_SignalName = "Profit target";
-
-        public const string SignalEntry_ReversalHalf = "Entry-RH";
-        public const string SignalEntry_ReversalFull = "Entry-RF";
-        public const string SignalEntry_TrendingHalf = "Entry-TH";
-        public const string SignalEntry_TrendingFull = "Entry-TF";
-
-        public const string SignalEntry_FVGHalf = "Entry-FH";
-        public const string SignalEntry_FVGFull = "Entry-FF";
-
+        
         public static HashSet<string> SignalEntries = new HashSet<string>
         {
             // Chicken 

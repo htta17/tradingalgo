@@ -185,15 +185,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ClearOutputWindow();
                 AddDataSeries(BarsPeriodType.Minute, 5);
                 AddDataSeries(BarsPeriodType.Minute, 1);
-
-                try
-                {
-                    NewsTimes = NewsTimeInput.Split(',').Select(c => int.Parse(c)).ToList();
-                }
-                catch (Exception e)
-                {
-                    Print($"[OnStateChange] - ERROR: " + e.Message);
-                }
             }
             else if (State == State.DataLoaded)
             {
@@ -680,47 +671,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ExplosionVal = explosionValue,
                 UpTrendVal = trendCalculation >= 0 ? trendCalculation : 0
             };
-        }
-
-        /// <summary>
-        /// Khi State từ Historical sang Realtime thì trong ActiveOrders có thể còn lệnh
-        /// Nếu ChickenStatus == ChickenStatus.OrderExists thì các lệnh trong đó là các lệnh fake
-        /// Nếu ChickenStatus == ChickenStatus.PendingFill thì phải transite các lệnh này sang chế độ LIVE
-        /// </summary>
-        private void TransitionOrdersToLive()
-        {
-            if (TradingStatus == TradingStatus.OrderExists)
-            {
-                LocalPrint($"Transition to live, clear all ActiveOrders");
-
-                var clonedList = ActiveOrders.Values.ToList().Where(c => c.OrderType == OrderType.Limit).ToList();
-                var len = clonedList.Count;
-
-                for (var i = 0; i < len; i++)
-                {
-                    var order = clonedList[i];
-                    if (IsBuying)
-                    {
-                        ExitLong(order.Quantity, "Close market", order.FromEntrySignal);
-                    }
-                    else if (IsSelling)
-                    {
-                        ExitShort(order.Quantity, "Close market", order.FromEntrySignal);
-                    }
-                }
-            }
-            else if (TradingStatus == TradingStatus.PendingFill)
-            {
-                LocalPrint($"Transition to live, convert all pending fill orders to realtime");
-                var clonedList = ActiveOrders.Values.ToList();
-                var len = clonedList.Count;
-                for (var i = 0; i < len; i++)
-                {
-                    var order = clonedList[i];
-                    GetRealtimeOrder(order);
-                }
-            }
-        }
+        }        
 
         /// <summary>
         /// Cập nhật giá trị cho các lệnh đang chờ, hoặc cancel do: Đợi lệnh quá 1h đồng hồ, do hết giờ trade, hoặc do 1 số điều kiện khác

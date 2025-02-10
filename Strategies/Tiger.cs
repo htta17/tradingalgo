@@ -1085,6 +1085,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
 
+                        /*
                         if (StrategiesUtilities.IsHalfPriceOrder(order))
                         {
                             SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Half, false);
@@ -1093,6 +1094,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
                         }
+                        */
 
                         filledPrice = newPrice;
                     }

@@ -738,7 +738,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 */
                 var cancelCausedByTrendCondition =
                     (IsBuying && waeValuesSeries[0].HasBEARVolume) // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
-                    || (IsSelling && waeValuesSeries[0].HasBEARVolume); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
+                    || (IsSelling && waeValuesSeries[0].HasBULLVolume); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
                 if (cancelCausedByTrendCondition)
                 {
                     CancelAllPendingOrder();

@@ -636,6 +636,14 @@ namespace NinjaTrader.Custom.Strategies
                         ExitShort(order.Quantity, "Close market", order.FromEntrySignal);
                     }
                 }
+
+                if (SimpleActiveOrders.Count > 0 || ActiveOrders.Count > 0)
+                {
+                    SimpleActiveOrders.Clear();
+                    ActiveOrders.Clear();
+                }
+
+                LocalPrint($"Orders Count {SimpleActiveOrders.Count}");
             }
             else if (TradingStatus == TradingStatus.PendingFill)
             {

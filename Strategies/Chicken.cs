@@ -24,6 +24,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         public Chicken()
             : base("CHICKEN")
         {
+            HalfPriceSignals = new List<string> 
+            { 
+                StrategiesUtilities.SignalEntry_ReversalHalf, 
+                StrategiesUtilities.SignalEntry_TrendingHalf 
+            };
         }
         private const int DEMA_Period = 9;
         private const int FiveMinutes_Period = 14;
@@ -83,7 +88,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>
         /// Lệnh hiện tại là lệnh mua
         /// </summary>
-        private bool IsBuying
+        protected override bool IsBuying
         {
             get
             {
@@ -94,7 +99,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>
         /// Lệnh hiện tại là lệnh bán 
         /// </summary>
-        private bool IsSelling
+        protected override bool IsSelling
         {
             get
             {
@@ -118,14 +123,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected Trends CurrentTrend = Trends.Unknown;
-
-        /// <summary>
-        /// Giá fill lệnh ban đầu 
-        /// </summary>
-        protected double filledPrice = -1;
-
-        protected DateTime filledTime = DateTime.Now;
+        protected Trends CurrentTrend = Trends.Unknown;                
 
         #region Importants Configurations
 
@@ -510,73 +508,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     MoveTargetOrStopOrder(newFullPrice, order, true, IsBuying ? "BUY" : "SELL", order.FromEntrySignal);
                 }
             }
-        }
-
-        private void MoveTargetAndStopOrdersWithNewPrice(double updatedPrice)
-        {
-            if (!AllowToMoveStopLossGain)
-            {
-                LocalPrint("NOT allow to move stop loss/gain");
-                return;
-            }
-
-            try
-            {
-                // Order với half price
-                var hasHalfPriceOder = SimpleActiveOrders.Values.Any(order => order.FromEntrySignal == StrategiesUtilities.SignalEntry_ReversalHalf || order.FromEntrySignal == StrategiesUtilities.SignalEntry_TrendingHalf);
-
-                if (hasHalfPriceOder) // Nếu còn order với half price (Chưa cắt half) --> Không nên làm gì
-                {
-                    return;
-                }
-
-                lock (lockOjbject)
-                {
-                    var stopOrders = ActiveOrders.Values.ToList()
-                                        .Where(order => order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)
-                                        .ToList();
-
-                    var targetOrders = ActiveOrders.Values.ToList()
-                                        .Where(order => order.OrderState == OrderState.Working && order.OrderType == OrderType.Limit)
-                                        .ToList();
-
-                    var lenStop = stopOrders.Count;
-                    for (var i = 0; i < lenStop; i++)
-                    {
-                        var stopOrder = stopOrders[i];
-                        MoveStopOrder(stopOrder, updatedPrice, filledPrice, IsBuying, IsSelling);
-                    }
-
-                    var lenTarget = targetOrders.Count;
-                    for (var i = 0; i < lenTarget; i++)
-                    {
-                        var targetOrder = targetOrders[i];
-                        MoveTargetOrder(targetOrder, updatedPrice, filledPrice, IsBuying, IsSelling);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                LocalPrint($"[OnMarketData] - ERROR: " + e.Message);
-            }
-        }
-
-
-        // Kéo stop loss/gain
-        protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
-        {
-            var updatedPrice = marketDataUpdate.Price;
-
-            if (updatedPrice < 100)
-            {
-                return;
-            }
-
-            if (TradingStatus == TradingStatus.OrderExists)
-            {
-                MoveTargetAndStopOrdersWithNewPrice(updatedPrice);
-            }
-        }
+        }        
 
         private readonly object lockOjbject = new Object();
 

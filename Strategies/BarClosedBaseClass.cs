@@ -1,4 +1,5 @@
 ﻿using NinjaTrader.Cbi;
+using NinjaTrader.Data;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.Strategies;
 using System;
@@ -523,6 +524,83 @@ namespace NinjaTrader.Custom.Strategies
                 MoveTargetOrStopOrder(targetOrderPrice - PointToMoveTarget, targetOrder, true, "SELL", targetOrder.FromEntrySignal);
 
                 startMovingStoploss = true;
+            }
+        }
+
+        /// <summary>
+        /// Giá fill lệnh ban đầu 
+        /// </summary>
+        protected double filledPrice = -1;
+
+        protected DateTime filledTime = DateTime.Now;
+
+        protected List<string> HalfPriceSignals { get; set; }
+        // Kéo stop loss/gain
+        protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
+        {
+            var updatedPrice = marketDataUpdate.Price;
+
+            if (updatedPrice < 100)
+            {
+                return;
+            }
+
+            if (TradingStatus == TradingStatus.OrderExists)
+            {
+                MoveTargetAndStopOrdersWithNewPrice(updatedPrice, HalfPriceSignals);
+            }
+        }
+
+        protected abstract bool IsBuying { get; }
+
+        protected abstract bool IsSelling { get; }
+
+        private void MoveTargetAndStopOrdersWithNewPrice(double updatedPrice, List<string> halfPriceSignals)
+        {
+            if (!AllowToMoveStopLossGain)
+            {
+                LocalPrint("NOT allow to move stop loss/gain");
+                return;
+            }
+
+            try
+            {
+                // Order với half price
+                var hasHalfPriceOder = SimpleActiveOrders.Values.Any(order => halfPriceSignals.Any(signal => signal == order.FromEntrySignal));
+
+                if (hasHalfPriceOder) // Nếu còn order với half price (Chưa cắt half) --> Không nên làm gì
+                {
+                    return;
+                }
+
+                lock (lockOjbject)
+                {
+                    var stopOrders = ActiveOrders.Values.ToList()
+                                        .Where(order => order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)
+                                        .ToList();
+
+                    var targetOrders = ActiveOrders.Values.ToList()
+                                        .Where(order => order.OrderState == OrderState.Working && order.OrderType == OrderType.Limit)
+                                        .ToList();
+
+                    var lenStop = stopOrders.Count;
+                    for (var i = 0; i < lenStop; i++)
+                    {
+                        var stopOrder = stopOrders[i];
+                        MoveStopOrder(stopOrder, updatedPrice, filledPrice, IsBuying, IsSelling);
+                    }
+
+                    var lenTarget = targetOrders.Count;
+                    for (var i = 0; i < lenTarget; i++)
+                    {
+                        var targetOrder = targetOrders[i];
+                        MoveTargetOrder(targetOrder, updatedPrice, filledPrice, IsBuying, IsSelling);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                LocalPrint($"[OnMarketData] - ERROR: " + e.Message);
             }
         }
     }

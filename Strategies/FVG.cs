@@ -29,7 +29,8 @@ namespace NinjaTrader.NinjaScript.Strategies
     public class FVG : BarClosedBaseClass<FVGTradeAction, FVGTradeDetail>
 	{
         public FVG() : base("FVG")
-        { 
+        {
+            HalfPriceSignals = new List<string> { StrategiesUtilities.SignalEntry_FVGHalf };
         }
         /// <summary>
         /// Khoảng cách tối thiểu giữa điểm cao (thấp) nhất của cây nến 1 và điểm thấp (cao) nhất của cây nến 3
@@ -40,6 +41,23 @@ namespace NinjaTrader.NinjaScript.Strategies
             Order = 3,
             GroupName = "Importants Configurations")]
         public double MinDistanceToDetectFVG { get; set; } = 0.5;
+
+        protected override bool IsSelling
+        {
+            get
+            {
+                return currentTradeAction ==  FVGTradeAction.Sell;
+            }
+        }
+
+        protected override bool IsBuying 
+        {
+            get
+            {
+                return currentTradeAction == FVGTradeAction.Buy;
+            }
+        }
+
         protected override void OnStateChange()
         {
             base.OnStateChange();
@@ -68,6 +86,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private Series<double> deadZoneSeries;
 
+        WAE_ValueSet waeValueSet_5m = null;
         protected override void OnBarUpdate()
         {
             var passTradeCondition = CheckingTradeCondition();
@@ -78,7 +97,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
-                var wae = FindWaddahAttarExplosion();
+                waeValueSet_5m = FindWaddahAttarExplosion();
 
                 if (TradingStatus == TradingStatus.Idle)
                 {   
@@ -87,8 +106,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     LocalPrint($"Check trading condition, result: {shouldTrade.FVGTradeAction}");
 
-                    if ((shouldTrade.FVGTradeAction == FVGTradeAction.Buy || wae.HasBullVolume)
-                        || (shouldTrade.FVGTradeAction == FVGTradeAction.Sell || wae.HasBearVolume))
+                    if ((shouldTrade.FVGTradeAction == FVGTradeAction.Buy)
+                        || (shouldTrade.FVGTradeAction == FVGTradeAction.Sell))
                     {                        
                         EnterOrder(shouldTrade);
 
@@ -144,15 +163,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 filledPrice = priceToSet;
 
                 var stopLossPrice = GetStopLossPrice(fVGTradeDetail, priceToSet);
-                //var targetHalf = GetTargetPrice_Full(fVGTradeDetail, priceToSet);
+                var targetHalf = GetTargetPrice_Half(fVGTradeDetail, priceToSet);
                 var targetFull = GetTargetPrice_Full(fVGTradeDetail, priceToSet);
+
+                EnterOrderPure(priceToSet, targetHalf, stopLossPrice,
+                    StrategiesUtilities.SignalEntry_FVGHalf, DefaultQuantity,
+                    IsBuying, IsSelling);
 
                 EnterOrderPure(priceToSet, targetFull, stopLossPrice,
                     StrategiesUtilities.SignalEntry_FVGFull, DefaultQuantity,
-                    fVGTradeDetail.FVGTradeAction == FVGTradeAction.Buy,
-                    fVGTradeDetail.FVGTradeAction == FVGTradeAction.Sell);
-
-                
+                    IsBuying, IsSelling);
             }
             catch (Exception ex)
             {
@@ -182,14 +202,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             return tradeDetail.FVGTradeAction == FVGTradeAction.Buy 
                 ? setPrice + (Target2InTicks * TickSize)
                 : setPrice - (Target2InTicks * TickSize);
-        }
-
-        double filledPrice = -1;
-        DateTime filledTime = DateTime.Now;
+        }        
+        
         protected override FVGTradeDetail ShouldTrade()
         {
             // 
-            if (High[2] < Low[0] &&  Low[0] - High[2] > MinDistanceToDetectFVG)
+            if (High[2] < Low[0] &&  Low[0] - High[2] > MinDistanceToDetectFVG && waeValueSet_5m.HasBullVolume)
             {
                 filledTime = Time[0];
 
@@ -201,8 +219,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                     TargetProfitPrice = High[0]
                 }; 
             }
-            else if (Low[2] > High[0] && Low[2] - High[0] > MinDistanceToDetectFVG)
+            else if (Low[2] > High[0] && Low[2] - High[0] > MinDistanceToDetectFVG && waeValueSet_5m.HasBearVolume)
             {
+                filledTime = Time[0];
+
                 return new FVGTradeDetail
                 {
                     FilledPrice = Low[2],

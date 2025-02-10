@@ -28,6 +28,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public class FVG : BarClosedBaseClass<FVGTradeAction, FVGTradeDetail>
 	{
+        public FVG() : base("FVG")
+        { 
+        }
         /// <summary>
         /// Khoảng cách tối thiểu giữa điểm cao (thấp) nhất của cây nến 1 và điểm thấp (cao) nhất của cây nến 3
         /// </summary>
@@ -57,7 +60,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 currentTradeAction = FVGTradeAction.NoTrade;
             }
+            else if (State == State.DataLoaded)
+            {
+                deadZoneSeries = new Series<double>(this);
+            }
         }
+
+        private Series<double> deadZoneSeries;
 
         protected override void OnBarUpdate()
         {
@@ -69,16 +78,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
+                var wae = FindWaddahAttarExplosion();
+
                 if (TradingStatus == TradingStatus.Idle)
-                {
+                {   
                     // Find the FVG value 
                     var shouldTrade = ShouldTrade();
 
                     LocalPrint($"Check trading condition, result: {shouldTrade.FVGTradeAction}");
 
-                    if (shouldTrade.FVGTradeAction != FVGTradeAction.NoTrade)
-                    {
+                    if ((shouldTrade.FVGTradeAction == FVGTradeAction.Buy || wae.HasBullVolume)
+                        || (shouldTrade.FVGTradeAction == FVGTradeAction.Sell || wae.HasBearVolume))
+                    {                        
                         EnterOrder(shouldTrade);
+
+                        // Draw FVG using custom Rectangle method
+                        DrawFVGBox(shouldTrade);
                     }
                 }
                 else if (TradingStatus == TradingStatus.PendingFill)
@@ -95,12 +110,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                     CancelAllPendingOrder();
 
                     EnterOrder(shouldChangeVal);
+
+                    // Draw FVG using custom Rectangle method
+                    DrawFVGBox(shouldChangeVal);
                 }
                 else if (TradingStatus == TradingStatus.OrderExists)
                 { 
                     // Cập nhật lại target 2 
                 }
             }
+        }
+
+        private void DrawFVGBox(FVGTradeDetail fVGTradeDetail)
+        {
+            Draw.Rectangle(this, $"FVG_{CurrentBar}_1", false, 0, fVGTradeDetail.StopLossPrice, -2, fVGTradeDetail.FilledPrice, Brushes.Transparent, Brushes.Red, 30);
+
+            Draw.Rectangle(this, $"FVG_{CurrentBar}_2", false, 0, fVGTradeDetail.TargetProfitPrice, -2, fVGTradeDetail.FilledPrice, Brushes.Green, Brushes.Blue, 30);
         }
 
         private void EnterOrder(FVGTradeDetail fVGTradeDetail)
@@ -119,13 +144,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 filledPrice = priceToSet;
 
                 var stopLossPrice = GetStopLossPrice(fVGTradeDetail, priceToSet);
-                var targetHalf = GetTargetPrice_Half(fVGTradeDetail, priceToSet);
+                //var targetHalf = GetTargetPrice_Full(fVGTradeDetail, priceToSet);
                 var targetFull = GetTargetPrice_Full(fVGTradeDetail, priceToSet);
 
-                EnterOrderPure(priceToSet, targetHalf, stopLossPrice,
+                EnterOrderPure(priceToSet, targetFull, stopLossPrice,
                     StrategiesUtilities.SignalEntry_FVGFull, DefaultQuantity,
                     fVGTradeDetail.FVGTradeAction == FVGTradeAction.Buy,
                     fVGTradeDetail.FVGTradeAction == FVGTradeAction.Sell);
+
+                
             }
             catch (Exception ex)
             {
@@ -135,7 +162,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetStopLossPrice(FVGTradeDetail tradeAction, double setPrice)
         {
-            return tradeAction.StopLossPrice;
+            var stopLoss = tradeAction.FVGTradeAction == FVGTradeAction.Buy
+                ? setPrice - (StopLossInTicks * TickSize)
+                : setPrice + (StopLossInTicks * TickSize);
+            return stopLoss;//  tradeAction.StopLossPrice;
         }
 
         protected override double GetTargetPrice_Half(FVGTradeDetail tradeDetail, double setPrice)
@@ -147,7 +177,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetTargetPrice_Full(FVGTradeDetail tradeDetail, double setPrice)
         {
-            return tradeDetail.TargetProfitPrice;
+            //return tradeDetail.TargetProfitPrice;
+
+            return tradeDetail.FVGTradeAction == FVGTradeAction.Buy 
+                ? setPrice + (Target2InTicks * TickSize)
+                : setPrice - (Target2InTicks * TickSize);
         }
 
         double filledPrice = -1;
@@ -171,10 +205,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 return new FVGTradeDetail
                 {
-                    FilledPrice = High[2],
-                    FVGTradeAction = FVGTradeAction.Buy,
-                    StopLossPrice = Low[2],
-                    TargetProfitPrice = High[0]
+                    FilledPrice = Low[2],
+                    FVGTradeAction = FVGTradeAction.Sell,
+                    StopLossPrice = High[2],
+                    TargetProfitPrice = Low[0]
                 };
             }
             return new FVGTradeDetail
@@ -189,6 +223,60 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override double GetSetPrice(FVGTradeDetail tradeAction)
         {
             return tradeAction.FilledPrice; 
+        }
+
+        /// <summary>
+        /// Tìm các giá trị của Waddah Attar Explosion ở khung 5 phút
+        /// </summary>
+        /// <returns></returns>
+        private WAE_ValueSet FindWaddahAttarExplosion()
+        {
+            int sensitivity = 150;
+            int fastLength = 20;
+            int slowLength = 40;
+            int channelLength = 20;
+            double mult = 2.0;
+
+            // WAE
+            // Calculate Typical Price
+            double typicalPrice = (High[0] + Low[0] + Close[0]) / 3.0;
+
+            // Calculate True Range and store it in a Series
+            double trueRange = Math.Max(High[0] - Low[0], Math.Max(Math.Abs(High[0] - Close[1]), Math.Abs(Low[0] - Close[1])));
+            deadZoneSeries[0] = trueRange; // Initialize the first value
+
+            // Calculate smoothed ATR using EMA of the True Range Series
+            double smoothedATR = EMA(deadZoneSeries, 100)[0];
+
+            // Dead Zone
+            double deadZone = smoothedATR * 3.7;
+
+            // MACD Difference Calculation
+            double fastEMA = EMA(Close, fastLength)[0];
+            double slowEMA = EMA(Close, slowLength)[0];
+            double prevFastEMA = EMA(Close, fastLength)[1];
+            double prevSlowEMA = EMA(Close, slowLength)[1];
+
+            double macd = fastEMA - slowEMA;
+            double prevMacd = prevFastEMA - prevSlowEMA;
+            double trendCalculation = (macd - prevMacd) * sensitivity;
+
+            // Bollinger Bands Calculation
+            double bbBasis = SMA(Close, channelLength)[0];
+            double bbDev = mult * StdDev(Close, channelLength)[0];
+            double bbUpperVal = bbBasis + bbDev;
+            double bbLowerVal = bbBasis - bbDev;
+
+            // Explosion Line
+            double explosionValue = bbUpperVal - bbLowerVal;
+
+            return new WAE_ValueSet
+            {
+                DeadZoneVal = deadZone,
+                DownTrendVal = trendCalculation < 0 ? -trendCalculation : 0,
+                ExplosionVal = explosionValue,
+                UpTrendVal = trendCalculation >= 0 ? trendCalculation : 0
+            };
         }
     }
 }

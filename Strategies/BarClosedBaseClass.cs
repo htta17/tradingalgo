@@ -395,11 +395,11 @@ namespace NinjaTrader.Custom.Strategies
             {
                 if (isBuying)
                 {
-                    EnterLongLimit(2, true, quantity, priceToSet, signal);
+                    EnterLongLimit(0, true, quantity, priceToSet, signal);
                 }
                 else
                 {
-                    EnterShortLimit(2, true, quantity, priceToSet, signal);
+                    EnterShortLimit(0, true, quantity, priceToSet, signal);
                 }
 
                 SetStopLoss(signal, CalculationMode.Price, stoploss, false);

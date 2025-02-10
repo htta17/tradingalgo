@@ -176,15 +176,6 @@ namespace NinjaTrader.Custom.Strategies
             }
             return $"{order.Name}-{order.FromEntrySignal}-{order.Id}";
         }
-
-        public static bool IsHalfPriceOrder(Order order)
-        {
-            return order.Name == SignalEntry_ReversalHalf || order.Name == SignalEntry_TrendingHalf;
-        }
-        public static bool IsFullPriceOrder(Order order)
-        {
-            return order.Name == SignalEntry_ReversalFull || order.Name == SignalEntry_TrendingFull;
-        }
     }
 
     public class SimpleInfoOrder

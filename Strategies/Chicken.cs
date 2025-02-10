@@ -274,7 +274,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (AllowTrendingTrade)
             {
                 // Có 2 cây nến kề nhau có cùng volume
-                if (waeValuesSeries[0].HasBearVolume && waeValuesSeries[1].HasBearVolume)
+                if (waeValuesSeries[0].HasBEARVolume && waeValuesSeries[1].HasBEARVolume)
                 {
                     LocalPrint($"Found SELL signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}, " +
                         $"waeDeadVal_5m[-1]: {waeValuesSeries[1].DeadZoneVal:N2}, waeDowntrend_5m[-1]: {waeValuesSeries[1].DownTrendVal:N2}");
@@ -283,7 +283,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     return TradeAction.Sell_Trending;
                 }
-                else if (waeValuesSeries[0].HasBullVolume && waeValuesSeries[1].HasBullVolume)
+                else if (waeValuesSeries[0].HasBULLVolume && waeValuesSeries[1].HasBULLVolume)
                 {
                     LocalPrint($"Found BUY signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeDowntrend_5m: {waeUptrend_5m:N2}, " +
                         $"waeDeadVal_5m[-1]: {waeValuesSeries[1].DeadZoneVal:N2}, waeDowntrend_5m[-1]: {waeValuesSeries[1].UpTrendVal:N2}");
@@ -626,7 +626,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 LocalPrint($"WAE Values: DeadZoneVal: {wae.DeadZoneVal:N2}, ExplosionVal: {wae.ExplosionVal:N2}, " +
                     $"DowntrendVal: {wae.DownTrendVal:N2}, " +
                     $"UptrendVal: {wae.UpTrendVal:N2}. ADX = {adx_5m:N2} " +
-                    $"{(wae.HasBullVolume ? "--> BULL Volume" : wae.HasBearVolume ? "--> BEAR Volume" : "")}");
+                    $"{(wae.HasBULLVolume ? "--> BULL Volume" : wae.HasBEARVolume ? "--> BEAR Volume" : "")}");
             }
         }
         /// <summary>
@@ -787,8 +787,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     (IsSelling && waeExplosion_5m < waeUptrend_5m && waeDeadVal_5m < waeUptrend_5m)); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
                 */
                 var cancelCausedByTrendCondition =
-                    (IsBuying && waeValuesSeries[0].HasBearVolume) // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
-                    || (IsSelling && waeValuesSeries[0].HasBearVolume); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
+                    (IsBuying && waeValuesSeries[0].HasBEARVolume) // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
+                    || (IsSelling && waeValuesSeries[0].HasBEARVolume); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
                 if (cancelCausedByTrendCondition)
                 {
                     CancelAllPendingOrder();
@@ -831,11 +831,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
 
-                        if (StrategiesUtilities.IsHalfPriceOrder(order))
+                        if (IsHalfPriceOrder(order))
                         {
                             SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Half, false);
                         }
-                        else if (StrategiesUtilities.IsFullPriceOrder(order))
+                        else if (IsFullPriceOrder(order))
                         {
                             SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
                         }
@@ -850,6 +850,16 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             #endregion
 
+        }
+
+        protected override bool IsHalfPriceOrder(Order order)
+        {
+            return order.Name == StrategiesUtilities.SignalEntry_ReversalHalf || order.Name == StrategiesUtilities.SignalEntry_TrendingHalf;
+        }
+
+        protected override bool IsFullPriceOrder(Order order)
+        {
+            return order.Name == StrategiesUtilities.SignalEntry_ReversalFull || order.Name == StrategiesUtilities.SignalEntry_TrendingFull;
         }
 
         /*

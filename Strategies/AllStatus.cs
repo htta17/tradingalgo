@@ -72,7 +72,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Định nghĩa điều kiện để có bear volume. Điều kiện hiện tại: UpTrendVal > DeadZoneVal
         /// </summary>
-        public bool HasBullVolume
+        public bool HasBULLVolume
         { 
             get 
             {
@@ -89,7 +89,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Định nghĩa điều kiện để có bear volume.  Điều kiện hiện tại: DownTrendVal > DeadZoneVal
         /// </summary>
-        public bool HasBearVolume
+        public bool HasBEARVolume
         {
             get
             {

@@ -21,6 +21,8 @@ using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
+using System.Threading;
+using NinjaTrader.CQG.ProtoBuf;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -85,6 +87,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         private Series<double> deadZoneSeries;
+        private Series<WAE_ValueSet> waeValuesSeries;
 
         WAE_ValueSet waeValueSet_5m = null;
         protected override void OnBarUpdate()
@@ -124,11 +127,59 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         return;
                     }
-                    
-                    // Hủy lệnh cũ và order lệnh mới 
-                    CancelAllPendingOrder();
 
-                    EnterOrder(shouldChangeVal);
+                    if (shouldChangeVal.FVGTradeAction == currentTradeAction)
+                    {
+                        var clonedList = ActiveOrders.Values.ToList();
+                        var len = clonedList.Count;
+
+                        var newPrice = GetSetPrice(shouldChangeVal);
+
+                        var stopLossPrice = GetStopLossPrice(shouldChangeVal, newPrice);
+
+                        var targetPrice_Half = GetTargetPrice_Half(shouldChangeVal, newPrice);
+
+                        var targetPrice_Full = GetTargetPrice_Full(shouldChangeVal, newPrice);
+
+                        for (var i = 0; i < len; i++)
+                        {
+                            var order = clonedList[i];
+                            try
+                            {
+                                LocalPrint($"Trying to modify waiting order [{order.Name}], " +
+                                    $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
+                                    $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
+
+                                ChangeOrder(order, order.Quantity, newPrice, order.StopPrice);
+
+                                SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
+
+                                if (IsHalfPriceOrder(order))
+                                {
+                                    SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Half, false);
+                                }
+                                else if (IsFullPriceOrder(order))
+                                {
+                                    SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
+                                }
+
+                                filledPrice = newPrice;
+                            }
+                            catch (Exception ex)
+                            {
+                                LocalPrint($"[UpdatePendingOrder] - ERROR: {ex.Message}");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Hủy lệnh cũ và order lệnh mới 
+                        CancelAllPendingOrder();
+
+                        Thread.Sleep(5000);
+
+                        EnterOrder(shouldChangeVal);
+                    }
 
                     // Draw FVG using custom Rectangle method
                     DrawFVGBox(shouldChangeVal);
@@ -144,7 +195,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             Draw.Rectangle(this, $"FVG_{CurrentBar}_1", false, 0, fVGTradeDetail.StopLossPrice, -2, fVGTradeDetail.FilledPrice, Brushes.Transparent, Brushes.Red, 30);
 
-            Draw.Rectangle(this, $"FVG_{CurrentBar}_2", false, 0, fVGTradeDetail.TargetProfitPrice, -2, fVGTradeDetail.FilledPrice, Brushes.Green, Brushes.Blue, 30);
+            Draw.Rectangle(this, $"FVG_{CurrentBar}_2", false, 0, fVGTradeDetail.TargetProfitPrice, -2, fVGTradeDetail.FilledPrice, Brushes.Transparent, Brushes.LightGreen, 30);
         }
 
         private void EnterOrder(FVGTradeDetail fVGTradeDetail)
@@ -207,7 +258,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override FVGTradeDetail ShouldTrade()
         {
             // 
-            if (High[2] < Low[0] &&  Low[0] - High[2] > MinDistanceToDetectFVG && waeValueSet_5m.HasBullVolume)
+            if (High[2] < Low[0] &&  Low[0] - High[2] > MinDistanceToDetectFVG && waeValueSet_5m.HasBULLVolume)
             {
                 filledTime = Time[0];
 
@@ -219,7 +270,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     TargetProfitPrice = High[0]
                 }; 
             }
-            else if (Low[2] > High[0] && Low[2] - High[0] > MinDistanceToDetectFVG && waeValueSet_5m.HasBearVolume)
+            else if (Low[2] > High[0] && Low[2] - High[0] > MinDistanceToDetectFVG && waeValueSet_5m.HasBEARVolume)
             {
                 filledTime = Time[0];
 
@@ -297,6 +348,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ExplosionVal = explosionValue,
                 UpTrendVal = trendCalculation >= 0 ? trendCalculation : 0
             };
+        }
+
+        protected override bool IsHalfPriceOrder(Cbi.Order order)
+        {
+            return order.Name == StrategiesUtilities.SignalEntry_FVGHalf;
+        }
+
+        protected override bool IsFullPriceOrder(Cbi.Order order)
+        {
+            return order.Name == StrategiesUtilities.SignalEntry_FVGFull;
         }
     }
 }

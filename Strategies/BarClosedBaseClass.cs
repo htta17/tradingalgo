@@ -433,7 +433,7 @@ namespace NinjaTrader.Custom.Strategies
 
                 var text = isGainStop ? "TARGET" : "LOSS";
 
-                LocalPrint($"Dịch chuyển order {order.Name}, id: {order.Id}({text}), " +
+                LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
                     $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
                     $"đến [{newPrice}] - {buyOrSell}");
             }
@@ -603,5 +603,10 @@ namespace NinjaTrader.Custom.Strategies
                 LocalPrint($"[OnMarketData] - ERROR: " + e.Message);
             }
         }
+
+
+        protected abstract bool IsHalfPriceOrder(Order order);
+
+        protected abstract bool IsFullPriceOrder(Order order);
     }
 }

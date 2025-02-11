@@ -27,7 +27,18 @@ namespace NinjaTrader.Custom.Strategies
         /// <returns></returns>
         public bool IsDoji()
         {
+            // Copied from @CandleStickPattern
             return Math.Abs(Close - Open) <= (High - Low) * 0.07;
+        }
+
+        public bool IsHammer()
+        {
+            // Copied from ChatGPT
+            // Không sử dụng điều kiện Close[0] > Close[1]
+            return Close > Open && // Bullish body (Close > Open)
+                Open - Low > 2 * Close - Open && // Long lower wick
+                High - Close < (Close - Open) * 0.2;  // Small upper wick
+                // Close[0] > Close[1] // Close is higher than previous close (confirmation)
         }
     }
 }

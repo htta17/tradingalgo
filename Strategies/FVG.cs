@@ -90,7 +90,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 try
                 {
                     // Nếu có lệnh đang chờ thì cancel 
-                    TransitionOrdersToLive();
+                    //TransitionOrdersToLive();
+
+                    CancelAllPendingOrder();
                 }
                 catch (Exception e)
                 {
@@ -255,13 +257,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             return currentTradeAction == FVGTradeAction.Buy 
                 ? setPrice + (Target1InTicks * TickSize)
-                : -setPrice - (Target1InTicks * TickSize);
+                : setPrice - (Target1InTicks * TickSize);
         }
 
         protected override double GetTargetPrice_Full(FVGTradeDetail tradeDetail, double setPrice)
         {
-            //return tradeDetail.TargetProfitPrice;
-
             return tradeDetail.FVGTradeAction == FVGTradeAction.Buy 
                 ? setPrice + (Target2InTicks * TickSize)
                 : setPrice - (Target2InTicks * TickSize);
@@ -279,7 +279,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     FilledPrice = High[2],
                     FVGTradeAction = FVGTradeAction.Buy,
                     StopLossPrice = Low[2],
-                    TargetProfitPrice = High[0]
+                    TargetProfitPrice = High[0],
+                    BarIndex = CurrentBar
                 }; 
             }
             else if (Low[2] > High[0] && Low[2] - High[0] > MinDistanceToDetectFVG && waeValueSet_5m.HasBEARVolume)
@@ -291,7 +292,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     FilledPrice = Low[2],
                     FVGTradeAction = FVGTradeAction.Sell,
                     StopLossPrice = High[2],
-                    TargetProfitPrice = Low[0]
+                    TargetProfitPrice = Low[0],
+                    BarIndex = CurrentBar
                 };
             }
             return new FVGTradeDetail
@@ -299,7 +301,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 FilledPrice = -1,
                 FVGTradeAction = FVGTradeAction.NoTrade,
                 StopLossPrice = -1,
-                TargetProfitPrice = -1
+                TargetProfitPrice = -1,
+                BarIndex = -1
             };
         }
 

@@ -219,6 +219,8 @@ namespace NinjaTrader.Custom.Strategies
 
         public double TargetProfitPrice { get; set; }
 
+        public double BarIndex { get; set; }
+
         private int _noOfContracts = 0;
         public int NoOfContracts
         { 

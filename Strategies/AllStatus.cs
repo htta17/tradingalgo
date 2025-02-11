@@ -58,10 +58,10 @@ namespace NinjaTrader.Custom.Strategies
         BasedOnBollinger,
     }
 
-    
+
 
     public class WAE_ValueSet
-    { 
+    {
         public double DeadZoneVal { get; set; }
         public double ExplosionVal { get; set; }
         public double UpTrendVal { get; set; }
@@ -73,15 +73,15 @@ namespace NinjaTrader.Custom.Strategies
         /// Định nghĩa điều kiện để có bear volume. Điều kiện hiện tại: UpTrendVal > DeadZoneVal
         /// </summary>
         public bool HasBULLVolume
-        { 
-            get 
+        {
+            get
             {
                 if (hasBullVolume == null)
                 {
                     hasBullVolume = UpTrendVal > DeadZoneVal;
                 }
                 return hasBullVolume.Value;
-            }  
+            }
         }
 
         private bool? hasBearVolume = null;
@@ -98,6 +98,19 @@ namespace NinjaTrader.Custom.Strategies
                     hasBearVolume = DownTrendVal > DeadZoneVal;
                 }
                 return hasBearVolume.Value;
+            }
+        }
+
+        private bool? inDeadZone = null;
+        public bool IsInDeadZone
+        {
+            get
+            {
+                if (inDeadZone == null)
+                {
+                    inDeadZone = DeadZoneVal > UpTrendVal && DeadZoneVal > DownTrendVal;
+                }
+                return inDeadZone.Value;
             }
         }
     }

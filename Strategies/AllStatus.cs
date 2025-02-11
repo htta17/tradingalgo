@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NinjaTrader.Custom.Strategies
@@ -62,6 +63,8 @@ namespace NinjaTrader.Custom.Strategies
 
     public class WAE_ValueSet
     {
+        // Là hệ số đảm bảo cho UpTrendVal hoặc DownTrendVal phải lớn hơn [DeadZoneVal] *  [SafetyRatio]
+        public const double SafetyRatio = 1.4; 
         public double DeadZoneVal { get; set; }
         public double ExplosionVal { get; set; }
         public double UpTrendVal { get; set; }
@@ -70,7 +73,7 @@ namespace NinjaTrader.Custom.Strategies
         private bool? hasBullVolume = null;
 
         /// <summary>
-        /// Định nghĩa điều kiện để có bear volume. Điều kiện hiện tại: UpTrendVal > DeadZoneVal
+        /// Định nghĩa điều kiện để có bear volume. Điều kiện hiện tại: UpTrendVal > DeadZoneVal * SafetyRatio
         /// </summary>
         public bool HasBULLVolume
         {
@@ -78,7 +81,7 @@ namespace NinjaTrader.Custom.Strategies
             {
                 if (hasBullVolume == null)
                 {
-                    hasBullVolume = UpTrendVal > DeadZoneVal;
+                    hasBullVolume = UpTrendVal > DeadZoneVal * SafetyRatio;
                 }
                 return hasBullVolume.Value;
             }
@@ -87,7 +90,7 @@ namespace NinjaTrader.Custom.Strategies
         private bool? hasBearVolume = null;
 
         /// <summary>
-        /// Định nghĩa điều kiện để có bear volume.  Điều kiện hiện tại: DownTrendVal > DeadZoneVal
+        /// Định nghĩa điều kiện để có bear volume.  Điều kiện hiện tại: DownTrendVal > DeadZoneVal * SafetyRatio
         /// </summary>
         public bool HasBEARVolume
         {
@@ -95,7 +98,7 @@ namespace NinjaTrader.Custom.Strategies
             {
                 if (hasBearVolume == null)
                 {
-                    hasBearVolume = DownTrendVal > DeadZoneVal;
+                    hasBearVolume = DownTrendVal > DeadZoneVal * SafetyRatio;
                 }
                 return hasBearVolume.Value;
             }

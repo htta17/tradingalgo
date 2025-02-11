@@ -60,18 +60,26 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        protected override void SetDefaultProperties()
+        {
+            base.SetDefaultProperties();
+
+            Description = @"Fair Value Gap";
+            Name = "FVG";
+            BarsRequiredToTrade = 10;
+
+            StopLossInTicks = 120; 
+            Target1InTicks = 40;
+            Target2InTicks = 120;
+
+            DefaultQuantity = 2;
+        }
+
         protected override void OnStateChange()
         {
             base.OnStateChange();
 
-            if (State == State.SetDefaults)
-            {
-                Description = @"Fair Value Gap";
-                Name = "FVG";
-                BarsRequiredToTrade = 10;
-                Target1InTicks = 40;
-            }
-            else if (State == State.Configure)
+            if (State == State.Configure)
             {
                 ClearOutputWindow();
 

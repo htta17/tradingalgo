@@ -98,9 +98,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 try
                 {
                     // Nếu có lệnh đang chờ thì cancel 
-                    //TransitionOrdersToLive();
-
-                    CancelAllPendingOrder();
+                    if (TradingStatus == TradingStatus.PendingFill)
+                    {
+                        CancelAllPendingOrder();
+                    }
+                    else if (TradingStatus == TradingStatus.OrderExists)
+                    {
+                        TransitionOrdersToLive();
+                    } 
                 }
                 catch (Exception e)
                 {

@@ -1,18 +1,17 @@
 //#define ENABLE_ADX_DI
 
 #region Using declarations
+using NinjaTrader.Cbi;
+using NinjaTrader.Custom.Strategies;
+using NinjaTrader.Data;
+using NinjaTrader.Gui.Tools;
+using NinjaTrader.NinjaScript.DrawingTools;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Windows.Media;
-using NinjaTrader.Cbi;
-using NinjaTrader.Gui.Tools;
-using NinjaTrader.Data;
-using NinjaTrader.NinjaScript.DrawingTools;
-using NinjaTrader.Custom.Strategies;
 using System.Windows;
+using System.Windows.Media;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -23,10 +22,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         public Chicken()
             : base("CHICKEN")
         {
-            HalfPriceSignals = new List<string> 
-            { 
-                StrategiesUtilities.SignalEntry_ReversalHalf, 
-                StrategiesUtilities.SignalEntry_TrendingHalf 
+            HalfPriceSignals = new List<string>
+            {
+                StrategiesUtilities.SignalEntry_ReversalHalf,
+                StrategiesUtilities.SignalEntry_TrendingHalf
             };
         }
         private const int DEMA_Period = 9;
@@ -80,9 +79,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private Series<double> deadZoneSeries;
         private Series<WAE_ValueSet> waeValuesSeries;
-        #endregion       
+        #endregion
 
-        
+
 
         /// <summary>
         /// Lệnh hiện tại là lệnh mua
@@ -122,7 +121,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected Trends CurrentTrend = Trends.Unknown;                
+        protected Trends CurrentTrend = Trends.Unknown;
 
         #region Importants Configurations
 
@@ -498,7 +497,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     MoveTargetOrStopOrder(newFullPrice, order, true, IsBuying ? "BUY" : "SELL", order.FromEntrySignal);
                 }
             }
-        }        
+        }
 
         private readonly object lockOjbject = new Object();
 
@@ -671,7 +670,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ExplosionVal = explosionValue,
                 UpTrendVal = trendCalculation >= 0 ? trendCalculation : 0
             };
-        }        
+        }
 
         /// <summary>
         /// Cập nhật giá trị cho các lệnh đang chờ, hoặc cancel do: Đợi lệnh quá 1h đồng hồ, do hết giờ trade, hoặc do 1 số điều kiện khác
@@ -686,20 +685,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             #region Cancel lệnh nếu có 1 trong các điều kiện: 
             // Cancel lệnh do đợi quá lâu
             var firstOrder = ActiveOrders.First().Value;
-            if ((Time[0] - filledTime).TotalMinutes > 60)
-            {
-                //Account.CancelAllOrders(Instrument);
-                CancelAllPendingOrder();
-                LocalPrint($"Cancel lệnh do đợi quá lâu, Time[0]: {Time[0]}, filledTime: {filledTime}");
-                return;
-            }
 
-            // Cancel lệnh hết giờ trade
-            if (ToTime(Time[0]) >= 150000 && ToTime(filledTime) < 150000)
+            var cancelOrderDueByTime = ShouldCancelPendingOrdersByTimeCondition(filledTime);
+            if (cancelOrderDueByTime)
             {
-                //Account.CancelAllOrders(Instrument);
-                CancelAllPendingOrder();
-                LocalPrint($"Cancel lệnh hết giờ trade");
                 return;
             }
 
@@ -737,8 +726,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     (IsSelling && waeExplosion_5m < waeUptrend_5m && waeDeadVal_5m < waeUptrend_5m)); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
                 */
                 var cancelCausedByTrendCondition =
-                    waeValuesSeries[0].IsInDeadZone || 
-                    (IsBuying && waeValuesSeries[0].HasBEARVolume ) // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
+                    waeValuesSeries[0].IsInDeadZone ||
+                    (IsBuying && waeValuesSeries[0].HasBEARVolume) // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
                     || (IsSelling && waeValuesSeries[0].HasBULLVolume); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
                 if (cancelCausedByTrendCondition)
                 {

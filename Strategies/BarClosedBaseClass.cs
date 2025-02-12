@@ -1,13 +1,10 @@
 ﻿using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using NinjaTrader.NinjaScript;
-using NinjaTrader.NinjaScript.Strategies;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace NinjaTrader.Custom.Strategies
 {
@@ -15,7 +12,7 @@ namespace NinjaTrader.Custom.Strategies
      * Based Class cho các Strategies sử dụng tính toán khi đóng cây nến [OnBarClose]. Lưu ý các điểm sau: 
      * 1. Luôn luôn vào 2 order, 1 half size và 1 full size. Dịch stop loss khi break even hiện tại đang dựa khi số lượng order là 1
      */
-    public abstract class BarClosedBaseClass<T1, T2> : NinjaTrader.NinjaScript.Strategies.Strategy        
+    public abstract class BarClosedBaseClass<T1, T2> : NinjaTrader.NinjaScript.Strategies.Strategy
     {
         private string LogPrefix { get; set; }
         public BarClosedBaseClass(string logPrefix)
@@ -27,7 +24,7 @@ namespace NinjaTrader.Custom.Strategies
         {
         }
 
-        protected T1 currentTradeAction { get; set;}
+        protected T1 currentTradeAction { get; set; }
 
         /// <summary>
         /// Biến này dùng để di chuyển stop loss khi giá BẮT ĐẦU gần chạm đến target2 (để room cho chạy).
@@ -137,7 +134,7 @@ namespace NinjaTrader.Custom.Strategies
             Target1InTicks = 60;
             Target2InTicks = 120;
 
-            AllowToMoveStopLossGain = true;            
+            AllowToMoveStopLossGain = true;
             AutoCalculateSizing = false;
 
             PointToMoveTarget = 3;
@@ -203,7 +200,7 @@ namespace NinjaTrader.Custom.Strategies
 
                 SetDefaultProperties();
             }
-            else if (State == State.Configure) 
+            else if (State == State.Configure)
             {
                 try
                 {
@@ -284,7 +281,7 @@ namespace NinjaTrader.Custom.Strategies
             }
 
             return true;
-        }        
+        }
 
         /// <summary>
         /// Realtime: Dùng order.Id làm key, không phải Realtime: Dùng Name làm key
@@ -358,7 +355,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
         /// <returns></returns>
-        protected abstract double GetStopLossPrice(T2 tradeAction, double setPrice);         
+        protected abstract double GetStopLossPrice(T2 tradeAction, double setPrice);
 
         protected void LocalPrint(object val)
         {
@@ -386,7 +383,7 @@ namespace NinjaTrader.Custom.Strategies
 
         protected abstract T2 ShouldTrade();
 
-        protected void EnterOrderPure(double priceToSet, double target, double stoploss, string signal, int quantity, bool isBuying , bool isSelling )
+        protected void EnterOrderPure(double priceToSet, double target, double stoploss, string signal, int quantity, bool isBuying, bool isSelling)
         {
             var text = isBuying ? "LONG" : "SHORT";
 
@@ -442,8 +439,6 @@ namespace NinjaTrader.Custom.Strategies
                 LocalPrint($"[MoveTargetOrStopOrder] - ERROR: {ex.Message}");
             }
         }
-
-        
 
         /// <summary>
         /// Dịch chuyển stop loss. Có 2 trường hợp: (1) - Sau khi giá chạm vào target 1, kéo stop loss lên break even. 
@@ -604,11 +599,9 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
-
         protected abstract bool IsHalfPriceOrder(Order order);
 
         protected abstract bool IsFullPriceOrder(Order order);
-
 
         /// <summary>
         /// Khi State từ Historical sang Realtime thì trong ActiveOrders có thể còn lệnh
@@ -657,5 +650,38 @@ namespace NinjaTrader.Custom.Strategies
                 }
             }
         }
+
+        /// <summary>
+        /// Cancel các lệnh chờ khi có 1 trong các điều kiện sau: <br/>
+        /// 1. Đợi quá lâu, hiện tại đợi 1h. <br/>
+        /// 2. Vào lệnh trước 3:00pm nhưng hiện tại đã là sau 3:00. <br/>        
+        /// </summary>
+        /// <param name="filledOrderTime"></param>
+        /// <returns></returns>
+        protected virtual bool ShouldCancelPendingOrdersByTimeCondition(DateTime filledOrderTime)
+        {
+            // Cancel lệnh do đợi quá lâu
+            var firstOrder = ActiveOrders.First().Value;
+            if ((Time[0] - filledOrderTime).TotalMinutes > 60)
+            {
+                //Account.CancelAllOrders(Instrument);
+                CancelAllPendingOrder();
+                LocalPrint($"Cancel lệnh do đợi quá lâu, Time[0]: {Time[0]}, filledTime: {filledOrderTime}");
+                return true;
+            }
+
+            // Cancel lệnh hết giờ trade
+            if (ToTime(Time[0]) >= 150000 && ToTime(filledOrderTime) < 150000)
+            {
+                //Account.CancelAllOrders(Instrument);
+                CancelAllPendingOrder();
+                LocalPrint($"Cancel lệnh hết giờ trade");
+                return true;
+            }
+
+            return false;
+        }
+
+
     }
 }

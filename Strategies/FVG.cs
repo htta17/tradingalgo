@@ -1,35 +1,20 @@
 ﻿#region Using declarations
+using NinjaTrader.Cbi;
+using NinjaTrader.Custom.Strategies;
+using NinjaTrader.Data;
+using NinjaTrader.NinjaScript.DrawingTools;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Xml.Serialization;
-using NinjaTrader.Cbi;
-using NinjaTrader.Gui;
-using NinjaTrader.Gui.Chart;
-using NinjaTrader.Gui.SuperDom;
-using NinjaTrader.Gui.Tools;
-using NinjaTrader.Data;
-using NinjaTrader.NinjaScript;
-using NinjaTrader.Core.FloatingPoint;
-using NinjaTrader.NinjaScript.Indicators;
-using NinjaTrader.NinjaScript.DrawingTools;
-using NinjaTrader.Custom.Strategies;
-using System.Threading;
-using NinjaTrader.CQG.ProtoBuf;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
     public class FVG : BarClosedBaseClass<FVGTradeAction, FVGTradeDetail>
-	{
+    {
         public FVG() : base("FVG")
         {
             HalfPriceSignals = new List<string> { StrategiesUtilities.SignalEntry_FVGHalf };
@@ -48,11 +33,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return currentTradeAction ==  FVGTradeAction.Sell;
+                return currentTradeAction == FVGTradeAction.Sell;
             }
         }
 
-        protected override bool IsBuying 
+        protected override bool IsBuying
         {
             get
             {
@@ -68,10 +53,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             Name = "FVG";
             BarsRequiredToTrade = 10;
 
-            StopLossInTicks = 120; 
+            StopLossInTicks = 120;
             Target1InTicks = 40;
             Target2InTicks = 120;
 
+            SetOrderQuantity = SetOrderQuantity.Strategy;
             DefaultQuantity = 2;
         }
 
@@ -97,15 +83,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 try
                 {
-                    // Nếu có lệnh đang chờ thì cancel 
-                    if (TradingStatus == TradingStatus.PendingFill)
-                    {
-                        CancelAllPendingOrder();
-                    }
-                    else if (TradingStatus == TradingStatus.OrderExists)
-                    {
-                        TransitionOrdersToLive();
-                    } 
+                    TransitionOrdersToLive();
                 }
                 catch (Exception e)
                 {
@@ -132,7 +110,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 waeValuesSeries[0] = waeValueSet_5m;
 
                 if (TradingStatus == TradingStatus.Idle)
-                {   
+                {
                     // Find the FVG value 
                     var shouldTrade = ShouldTrade();
 
@@ -140,7 +118,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     if ((shouldTrade.FVGTradeAction == FVGTradeAction.Buy)
                         || (shouldTrade.FVGTradeAction == FVGTradeAction.Sell))
-                    {                        
+                    {
                         EnterOrder(shouldTrade);
 
                         // Draw FVG using custom Rectangle method
@@ -149,6 +127,30 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (TradingStatus == TradingStatus.PendingFill)
                 {
+                    // Cancel order
+                    var shouldCancelOrder = ShouldCancelPendingOrdersByTimeCondition(filledTime);
+                    if (shouldCancelOrder)
+                    {
+                        CancelAllPendingOrder();
+                        return;
+                    }
+
+                    var cancelCausedByTrendCondition =
+                            // Trend suy yếu, 
+                            waeValuesSeries[0].IsInDeadZone ||
+                            // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
+                            (IsBuying && waeValuesSeries[0].HasBEARVolume) ||
+                            // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
+                            (IsSelling && waeValuesSeries[0].HasBULLVolume);
+
+                    if (cancelCausedByTrendCondition)
+                    {
+                        CancelAllPendingOrder();
+                        LocalPrint($"Cancel lệnh do xu hướng hiện tại ngược với lệnh chờ");
+                        return;
+                    }
+
+
                     var shouldChangeVal = ShouldTrade();
 
                     // Nếu có vùng giá mới thì cập nhật
@@ -212,7 +214,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     DrawFVGBox(shouldChangeVal);
                 }
                 else if (TradingStatus == TradingStatus.OrderExists)
-                { 
+                {
                     // Cập nhật lại target 2 
                 }
             }
@@ -255,7 +257,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             catch (Exception ex)
             {
                 LocalPrint($"[EnterOrder] - ERROR: " + ex.Message);
-            }            
+            }
         }
 
         protected override double GetStopLossPrice(FVGTradeDetail tradeAction, double setPrice)
@@ -268,22 +270,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetTargetPrice_Half(FVGTradeDetail tradeDetail, double setPrice)
         {
-            return currentTradeAction == FVGTradeAction.Buy 
+            return currentTradeAction == FVGTradeAction.Buy
                 ? setPrice + (Target1InTicks * TickSize)
                 : setPrice - (Target1InTicks * TickSize);
         }
 
         protected override double GetTargetPrice_Full(FVGTradeDetail tradeDetail, double setPrice)
         {
-            return tradeDetail.FVGTradeAction == FVGTradeAction.Buy 
+            return tradeDetail.FVGTradeAction == FVGTradeAction.Buy
                 ? setPrice + (Target2InTicks * TickSize)
                 : setPrice - (Target2InTicks * TickSize);
-        }        
-        
+        }
+
         protected override FVGTradeDetail ShouldTrade()
         {
             // 
-            if (High[2] < Low[0] &&  Low[0] - High[2] > MinDistanceToDetectFVG && waeValueSet_5m.HasBULLVolume)
+            if (High[2] < Low[0] && Low[0] - High[2] > MinDistanceToDetectFVG && waeValueSet_5m.HasBULLVolume)
             {
                 filledTime = Time[0];
 
@@ -294,7 +296,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     StopLossPrice = Low[2],
                     TargetProfitPrice = High[0],
                     BarIndex = CurrentBar
-                }; 
+                };
             }
             else if (Low[2] > High[0] && Low[2] - High[0] > MinDistanceToDetectFVG && waeValueSet_5m.HasBEARVolume)
             {
@@ -321,7 +323,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetSetPrice(FVGTradeDetail tradeAction)
         {
-            return tradeAction.FilledPrice; 
+            return tradeAction.FilledPrice;
         }
 
         /// <summary>

@@ -60,6 +60,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double lastDEMA_5m = -1;
 
         protected int barIndex_5m = 0;
+        protected int enteredbarIndex_5m = 0;
 
         // Volume 
         protected double volume_5m = -1;
@@ -553,8 +554,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     LocalPrint($"Check trading condition, result: {shouldTrade}");
 
-                    if (shouldTrade != TradeAction.NoTrade)
+                    // Điều kiện [barIndex_5m != enteredbarIndex_5m] để tránh việc trade 1 bar 5 phút nhiều lần
+                    if (shouldTrade != TradeAction.NoTrade && barIndex_5m != enteredbarIndex_5m) 
                     {
+                        enteredbarIndex_5m = barIndex_5m;
                         EnterOrder(shouldTrade);
                     }
                 }
@@ -719,16 +722,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Cancel các lệnh theo trending
             if (IsTrendingTrade)
             {
-                /*
                 var cancelCausedByTrendCondition =
-                    ((IsBuying && waeExplosion_5m < waeDowntrend_5m && waeDeadVal_5m < waeDowntrend_5m) // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
-                    ||
-                    (IsSelling && waeExplosion_5m < waeUptrend_5m && waeDeadVal_5m < waeUptrend_5m)); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
-                */
-                var cancelCausedByTrendCondition =
-                    waeValuesSeries[0].IsInDeadZone ||
-                    (IsBuying && waeValuesSeries[0].HasBEARVolume) // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
-                    || (IsSelling && waeValuesSeries[0].HasBULLVolume); // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
+                            // Trend suy yếu, 
+                            waeValuesSeries[0].IsInDeadZone ||
+                            // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
+                            (IsBuying && waeValuesSeries[0].HasBEARVolume) ||
+                            // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
+                            (IsSelling && waeValuesSeries[0].HasBULLVolume);
                 if (cancelCausedByTrendCondition)
                 {
                     CancelAllPendingOrder();

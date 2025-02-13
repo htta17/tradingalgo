@@ -100,18 +100,18 @@ namespace NinjaTrader.Custom.Strategies
         /// Tính toán Profit và Loss, sau đó display ở góc dưới trái màn hình
         /// </summary>
         /// <param name="owner"></param>
-        /// <param name="Account"></param>
+        /// <param name="account"></param>
         /// <param name="action"></param>
-        public static void CalculatePnL(NinjaScriptBase owner, Account Account, Action<string> action)
+        public static void CalculatePnL(NinjaScriptBase owner, Account account, Action<string> action)
         {
             try
             {
-                var profitloss = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
+                var profitloss = account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
 
                 Draw.TextFixed(
                         owner,
                         $"Running with {owner}",
-                        $"Acc: {Account.Name} - {Account.Get(AccountItem.NetLiquidation, Currency.UsDollar):C2}",
+                        $"Acc: {account.Name} - {account.Get(AccountItem.NetLiquidation, Currency.UsDollar):C2}",
                         TextPosition.BottomLeft,
                         Brushes.DarkBlue,            // Text color
                         new SimpleFont("Arial", 12), // Font and size

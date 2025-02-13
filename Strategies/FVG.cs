@@ -2,6 +2,7 @@
 using NinjaTrader.Cbi;
 using NinjaTrader.Custom.Strategies;
 using NinjaTrader.Data;
+using NinjaTrader.Gui.Chart;
 using NinjaTrader.NinjaScript.DrawingTools;
 using System;
 using System.Collections.Generic;
@@ -98,6 +99,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         WAE_ValueSet waeValueSet_5m = null;
         protected override void OnBarUpdate()
         {
+            StrategiesUtilities.CalculatePnL(this, Account, Print);
+
             var passTradeCondition = CheckingTradeCondition();
             if (!passTradeCondition)
             {
@@ -120,9 +123,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                         || (shouldTrade.FVGTradeAction == FVGTradeAction.Sell))
                     {
                         EnterOrder(shouldTrade);
-
-                        // Draw FVG using custom Rectangle method
-                        DrawFVGBox(shouldTrade);
                     }
                 }
                 else if (TradingStatus == TradingStatus.PendingFill)
@@ -149,7 +149,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                         LocalPrint($"Cancel lệnh do xu hướng hiện tại ngược với lệnh chờ");
                         return;
                     }
-
 
                     var shouldChangeVal = ShouldTrade();
 
@@ -209,9 +208,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         EnterOrder(shouldChangeVal);
                     }
-
-                    // Draw FVG using custom Rectangle method
-                    DrawFVGBox(shouldChangeVal);
                 }
                 else if (TradingStatus == TradingStatus.OrderExists)
                 {
@@ -220,11 +216,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        private void DrawFVGBox(FVGTradeDetail fVGTradeDetail)
+        private void DrawFVGBox(double fillPrice, double stopLoss, double target, bool hasVolume)
         {
-            Draw.Rectangle(this, $"FVG_{CurrentBar}_1", false, 0, fVGTradeDetail.StopLossPrice, -2, fVGTradeDetail.FilledPrice, Brushes.Transparent, Brushes.Red, 30);
+            Draw.Rectangle(this, $"FVG_{CurrentBar}_1", false, 0, stopLoss, -2, fillPrice, Brushes.Transparent,
+                !hasVolume ? Brushes.DarkGray : Brushes.Red, 
+                30);
 
-            Draw.Rectangle(this, $"FVG_{CurrentBar}_2", false, 0, fVGTradeDetail.TargetProfitPrice, -2, fVGTradeDetail.FilledPrice, Brushes.Transparent, Brushes.LightGreen, 30);
+            Draw.Rectangle(this, $"FVG_{CurrentBar}_2", false, 0, target, -2, fillPrice, Brushes.Transparent,
+                !hasVolume ? Brushes.LightGray : Brushes.LightGreen, 
+                30);
         }
 
         private void EnterOrder(FVGTradeDetail fVGTradeDetail)
@@ -283,34 +283,46 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         protected override FVGTradeDetail ShouldTrade()
-        {
-            // 
-            if (High[2] < Low[0] && Low[0] - High[2] > MinDistanceToDetectFVG && waeValueSet_5m.HasBULLVolume)
+        {   
+            if (High[2] < Low[0] && Low[0] - High[2] > MinDistanceToDetectFVG )
             {
-                filledTime = Time[0];
+                // Draw box 
+                DrawFVGBox(High[2], Low[2], High[0], waeValueSet_5m.HasBULLVolume);
 
-                return new FVGTradeDetail
+                if (waeValueSet_5m.HasBULLVolume)
                 {
-                    FilledPrice = High[2],
-                    FVGTradeAction = FVGTradeAction.Buy,
-                    StopLossPrice = Low[2],
-                    TargetProfitPrice = High[0],
-                    BarIndex = CurrentBar
-                };
+                    filledTime = Time[0];
+
+                    return new FVGTradeDetail
+                    {
+                        FilledPrice = High[2],
+                        FVGTradeAction = FVGTradeAction.Buy,
+                        StopLossPrice = Low[2],
+                        TargetProfitPrice = High[0],
+                        BarIndex = CurrentBar
+                    };
+                }
             }
-            else if (Low[2] > High[0] && Low[2] - High[0] > MinDistanceToDetectFVG && waeValueSet_5m.HasBEARVolume)
+            else if (Low[2] > High[0] && Low[2] - High[0] > MinDistanceToDetectFVG)
             {
-                filledTime = Time[0];
+                // Draw box 
+                DrawFVGBox(Low[2], High[2], Low[0], waeValueSet_5m.HasBEARVolume); 
 
-                return new FVGTradeDetail
+                if (waeValueSet_5m.HasBEARVolume)
                 {
-                    FilledPrice = Low[2],
-                    FVGTradeAction = FVGTradeAction.Sell,
-                    StopLossPrice = High[2],
-                    TargetProfitPrice = Low[0],
-                    BarIndex = CurrentBar
-                };
+                    filledTime = Time[0];
+
+                    return new FVGTradeDetail
+                    {
+                        FilledPrice = Low[2],
+                        FVGTradeAction = FVGTradeAction.Sell,
+                        StopLossPrice = High[2],
+                        TargetProfitPrice = Low[0],
+                        BarIndex = CurrentBar
+                    };
+                }  
             }
+
             return new FVGTradeDetail
             {
                 FilledPrice = -1,

@@ -83,7 +83,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
 
             Description = @"Fair Value Gap Strategy";
-            Name = "Tiger";
+            Name = "Monkey";
             BarsRequiredToTrade = 10;
 
             StopLossInTicks = 120;

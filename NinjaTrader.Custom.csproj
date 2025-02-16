@@ -383,6 +383,7 @@
     <Compile Include="Strategies\FVG.cs" />
     <Compile Include="Strategies\BarClosedBaseClass.cs" />
     <Compile Include="Strategies\Vikki.cs" />
+    <Compile Include="Strategies\RSIBollinger.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

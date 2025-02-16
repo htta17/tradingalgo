@@ -27,6 +27,15 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Khoảng cách tối thiểu giữa điểm cao (thấp) nhất của cây nến 1 và điểm thấp (cao) nhất của cây nến 3
         /// </summary>
         [NinjaScriptProperty]
+        [Display(Name = "Cách đặt stoploss/gain",            
+            Order = 3,
+            GroupName = Configuration_FVGGroup_Name)]
+        public FVGWayToSetStopLoss WayToSetStopLoss { get; set; }
+
+        /// <summary>
+        /// Khoảng cách tối thiểu giữa điểm cao (thấp) nhất của cây nến 1 và điểm thấp (cao) nhất của cây nến 3
+        /// </summary>
+        [NinjaScriptProperty]
         [Display(Name = "Khoảng cách",
             Description = "Khoảng cách tối thiểu giữa điểm cao (thấp) nhất của cây nến 1 và điểm thấp (cao) nhất của cây nến 3",
             Order = 3,
@@ -39,7 +48,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Số lượng contract cho target 1",
             Description = "Số lượng contract cho target 1",
-            Order = 1,
+            Order = 1,            
             GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
         public int QuantityTargetHalf { get; set; } = 2;
 
@@ -272,12 +281,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var targetHalf = GetTargetPrice_Half(fVGTradeDetail, priceToSet);
                 var targetFull = GetTargetPrice_Full(fVGTradeDetail, priceToSet);
 
+                var quantityHalf = GetNumberOfContracts_Half(fVGTradeDetail);
+                var quantityFull = GetNumberOfContracts_Full(fVGTradeDetail);
+
                 EnterOrderPure(priceToSet, targetHalf, stopLossPrice,
-                    StrategiesUtilities.SignalEntry_FVGHalf, QuantityTargetHalf,
+                    StrategiesUtilities.SignalEntry_FVGHalf, quantityHalf,
                     IsBuying, IsSelling);
 
                 EnterOrderPure(priceToSet, targetFull, stopLossPrice,
-                    StrategiesUtilities.SignalEntry_FVGFull, QuantityTargetFull,
+                    StrategiesUtilities.SignalEntry_FVGFull, quantityFull,
                     IsBuying, IsSelling);
             }
             catch (Exception ex)
@@ -286,12 +298,22 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override double GetStopLossPrice(FVGTradeDetail tradeAction, double setPrice)
+        protected override double GetStopLossPrice(FVGTradeDetail tradeDetail, double setPrice)
         {
-            var stopLoss = tradeAction.FVGTradeAction == FVGTradeAction.Buy
-                ? setPrice - (StopLossInTicks * TickSize)
-                : setPrice + (StopLossInTicks * TickSize);
-            return stopLoss;//  tradeAction.StopLossPrice;
+            var stopLossBaseOnFVG =
+                (tradeDetail.StopLossDistance < 7) ? 10
+                : (tradeDetail.StopLossDistance >= 7 && tradeDetail.StopLossDistance < 10) ? 15
+                : (tradeDetail.StopLossDistance >= 10 && tradeDetail.StopLossDistance < 15) ? 20
+                : (tradeDetail.StopLossDistance >= 15 && tradeDetail.StopLossDistance < 20) ? 25
+                : 30; 
+
+            var stoploss = WayToSetStopLoss == FVGWayToSetStopLoss.FixedNumberOfTicks
+                ? (StopLossInTicks * TickSize)
+                : stopLossBaseOnFVG; 
+
+            return tradeDetail.FVGTradeAction == FVGTradeAction.Buy
+                ? setPrice - stoploss
+                : setPrice + stoploss;
         }
 
         protected override double GetTargetPrice_Half(FVGTradeDetail tradeDetail, double setPrice)
@@ -303,9 +325,49 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetTargetPrice_Full(FVGTradeDetail tradeDetail, double setPrice)
         {
+            var targetBasedOnFVG =
+                (tradeDetail.TargetProfitDistance < 7) ? tradeDetail.TargetProfitDistance
+                : (tradeDetail.TargetProfitDistance >= 7 && tradeDetail.TargetProfitDistance < 10) ? 7
+                : (tradeDetail.TargetProfitDistance >= 10 && tradeDetail.TargetProfitDistance < 15) ? 10
+                : (tradeDetail.TargetProfitDistance >= 15 && tradeDetail.TargetProfitDistance < 20) ? 15
+                : (tradeDetail.TargetProfitDistance >= 20 && tradeDetail.TargetProfitDistance < 25) ? 20
+                : 30;
+
+            var target = WayToSetStopLoss == FVGWayToSetStopLoss.FixedNumberOfTicks
+                ? (Target2InTicks * TickSize)
+                : targetBasedOnFVG;
+
             return tradeDetail.FVGTradeAction == FVGTradeAction.Buy
-                ? setPrice + (Target2InTicks * TickSize)
-                : setPrice - (Target2InTicks * TickSize);
+                ? setPrice + target
+                : setPrice - target;
+        }
+
+        private int GetNumberOfContracts_Half(FVGTradeDetail tradeDetail)
+        {
+            var quantity =
+                (tradeDetail.StopLossDistance < 7) ? 3 // 10 loss 
+                : (tradeDetail.StopLossDistance >= 7 && tradeDetail.StopLossDistance < 10) ? 2 // 15 loss 
+                : (tradeDetail.StopLossDistance >= 10 && tradeDetail.StopLossDistance < 15) ? 2 // 20 loss 
+                : (tradeDetail.StopLossDistance >= 15 && tradeDetail.StopLossDistance < 20) ? 2 // 25 loss 
+                : 2; // 30 loss 
+
+            return WayToSetStopLoss == FVGWayToSetStopLoss.FixedNumberOfTicks
+                ? QuantityTargetHalf
+                : quantity;
+        }
+
+        private int GetNumberOfContracts_Full(FVGTradeDetail tradeDetail)
+        {
+            var quantity =
+                (tradeDetail.StopLossDistance < 7) ? 3
+                : (tradeDetail.StopLossDistance >= 7 && tradeDetail.StopLossDistance < 10) ? 2
+                : (tradeDetail.StopLossDistance >= 10 && tradeDetail.StopLossDistance < 15) ? 2
+                : (tradeDetail.StopLossDistance >= 15 && tradeDetail.StopLossDistance < 20) ? 2
+                : 1;
+
+            return WayToSetStopLoss == FVGWayToSetStopLoss.FixedNumberOfTicks
+                ? QuantityTargetFull
+                : quantity;
         }
 
         protected override FVGTradeDetail ShouldTrade()

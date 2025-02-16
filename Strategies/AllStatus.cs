@@ -43,24 +43,6 @@ namespace NinjaTrader.Custom.Strategies
         OrderExist
     }
 
-    /// <summary>
-    /// Lựa chọn để vào lệnh: Vào theo ATM cố định, vào theo bollinger bands
-    /// </summary>
-    public enum LossGainStrategy
-    {
-        /// <summary>
-        /// Dùng ATM để vào lệnh, stop loss/gain dựa theo ATM (Default_MNQ, Half_MNQ) 
-        /// </summary>
-        ChooseATM, 
-
-        /// <summary>
-        /// Tính toán khoảng cách của BB (std1 và std2) để quyết định sizing và stop loss/gain
-        /// </summary>
-        BasedOnBollinger,
-    }
-
-
-
     public class WAE_ValueSet
     {
         // Là hệ số đảm bảo cho UpTrendVal hoặc DownTrendVal phải lớn hơn [DeadZoneVal] *  [SafetyRatio]
@@ -162,6 +144,21 @@ namespace NinjaTrader.Custom.Strategies
 
         Sell = 6,
     }
-    
-    
+
+    /// <summary>
+    /// Dùng cho FVG (Tiger)
+    /// </summary>
+    public enum FVGWayToSetStopLoss
+    {
+        /// <summary>
+        /// Stop loss/gain dựa trên số lượng [Target 1/2 Profit (Ticks)] và [Số lượng contract cho target 1/2]
+        /// </summary>
+        FixedNumberOfTicks, 
+
+        /// <summary>
+        /// Chương trình sẽ tính toán và quyết định stop loss/gain dựa trên FVG gap
+        /// </summary>
+        BasedOnFVGGap,
+    }
+
 }

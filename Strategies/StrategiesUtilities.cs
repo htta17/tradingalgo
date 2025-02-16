@@ -219,6 +219,9 @@ namespace NinjaTrader.Custom.Strategies
 
         public double FilledPrice { get; set; }
 
+        /// <summary>
+        /// Giá trị stop loss theo FVG
+        /// </summary>
         public double StopLossPrice { get; set; }
 
         public double TargetProfitPrice { get; set; }
@@ -239,6 +242,40 @@ namespace NinjaTrader.Custom.Strategies
                     }
                 }
                 return _noOfContracts;
+            }
+        }
+
+        private double? stopLossDistance;
+
+        /// <summary>
+        /// Khoảng cách từ gap điểm filled gap đến đỉnh/đáy của cây nến thứ 1
+        /// </summary>
+        public double StopLossDistance
+        {
+            get 
+            {
+                if (stopLossDistance == null)
+                {
+                    stopLossDistance = Math.Abs(FilledPrice - StopLossPrice);
+                }
+                return stopLossDistance.Value;
+            }
+        }
+
+        private double? targetProfitDistance;
+
+        /// <summary>
+        /// Khoảng cách từ gap điểm filled gap đến đỉnh/đáy của cây nến thứ 3
+        /// </summary>
+        public double TargetProfitDistance
+        {
+            get
+            {
+                if (targetProfitDistance == null)
+                {
+                    targetProfitDistance = Math.Abs(FilledPrice - TargetProfitPrice);
+                }
+                return targetProfitDistance.Value;
             }
         }
     }

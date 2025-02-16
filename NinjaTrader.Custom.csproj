@@ -377,7 +377,6 @@
     <Compile Include="Strategies\StrategiesUtilities.cs" />
     <Compile Include="Strategies\TestStopLossGainMoving.cs" />
     <Compile Include="obj\x64\Debug\.NETFramework,Version=v4.8.AssemblyAttributes.cs" />
-    <Compile Include="Strategies\Tiger.cs" />
     <Compile Include="Strategies\CandleUtilities.cs" />
     <Compile Include="Strategies\PriceActionUtilities.cs" />
     <Compile Include="Strategies\PriceAction.cs" />

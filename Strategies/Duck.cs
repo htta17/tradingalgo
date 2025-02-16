@@ -35,7 +35,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private string orderId = string.Empty;
 
         private double lastDEMA = -1;
-        private DuckStatus DuckStatus = DuckStatus.Idle;
+        private TradingStatus DuckStatus = TradingStatus.Idle;
 
         /// <summary>
         /// Khoảng cách đảm bảo cho việc giá của stock chạy đúng hướng.
@@ -100,7 +100,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (State == State.SetDefaults)
             {
-                Description = @"Play on 5 minutes frame.";
+                Description = @"Using Bollinger bands + DEMA 5 mins, and EMA 29 + EMA 51 in 1 minute frame to trade.";
                 Name = this.Name;
                 Calculate = Calculate.OnPriceChange;
                 EntriesPerDirection = 1;
@@ -216,7 +216,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         private readonly object lockEnterOrder = new object();
-        private void EnterOrder(OrderAction action, State state, DuckStatus status)
+        private void EnterOrder(OrderAction action, State state, TradingStatus status)
         {
             lock (lockEnterOrder)
             {
@@ -260,8 +260,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Enter a BUY/SELL order current price
                     AtmStrategyCreate(
                         action,
-                        status == DuckStatus.OrderExist ? OrderType.Market : OrderType.Limit, // Market price if fill immediately
-                        status == DuckStatus.OrderExist ? 0 : filledPrice,
+                        status == TradingStatus.OrderExists ? OrderType.Market : OrderType.Limit, // Market price if fill immediately
+                        status == TradingStatus.OrderExists ? 0 : filledPrice,
                         0,
                         TimeInForce.Day,
                         orderId,
@@ -561,14 +561,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     executionCount++;
                     LocalPrint($"OnBarUpdate execution Count: {executionCount}, Price: {Close[0]}");
 
-                    if (DuckStatus == DuckStatus.Idle)
+                    if (DuckStatus == TradingStatus.Idle)
                     {
                         // Kiểm tra xem thực sự KHÔNG có lệnh nào hay không?
                         var hasActiveOrder = Account.Orders.Any(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted);
 
                         if (hasActiveOrder) // Nếu có lệnh thì đổi lại status
                         {
-                            DuckStatus = DuckStatus.OrderExist;
+                            DuckStatus = TradingStatus.OrderExists;
                         }
                         else
                         {
@@ -587,29 +587,29 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                             var enterLong = ShouldTrade(OrderAction.Buy);
 
-                            var enterShort = enterLong == DuckStatus.Idle ? ShouldTrade(OrderAction.Sell) : DuckStatus.Idle;
+                            var enterShort = enterLong == TradingStatus.Idle ? ShouldTrade(OrderAction.Sell) : TradingStatus.Idle;
 
                             LocalPrint($"I'm waiting - {DuckStatus} - Check to enter LONG: {enterLong}, check to ebter SHORT: {enterShort}");
 
-                            if (enterLong == DuckStatus.FillOrderPending || enterLong == DuckStatus.OrderExist)  // Vào lệnh LONG market hoặc set lệnh LONG LIMIT
+                            if (enterLong == TradingStatus.PendingFill || enterLong == TradingStatus.OrderExists)  // Vào lệnh LONG market hoặc set lệnh LONG LIMIT
                             {
                                 DuckStatus = enterLong;
                                 EnterOrder(OrderAction.Buy, State, enterLong);
                                 Print("Enter Long");
                             }
-                            else if (enterShort == DuckStatus.FillOrderPending || enterShort == DuckStatus.OrderExist)
+                            else if (enterShort == TradingStatus.PendingFill || enterShort == TradingStatus.OrderExists)
                             {
                                 DuckStatus = enterShort;
                                 EnterOrder(OrderAction.Sell, State, enterShort);
                                 Print("Enter Short");
                             }
-                            else if (enterLong == DuckStatus.WaitingForGoodPrice)
+                            else if (enterLong == TradingStatus.WatingForConfirmation)
                             {
                                 DuckStatus = enterLong;
                                 currentAction = OrderAction.Buy;
                                 Print("WaitingForGoodPrice to LONG");
                             }
-                            else if (enterShort == DuckStatus.WaitingForGoodPrice)
+                            else if (enterShort == TradingStatus.WatingForConfirmation)
                             {
                                 DuckStatus = enterShort;
                                 currentAction = OrderAction.Sell;
@@ -617,14 +617,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                             }
                         }
                     }
-                    else if (DuckStatus == DuckStatus.OrderExist) // Move stop gain/loss
+                    else if (DuckStatus == TradingStatus.OrderExists) // Move stop gain/loss
                     {
                         // Check the order really exist
                         var hasActiveOrder = Account.Orders.Any(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted);
 
                         if (!hasActiveOrder) // If no order exist --> Có thể vì 1 lý do nào đó (manually close, error, etc.) các lệnh đã bị đóng
                         {
-                            DuckStatus = DuckStatus.Idle;
+                            DuckStatus = TradingStatus.Idle;
                             LocalPrint($"Chuyển về trạng thái IDLE từ OrderExist");
                         }
                         else
@@ -633,19 +633,19 @@ namespace NinjaTrader.NinjaScript.Strategies
                             MoveStopGainOrLoss(currentPrice);
                         }
                     }
-                    else if (DuckStatus == DuckStatus.FillOrderPending)
+                    else if (DuckStatus == TradingStatus.PendingFill)
                     {
                         // Move LIMIT order nếu giá di chuyển quá nhiều
                         var activeOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted);
 
                         if (!activeOrders.Any()) // Nếu không có lệnh đợi filled
                         {
-                            DuckStatus = DuckStatus.Idle;
+                            DuckStatus = TradingStatus.Idle;
                             LocalPrint($"Chuyển về trạng thái IDLE từ FillOrderPending");
                         }
                         else if (activeOrders.Any(c => c.Name.Contains("Target") || c.Name.Contains("Stop")))
                         {
-                            DuckStatus = DuckStatus.OrderExist;
+                            DuckStatus = TradingStatus.OrderExists;
                             LocalPrint($"Chuyển về trạng thái ORDER_EXISTS từ FillOrderPending");
                         }
                         else // if (activeOrders.Any(c => c.Name.Contains("Entry")))
@@ -653,13 +653,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                             UpdatePendingOrder(activeOrders.FirstOrDefault());
                         }
                     }
-                    else if (DuckStatus == DuckStatus.WaitingForGoodPrice)
+                    else if (DuckStatus == TradingStatus.WatingForConfirmation)
                     {
                         var hasActiveOrder = Account.Orders.Any(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted);
 
                         if (hasActiveOrder) // If no order exist --> Có thể vì 1 lý do nào đó (manually close, error, etc.) các lệnh đã bị đóng
                         {
-                            DuckStatus = DuckStatus.OrderExist;
+                            DuckStatus = TradingStatus.OrderExists;
                             LocalPrint($"Chuyển sang trạng thái ORDER_EXISTS từ WaitingForGoodPrice");
                         }
                         else
@@ -672,10 +672,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                             if (existingOrders)
                             {
-                                DuckStatus = DuckStatus.OrderExist;
+                                DuckStatus = TradingStatus.OrderExists;
                                 LocalPrint($"Chuyển sang trạng thái ORDER_EXISTS từ WaitingForGoodPrice");
                             }
-                            else if (!existingOrders && (newStatus == DuckStatus.OrderExist || newStatus == DuckStatus.FillOrderPending))
+                            else if (!existingOrders && (newStatus == TradingStatus.OrderExists || newStatus == TradingStatus.PendingFill))
                             {
                                 EnterOrder(currentAction, State, newStatus);
                             }
@@ -694,15 +694,15 @@ namespace NinjaTrader.NinjaScript.Strategies
         /*
 		 * Hàm này sử dụng để trả về Idle hoặc trade theo Trending, khi không có điều kiện về đánh ngược
 		 */
-        protected virtual DuckStatus ConditionIfCannotFindCross(OrderAction orderAction)
+        protected virtual TradingStatus ConditionIfCannotFindCross(OrderAction orderAction)
         {
-            return DuckStatus.Idle;
+            return TradingStatus.Idle;
         }
 
         /**
 		* Hàm này chỉ làm việc khi DuckStatus là Idle
 		*/
-        protected virtual DuckStatus ShouldTrade(OrderAction action)
+        protected virtual TradingStatus ShouldTrade(OrderAction action)
         {
             /*
 			* Điều kiện vào lệnh: 
@@ -710,7 +710,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			* 2. Nếu điều kiện 1 được thỏa mãn
 			*/
 
-            if (DuckStatus != DuckStatus.Idle)
+            if (DuckStatus != TradingStatus.Idle)
             {
                 return DuckStatus;
             }
@@ -737,17 +737,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (open_1m < Math.Max(ema29_1m, ema51_1m)) // Found cross, nhưng Open của nến 1 phút vẫn ở dưới EMA29/51)
                 {
                     LocalPrint($"Found cross BUY, but open1m {open_1m:F2} < Math.Max({ema29_1m:F2}, {ema51_1m:F2})");
-                    return DuckStatus.WaitingForGoodPrice; // Đợi khi nào có nến 1 phút vượt qua EMA29/51 thì set lệnh
+                    return TradingStatus.WatingForConfirmation; // Đợi khi nào có nến 1 phút vượt qua EMA29/51 thì set lệnh
                 }
                 else if (adx_5m < 22)
                 {
                     LocalPrint("Vào lệnh BUY theo giá MARKET do có ADX < 22 (Sizeway)");
-                    return DuckStatus.OrderExist;
+                    return TradingStatus.OrderExists;
                 }
                 else if (currentPrice < bigCloudVal && bigCloudVal - currentPrice >= 10)
                 {
                     LocalPrint("Vào lệnh BUY theo giá MARKET do cách xa EMA120");
-                    return DuckStatus.OrderExist;
+                    return TradingStatus.OrderExists;
                 }
                 /*
 				* Điều kiện có sẵn: open1m > Math.Max(ema29, ema51). 
@@ -760,7 +760,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         Math.Max(ema29_1m, ema51_1m) < bigCloudVal && bigCloudVal - Math.Max(ema29_1m, ema51_1m) < 10)
                 {
                     LocalPrint("Chờ fill lệnh BUY");
-                    return DuckStatus.FillOrderPending;
+                    return TradingStatus.PendingFill;
                 }
                 else
                 {
@@ -789,22 +789,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (open_1m > Math.Min(ema29_1m, ema51_1m)) // foundCross = true, nhưng open của nến 1 phút vẫn nằm trên EMA29/51 (chưa vượt qua được)
                 {
                     LocalPrint($"Found cross SELL, but open1m {open_1m:F2} > Math.Min({ema29_1m:F2}, {ema51_1m:F2})");
-                    return DuckStatus.WaitingForGoodPrice;
+                    return TradingStatus.WatingForConfirmation;
                 }
                 else if (adx_5m < 22)
                 {
                     LocalPrint("Vào lệnh SELL theo giá MARKET do có ADX < 22 (Sizeway)");
-                    return DuckStatus.OrderExist;
+                    return TradingStatus.OrderExists;
                 }
                 else if (currentPrice > bigCloudVal && currentPrice - bigCloudVal >= 10)
                 {
                     LocalPrint("Vào lệnh SELL theo giá MARKET, price xa so với EMA 120");
-                    return DuckStatus.OrderExist;
+                    return TradingStatus.OrderExists;
                 }
                 else if (adx_5m > 25 && minusDI_5m < plusDI_5m && Math.Min(ema29_1m, ema51_1m) > bigCloudVal && bigCloudVal - Math.Min(ema29_1m, ema51_1m) < 10)
                 {
                     LocalPrint("Chờ fill lệnh SELL");
-                    return DuckStatus.FillOrderPending;
+                    return TradingStatus.PendingFill;
                 }
                 else
                 {
@@ -816,14 +816,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
 
-            return DuckStatus.Idle;
+            return TradingStatus.Idle;
         }
 
 
         // Hàm này chỉ làm việc với DuckStatus hiện tại là DuckStatus.WaitingForGoodPrice
-        protected virtual DuckStatus WaitForTradeCondition()
+        protected virtual TradingStatus WaitForTradeCondition()
         {
-            if (DuckStatus != DuckStatus.WaitingForGoodPrice)
+            if (DuckStatus != TradingStatus.WatingForConfirmation)
             {
                 return DuckStatus;
             }
@@ -860,24 +860,24 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (open_1m < Math.Max(ema29_1m, ema51_1m)) // Found cross, nhưng Open của nến 1 phút vẫn ở dưới EMA29/51)
                 {
                     LocalPrint($"Continue waiting, open1m {open_1m:F2} < Math.Max({ema29_1m:F2}, {ema51_1m:F2})");
-                    return DuckStatus.WaitingForGoodPrice; // Tiếp tục chờ đợi
+                    return TradingStatus.WatingForConfirmation; // Tiếp tục chờ đợi
                 }
                 else if (adx_5m < 22)
                 {
                     LocalPrint("Vào lệnh BUY theo giá MARKET do có ADX < 22 (Sizeway)");
-                    return DuckStatus.OrderExist;
+                    return TradingStatus.OrderExists;
                 }
                 else if (//open1m >= Math.Max(ema29, ema51) && 
                     currentPrice < bigCloudVal && bigCloudVal - currentPrice >= 10)
                 {
                     LocalPrint("Vào lệnh BUY theo giá MARKET");
-                    return DuckStatus.OrderExist;
+                    return TradingStatus.OrderExists;
                 }
                 else if (adx_5m > 25 && minusDI_5m > plusDI_5m &&
                         Math.Max(ema29_1m, ema51_1m) < bigCloudVal && bigCloudVal - Math.Max(ema29_1m, ema51_1m) < 10)
                 {
                     LocalPrint("Chờ fill lệnh BUY");
-                    return DuckStatus.FillOrderPending;
+                    return TradingStatus.PendingFill;
                 }
                 else
                 {
@@ -919,22 +919,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                     else if (open_1m > Math.Min(ema29_1m, ema51_1m)) // foundCross = true, nhưng open của nến 1 phút vẫn nằm trên EMA29/51 (chưa vượt qua được)
                     {
                         LocalPrint($"Found cross SELL, but open1m {open_1m:F2} > Math.Min({ema29_1m:F2}, {ema51_1m:F2})");
-                        return DuckStatus.WaitingForGoodPrice;
+                        return TradingStatus.WatingForConfirmation;
                     }
                     else if (adx_5m < 22)
                     {
                         LocalPrint("Vào lệnh SELL theo giá MARKET do có ADX < 22 (Sizeway)");
-                        return DuckStatus.OrderExist;
+                        return TradingStatus.OrderExists;
                     }
                     else if (currentPrice > Math.Max(ema89_1m, ema120_1m) && currentPrice - Math.Max(ema89_1m, ema120_1m) >= 10)
                     {// --> Cho phép vào lệnh
                         LocalPrint("Vào lệnh SELL theo giá MARKET");
-                        return DuckStatus.OrderExist;
+                        return TradingStatus.OrderExists;
                     }
                     else if (adx_5m > 25 && minusDI_5m < plusDI_5m && Math.Min(ema29_1m, ema51_1m) > bigCloudVal && bigCloudVal - Math.Min(ema29_1m, ema51_1m) < 10)
                     {
                         LocalPrint("Chờ fill lệnh SELL");
-                        return DuckStatus.FillOrderPending;
+                        return TradingStatus.PendingFill;
                     }
                     else
                     {
@@ -946,12 +946,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
             }
 
-            return DuckStatus.WaitingForGoodPrice;
+            return TradingStatus.WatingForConfirmation;
         }
 
         private void UpdatePendingOrder(Order pendingOrder)
         {
-            if (DuckStatus != DuckStatus.FillOrderPending)
+            if (DuckStatus != TradingStatus.PendingFill)
             {
                 return;
             }
@@ -961,7 +961,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     LocalPrint($"Debug - {order.OrderState}");
                 }
-                DuckStatus = DuckStatus.Idle;
+                DuckStatus = TradingStatus.Idle;
                 LocalPrint($"ERROR: DuckStatus không đúng. Reset status. - Current status: {DuckStatus}");
                 return;
             }
@@ -986,7 +986,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 orderId = null;
                 atmStrategyId = null;
-                DuckStatus = DuckStatus.Idle;
+                DuckStatus = TradingStatus.Idle;
 
                 LocalPrint($"Chờ quá lâu, cancel lệnh. Status {DuckStatus} now. ");
             }

@@ -24,12 +24,12 @@ namespace NinjaTrader.Custom.Strategies
         {
         }
 
-        protected T1 currentTradeAction { get; set; }
+        protected T1 CurrentTradeAction { get; set; }
 
         /// <summary>
         /// Biến này dùng để di chuyển stop loss khi giá BẮT ĐẦU gần chạm đến target2 (để room cho chạy).
         /// </summary>
-        protected bool startMovingStoploss = false;
+        protected bool StartMovingStoploss = false;
 
         #region Allow Trade Parameters
 
@@ -93,8 +93,7 @@ namespace NinjaTrader.Custom.Strategies
             GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
         public int Target1InTicks { get; set; } = 60; // 25 points for MNQ
 
-
-        // <summary>
+        /// <summary>
         /// Số ticks cho stop loss khi đặt stoploss dựa theo BollingerBand
         /// </summary>
         [NinjaScriptProperty]
@@ -449,7 +448,7 @@ namespace NinjaTrader.Custom.Strategies
             if (isBuying)
             {
                 // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
-                if (startMovingStoploss && stopOrderPrice > filledPrice && stopOrderPrice + PointToMoveLoss < updatedPrice)
+                if (StartMovingStoploss && stopOrderPrice > filledPrice && stopOrderPrice + PointToMoveLoss < updatedPrice)
                 {
                     newPrice = updatedPrice - PointToMoveLoss;
                     allowMoving = "BUY";
@@ -464,7 +463,7 @@ namespace NinjaTrader.Custom.Strategies
             else if (isSelling)
             {
                 // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
-                if (startMovingStoploss && stopOrderPrice < filledPrice && stopOrderPrice - PointToMoveLoss > updatedPrice)
+                if (StartMovingStoploss && stopOrderPrice < filledPrice && stopOrderPrice - PointToMoveLoss > updatedPrice)
                 {
                     newPrice = updatedPrice + PointToMoveLoss;
                     allowMoving = "SELL";
@@ -502,13 +501,13 @@ namespace NinjaTrader.Custom.Strategies
             {
                 MoveTargetOrStopOrder(targetOrderPrice + PointToMoveTarget, targetOrder, true, "BUY", targetOrder.FromEntrySignal);
 
-                startMovingStoploss = true;
+                StartMovingStoploss = true;
             }
             else if (isSelling && updatedPrice - PointToMoveTarget < targetOrderPrice)
             {
                 MoveTargetOrStopOrder(targetOrderPrice - PointToMoveTarget, targetOrder, true, "SELL", targetOrder.FromEntrySignal);
 
-                startMovingStoploss = true;
+                StartMovingStoploss = true;
             }
         }
 

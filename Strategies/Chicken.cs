@@ -91,7 +91,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return currentTradeAction == TradeAction.Buy_Reversal || currentTradeAction == TradeAction.Buy_Trending;
+                return CurrentTradeAction == TradeAction.Buy_Reversal || CurrentTradeAction == TradeAction.Buy_Trending;
             }
         }
 
@@ -102,7 +102,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return currentTradeAction == TradeAction.Sell_Reversal || currentTradeAction == TradeAction.Sell_Trending;
+                return CurrentTradeAction == TradeAction.Sell_Reversal || CurrentTradeAction == TradeAction.Sell_Trending;
             }
         }
 
@@ -110,7 +110,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return currentTradeAction == TradeAction.Sell_Reversal || currentTradeAction == TradeAction.Buy_Reversal;
+                return CurrentTradeAction == TradeAction.Sell_Reversal || CurrentTradeAction == TradeAction.Buy_Reversal;
             }
         }
 
@@ -118,11 +118,13 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return currentTradeAction == TradeAction.Buy_Trending || currentTradeAction == TradeAction.Sell_Trending;
+                return CurrentTradeAction == TradeAction.Buy_Trending || CurrentTradeAction == TradeAction.Sell_Trending;
             }
         }
 
         protected Trends CurrentTrend = Trends.Unknown;
+
+        private const string Configuration_ChickkenParams_Name = "Chicken parameters";
 
         #region Importants Configurations
 
@@ -132,21 +134,21 @@ namespace NinjaTrader.NinjaScript.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Enter order price:",
             Order = 3,
-            GroupName = "Chicken parameters")]
+            GroupName = Configuration_ChickkenParams_Name)]
         public PlaceToSetOrder PlaceToSetOrder { get; set; } = PlaceToSetOrder.BollingerBand;
 
         /// <summary>
         /// Cho phép trade theo trending
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Trending Trade?", Order = 1, GroupName = "Chicken parameters")]
+        [Display(Name = "Trending Trade?", Order = 1, GroupName = Configuration_ChickkenParams_Name)]
         public bool AllowTrendingTrade { get; set; } = true;
 
         /// <summary>
         /// Cho phép trade theo trending
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Reversal Trade?", Order = 2, GroupName = "Chicken parameters")]
+        [Display(Name = "Reversal Trade?", Order = 2, GroupName = Configuration_ChickkenParams_Name)]
         public bool AllowReversalTrade { get; set; } = true;
 
         #endregion
@@ -423,10 +425,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected virtual void EnterOrder(TradeAction tradeAction)
         {
             // Set global values
-            currentTradeAction = tradeAction;
+            CurrentTradeAction = tradeAction;
 
             // Chưa cho move stop loss
-            startMovingStoploss = false;
+            StartMovingStoploss = false;
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
@@ -444,9 +446,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             double priceToSet = GetSetPrice(tradeAction);
             filledPrice = priceToSet;
 
-            var stopLossPrice = GetStopLossPrice(currentTradeAction, priceToSet);
-            var targetHalf = GetTargetPrice_Half(currentTradeAction, priceToSet);
-            var targetFull = GetTargetPrice_Full(currentTradeAction, priceToSet);
+            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet);
+            var targetHalf = GetTargetPrice_Half(CurrentTradeAction, priceToSet);
+            var targetFull = GetTargetPrice_Full(CurrentTradeAction, priceToSet);
 
             try
             {
@@ -491,7 +493,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             for (var i = 0; i < lenFull; i++)
             {
                 var order = targetFullPriceOrders[i];
-                var newFullPrice = GetTargetPrice_Full(currentTradeAction, filledPrice);
+                var newFullPrice = GetTargetPrice_Full(CurrentTradeAction, filledPrice);
 
                 if ((IsBuying && newFullPrice > filledPrice) || (IsSelling && newFullPrice < filledPrice))
                 {
@@ -739,19 +741,19 @@ namespace NinjaTrader.NinjaScript.Strategies
             #endregion
 
             #region Begin of move pending order
-            var newPrice = GetSetPrice(currentTradeAction);
+            var newPrice = GetSetPrice(CurrentTradeAction);
 
-            var stopLossPrice = GetStopLossPrice(currentTradeAction, newPrice);
+            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, newPrice);
 
-            var targetPrice_Half = GetTargetPrice_Half(currentTradeAction, newPrice);
+            var targetPrice_Half = GetTargetPrice_Half(CurrentTradeAction, newPrice);
 
-            var targetPrice_Full = GetTargetPrice_Full(currentTradeAction, newPrice);
+            var targetPrice_Full = GetTargetPrice_Full(CurrentTradeAction, newPrice);
 
             if (State == State.Historical)
             {
                 CancelAllPendingOrder();
 
-                EnterOrder(currentTradeAction);
+                EnterOrder(CurrentTradeAction);
             }
             else if (State == State.Realtime)
             {

@@ -66,7 +66,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return currentTradeAction == FVGTradeAction.Sell;
+                return CurrentTradeAction == FVGTradeAction.Sell;
             }
         }
 
@@ -74,7 +74,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return currentTradeAction == FVGTradeAction.Buy;
+                return CurrentTradeAction == FVGTradeAction.Buy;
             }
         }
 
@@ -85,6 +85,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             Description = @"Fair Value Gap Strategy";
             Name = "Monkey";
             BarsRequiredToTrade = 10;
+
+            WayToSetStopLoss = FVGWayToSetStopLoss.BasedOnFVGGap;
 
             StopLossInTicks = 120;
             Target1InTicks = 40;
@@ -108,7 +110,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Add data for trading
                 AddDataSeries(BarsPeriodType.Minute, 5);
 
-                currentTradeAction = FVGTradeAction.NoTrade;
+                CurrentTradeAction = FVGTradeAction.NoTrade;
             }
             else if (State == State.DataLoaded)
             {
@@ -193,7 +195,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         return;
                     }
 
-                    if (shouldChangeVal.FVGTradeAction == currentTradeAction)
+                    if (shouldChangeVal.FVGTradeAction == CurrentTradeAction)
                     {
                         var clonedList = ActiveOrders.Values.ToList();
                         var len = clonedList.Count;
@@ -265,10 +267,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         private void EnterOrder(FVGTradeDetail fVGTradeDetail)
         {
             // Set global values
-            currentTradeAction = fVGTradeDetail.FVGTradeAction;
+            CurrentTradeAction = fVGTradeDetail.FVGTradeAction;
 
             // Chưa cho move stop loss
-            startMovingStoploss = false;
+            StartMovingStoploss = false;
 
             var orderAction = fVGTradeDetail.FVGTradeAction == FVGTradeAction.Buy ? OrderAction.Buy : OrderAction.Sell;
 
@@ -318,7 +320,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetTargetPrice_Half(FVGTradeDetail tradeDetail, double setPrice)
         {
-            return currentTradeAction == FVGTradeAction.Buy
+            return CurrentTradeAction == FVGTradeAction.Buy
                 ? setPrice + (Target1InTicks * TickSize)
                 : setPrice - (Target1InTicks * TickSize);
         }

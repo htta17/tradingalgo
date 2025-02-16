@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace NinjaTrader.Custom.Strategies
 {
+    #region Chicken enums
     /// <summary>
     /// Lựa chọn điểm vào lệnh (Theo EMA29/51 hay theo Bollinger bands)
     /// </summary>
@@ -17,12 +18,43 @@ namespace NinjaTrader.Custom.Strategies
     }
 
     /// <summary>
+    /// Hành động gì tiếp theo đây? Trade theo xu hướng, ngược xu hướng, không trade, etc.
+    /// </summary>
+    public enum TradeAction
+    {
+        NoTrade = 0,
+
+        /// <summary>
+        /// Đặt lệnh bán tại upper Bollinger (5m) band hoặc EMA29/51 (1m) tùy vào setting
+        /// </summary>
+        Sell_Reversal = 1,
+
+        /// <summary>
+        /// Đặt lệnh bán tại upper Bollinger (5m) band hoặc EMA29/51 (1m) tùy vào setting
+        /// </summary>
+        Buy_Reversal = 2,
+
+        /// <summary>
+        /// Đặt lệnh bán tại EMA29/51
+        /// </summary>
+        Sell_Trending = 3,
+
+        /// <summary>
+        /// Đặt lệnh mua tại EMA29/51
+        /// </summary>
+        Buy_Trending = 4,
+    }
+    #endregion
+
+    #region Shared enums
+    /// <summary>
     /// Trạng thái hiện tại của giải thuật
     /// </summary>
     public enum TradingStatus
     {
         Idle, // Đang không có lệnh 
         PendingFill, // Lệnh đã submit nhưng chưa được fill do giá chưa đúng
+        WatingForConfirmation,
         OrderExists  // Lệnh đã được filled 
     }
 
@@ -35,18 +67,14 @@ namespace NinjaTrader.Custom.Strategies
         Afternoon_1700_2300,
         Night_2300_0700
     }
-    public enum DuckStatus
-    {
-        Idle,
-        WaitingForGoodPrice, // Có tín hiệu B-line nhưng giá vẫn chưa pass EMA29/51 
-        FillOrderPending,
-        OrderExist
-    }
 
+    /// <summary>
+    /// Waddah Attar Explosion
+    /// </summary>
     public class WAE_ValueSet
     {
         // Là hệ số đảm bảo cho UpTrendVal hoặc DownTrendVal phải lớn hơn [DeadZoneVal] *  [SafetyRatio]
-        public const double SafetyRatio = 1.4; 
+        public const double SafetyRatio = 1.4;
         public double DeadZoneVal { get; set; }
         public double ExplosionVal { get; set; }
         public double UpTrendVal { get; set; }
@@ -103,37 +131,12 @@ namespace NinjaTrader.Custom.Strategies
     public enum Trends
     {
         Unknown,
-        Bullish, 
+        Bullish,
         Bearish
     }
+    #endregion    
 
-    /// <summary>
-    /// Hành động gì tiếp theo đây? Trade theo xu hướng, ngược xu hướng, không trade, etc.
-    /// </summary>
-    public enum TradeAction
-    {
-        NoTrade = 0,
-
-        /// <summary>
-        /// Đặt lệnh bán tại upper Bollinger (5m) band hoặc EMA29/51 (1m) tùy vào setting
-        /// </summary>
-        Sell_Reversal = 1,
-
-        /// <summary>
-        /// Đặt lệnh bán tại upper Bollinger (5m) band hoặc EMA29/51 (1m) tùy vào setting
-        /// </summary>
-        Buy_Reversal = 2,
-
-        /// <summary>
-        /// Đặt lệnh bán tại EMA29/51
-        /// </summary>
-        Sell_Trending = 3,
-
-        /// <summary>
-        /// Đặt lệnh mua tại EMA29/51
-        /// </summary>
-        Buy_Trending = 4,
-    }
+    #region Monkey (FVG) enums 
 
     public enum FVGTradeAction
     {
@@ -160,5 +163,21 @@ namespace NinjaTrader.Custom.Strategies
         /// </summary>
         BasedOnFVGGap,
     }
+    #endregion
 
+    #region Tiger (RSI + Bollinger reverse) 
+    public enum RSIBollingerAction
+    {
+        /// <summary>
+        /// Không làm gì 
+        /// </summary>
+        NoTrade,
+
+        Buy, 
+
+        Sell
+    }
+
+
+    #endregion
 }

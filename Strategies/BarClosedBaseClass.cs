@@ -38,7 +38,7 @@ namespace NinjaTrader.Custom.Strategies
         /// Có 3 mốc quan trọng mặc định là 8:30am (Mở cửa Mỹ), 3:00pm (Đóng cửa Mỹ) và 5:00pm (Mở cửa châu Á).
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = "Allow Trade Parameters")]
+        [Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
         public string NewsTimeInput { get; set; } = "0830,1500,1700";
 
 
@@ -50,7 +50,7 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Maximum Day Loss ($)",
             Order = 5,
-            GroupName = "Allow Trade Parameters")]
+            GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
         public int MaximumDailyLoss { get; set; } = 400;
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Stop Trading if daily Profit is ($)",
             Order = 6,
-            GroupName = "Allow Trade Parameters")]
+            GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
         public int DailyTargetProfit { get; set; } = 500;
         #endregion
 
@@ -72,7 +72,7 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Allow to move stop loss/profit target",
             Order = 14,
-            GroupName = "Stoploss/Profit")]
+            GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
         public bool AllowToMoveStopLossGain { get; set; } = true;
 
         /// <summary>
@@ -81,7 +81,7 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Stop loss (Ticks):",
             Order = 15,
-            GroupName = "Stoploss/Profit")]
+            GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
         public int StopLossInTicks { get; set; } = 120; // 25 points for MNQ
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Target 1 Profit (Ticks):",
             Order = 16,
-            GroupName = "Stoploss/Profit")]
+            GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
         public int Target1InTicks { get; set; } = 60; // 25 points for MNQ
 
 
@@ -100,17 +100,8 @@ namespace NinjaTrader.Custom.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Target 2 Profit (Ticks):",
             Order = 17,
-            GroupName = "Stoploss/Profit")]
-        public int Target2InTicks { get; set; } = 120; // 25 points for MNQ
-
-        /// <summary>
-        /// Tự tính toán sizing và stop loss/target.
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Tự tính toán sizing và stop loss/target",
-            Order = 8,
-            GroupName = "Stoploss/Profit")]
-        public bool AutoCalculateSizing { get; set; }
+            GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
+        public int Target2InTicks { get; set; } = 120; // 25 points for MNQ        
 
         /// <summary>
         /// Giá hiện tại cách target &lt; [PointToMoveTarget] thì di chuyển target.
@@ -134,8 +125,7 @@ namespace NinjaTrader.Custom.Strategies
             Target1InTicks = 60;
             Target2InTicks = 120;
 
-            AllowToMoveStopLossGain = true;
-            AutoCalculateSizing = false;
+            AllowToMoveStopLossGain = true;            
 
             PointToMoveTarget = 3;
             PointToMoveLoss = 7;

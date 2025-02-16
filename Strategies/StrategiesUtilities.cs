@@ -14,6 +14,10 @@ namespace NinjaTrader.Custom.Strategies
 {
     public class StrategiesUtilities
     {
+        public const string Configuration_StopLossTarget_Name = "Stoploss/Profit";
+        public const string Configuration_DailyPnL_Name = "Daily PnL";
+        public const string Configuration_Sizing_Name = "How to set stoploss/gain";
+
         // Ninja Trader default signal 
         public const string StopLoss_SignalName = "Stop loss";
         public const string ProfitTarget_SignalName = "Profit target";

@@ -16,10 +16,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public class FVG : BarClosedBaseClass<FVGTradeAction, FVGTradeDetail>
     {
+        // Constants 
+        const string Configuration_FVGGroup_Name = "FVG Strategy";
         public FVG() : base("FVG")
         {
             HalfPriceSignals = new List<string> { StrategiesUtilities.SignalEntry_FVGHalf };
         }
+
         /// <summary>
         /// Khoảng cách tối thiểu giữa điểm cao (thấp) nhất của cây nến 1 và điểm thấp (cao) nhất của cây nến 3
         /// </summary>
@@ -27,8 +30,28 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "Khoảng cách",
             Description = "Khoảng cách tối thiểu giữa điểm cao (thấp) nhất của cây nến 1 và điểm thấp (cao) nhất của cây nến 3",
             Order = 3,
-            GroupName = "Importants Configurations")]
+            GroupName = Configuration_FVGGroup_Name)]
         public double MinDistanceToDetectFVG { get; set; } = 0.5;
+
+        /// <summary>
+        /// Số lượng contract cho target 1
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Số lượng contract cho target 1",
+            Description = "Số lượng contract cho target 1",
+            Order = 1,
+            GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
+        public int QuantityTargetHalf { get; set; } = 2;
+
+        /// <summary>
+        /// Số lượng contract cho target 1
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Số lượng contract cho target 2",
+            Description = "Số lượng contract cho target 2",
+            Order = 2,
+            GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
+        public int QuantityTargetFull { get; set; } = 2;
 
         protected override bool IsSelling
         {
@@ -50,8 +73,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             base.SetDefaultProperties();
 
-            Description = @"Fair Value Gap";
-            Name = "FVG";
+            Description = @"Fair Value Gap Strategy";
+            Name = "Tiger";
             BarsRequiredToTrade = 10;
 
             StopLossInTicks = 120;
@@ -60,6 +83,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             SetOrderQuantity = SetOrderQuantity.Strategy;
             DefaultQuantity = 2;
+
+            QuantityTargetHalf = 2;
+            QuantityTargetFull = 2;
         }
 
         protected override void OnStateChange()
@@ -247,11 +273,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var targetFull = GetTargetPrice_Full(fVGTradeDetail, priceToSet);
 
                 EnterOrderPure(priceToSet, targetHalf, stopLossPrice,
-                    StrategiesUtilities.SignalEntry_FVGHalf, DefaultQuantity,
+                    StrategiesUtilities.SignalEntry_FVGHalf, QuantityTargetHalf,
                     IsBuying, IsSelling);
 
                 EnterOrderPure(priceToSet, targetFull, stopLossPrice,
-                    StrategiesUtilities.SignalEntry_FVGFull, DefaultQuantity,
+                    StrategiesUtilities.SignalEntry_FVGFull, QuantityTargetFull,
                     IsBuying, IsSelling);
             }
             catch (Exception ex)

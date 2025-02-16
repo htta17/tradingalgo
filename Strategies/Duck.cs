@@ -53,7 +53,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// If gain is more than [StopWhenGain], won't trade for that day
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Stop Trading if Profit is ($)", Order = 6, GroupName = "Parameters")]
+        [Display(Name = "Stop Trading if Profit is ($)", Order = 6, GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
         public int DailyTargetProfit { get; set; } = 600;
 
         [NinjaScriptProperty]

@@ -145,7 +145,7 @@ namespace NinjaTrader.Custom.Strategies
             return true;
         }
 
-        protected TradingStatus TradingStatus
+        protected virtual TradingStatus TradingStatus
         {
             get
             {

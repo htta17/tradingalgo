@@ -83,7 +83,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
 
             Description = @"Fair Value Gap Strategy";
-            Name = "Monkey";
+            Name = "Monkey (FVG + WAE)";
             BarsRequiredToTrade = 10;
 
             WayToSetStopLoss = FVGWayToSetStopLoss.BasedOnFVGGap;
@@ -320,9 +320,20 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetTargetPrice_Half(FVGTradeDetail tradeDetail, double setPrice)
         {
+            var targetBasedOnFVG =
+                (tradeDetail.StopLossDistance < 7) ? 5
+                : (tradeDetail.StopLossDistance >= 7 && tradeDetail.StopLossDistance < 10) ? 5
+                : (tradeDetail.StopLossDistance >= 10 && tradeDetail.StopLossDistance < 15) ? 10
+                : (tradeDetail.StopLossDistance >= 15 && tradeDetail.StopLossDistance < 20) ? 10
+                : 15;
+
+            var target = WayToSetStopLoss == FVGWayToSetStopLoss.FixedNumberOfTicks
+                ? (Target1InTicks * TickSize)
+                : targetBasedOnFVG;
+
             return CurrentTradeAction == FVGTradeAction.Buy
-                ? setPrice + (Target1InTicks * TickSize)
-                : setPrice - (Target1InTicks * TickSize);
+                ? setPrice + target
+                : setPrice - target;
         }
 
         protected override double GetTargetPrice_Full(FVGTradeDetail tradeDetail, double setPrice)

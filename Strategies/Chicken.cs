@@ -142,14 +142,31 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Trending Trade?", Order = 1, GroupName = Configuration_ChickkenParams_Name)]
-        public bool AllowTrendingTrade { get; set; } = true;
+        public bool AllowTrendingTrade { get; set; }
 
         /// <summary>
         /// Cho phép trade theo trending
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Reversal Trade?", Order = 2, GroupName = Configuration_ChickkenParams_Name)]
-        public bool AllowReversalTrade { get; set; } = true;
+        public bool AllowReversalTrade { get; set; }
+
+
+        protected virtual bool InternalAllowTrendingTrade
+        {
+            get 
+            {
+                return AllowTrendingTrade;
+            }
+        }
+
+        protected virtual bool InternalAllowReversalTrade
+        {
+            get
+            {
+                return AllowTrendingTrade;
+            }
+        }
 
         #endregion
 
@@ -239,7 +256,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             // Configure cho phép trade reversal 
-            if (AllowReversalTrade)
+            if (InternalAllowReversalTrade)
             {
                 // Cho phép trade reverse (Bollinger Band) từ 8:35 am đến 11:30pm
                 if (currentPrice > lowerBB_5m && currentPrice < upperBB_5m)
@@ -263,7 +280,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
 
-            if (AllowTrendingTrade)
+            if (InternalAllowTrendingTrade)
             {
                 // Có 2 cây nến kề nhau có cùng volume
                 if (waeValuesSeries[0].HasBEARVolume && waeValuesSeries[1].HasBEARVolume)

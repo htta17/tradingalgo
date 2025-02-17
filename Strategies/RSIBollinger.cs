@@ -21,6 +21,7 @@ using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
+using NinjaTrader.CQG.ProtoBuf;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -28,15 +29,31 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public class RSIBollinger : BarClosedBaseClass<RSIBollingerAction, RSIBollingerAction>
     {
-        protected override bool IsBuying
-        { 
-            get { return CurrentTradeAction == RSIBollingerAction.Buy; }
+        protected TradingStatus TigerTradingStatus { get; set; }
+
+        /// <summary>
+        /// Không sử dụng [TradingStatus] trong RSIBollinger do không được set trạng thái. 
+        /// </summary>
+        protected override TradingStatus TradingStatus
+        {  
+            get 
+            { 
+                return TigerTradingStatus; 
+            } 
         }
 
-        protected override bool IsSelling
-        {
-            get { return CurrentTradeAction == RSIBollingerAction.Sell; }
-        }
+        private const string Configuration_TigerParams_Name = "Tiger parameters";
+
+
+        /// <summary>
+        /// Chiều cao tối thiếu của body cây nến ABS(Open - Close) 
+        /// </summary>
+        /// [NinjaScriptProperty]
+        [Display(Name = "Minimum Candle body size",
+            Order = 1,
+            Description = "Chiều cao tối thiếu của body cây nến",
+            GroupName = Configuration_TigerParams_Name)]        
+        public int MinimumCandleBody {  get; set; }
 
         /// <summary>
         /// OverSoldValue
@@ -44,7 +61,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Over sold value",
             Order = 1,
-            GroupName = "Tiger parameters")]
+            GroupName = Configuration_TigerParams_Name)]
         [Range(0, 49)]
         public int OverSoldValue { get; set; } = 30;
 
@@ -55,7 +72,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Over bought value",
             Order = 1,
-            GroupName = "Tiger parameters")]
+            GroupName = Configuration_TigerParams_Name)]
         [Range(51, 100)]
         public int OverBoughtValue { get; set; } = 70;
 
@@ -67,11 +84,36 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             OverBoughtValue = 70;
             OverSoldValue = 30;
+            MinimumCandleBody = 2;
+
+            Target1InTicks = 40;
+            Target2InTicks = 120;
+            StopLossInTicks = 120;
+
+            DefaultQuantity = 2; 
         }
         
         private Bollinger bollinger1 { get; set; }
         private Bollinger bollinger2 { get; set; }
         private RSI rsi { get; set; }
+
+        
+
+        protected override bool IsBuying
+        { 
+            get 
+            { 
+                return CurrentTradeAction == RSIBollingerAction.SetBuyOrder; 
+            } 
+        }
+
+        protected override bool IsSelling
+        {
+            get
+            {
+                return CurrentTradeAction == RSIBollingerAction.SetSellOrder;
+            }
+        }
 
         protected double lowPrice_5m = -1;
         protected double highPrice_5m = -1;
@@ -89,6 +131,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ClearOutputWindow();
                 AddDataSeries(BarsPeriodType.Minute, 5);
                 AddDataSeries(BarsPeriodType.Minute, 1);
+
+                TigerTradingStatus = TradingStatus.Idle;
             }
             else if (State == State.DataLoaded)
             {
@@ -107,7 +151,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 AddChartIndicator(bollinger1);
                 AddChartIndicator(bollinger2);                
 
-                AddChartIndicator(rsi); 
+                AddChartIndicator(rsi);
+
+               
             }
             else if (State == State.Realtime)
             {
@@ -119,11 +165,42 @@ namespace NinjaTrader.NinjaScript.Strategies
                 catch (Exception e)
                 {
                     LocalPrint("[OnStateChange] - ERROR" + e.Message);
-                }
+                }       
             }
         }
 
-		protected override void OnBarUpdate()
+        protected virtual void EnterOrder(RSIBollingerAction tradeAction)
+        {
+            // Set global values
+            CurrentTradeAction = tradeAction;
+
+            // Chưa cho move stop loss
+            StartMovingStoploss = false;
+
+            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
+
+            LocalPrint($"Enter {action} at {Time[0]}");
+
+            double priceToSet = GetSetPrice(tradeAction);
+            filledPrice = priceToSet;
+
+            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet);
+            var targetHalf = GetTargetPrice_Half(CurrentTradeAction, priceToSet);
+            var targetFull = GetTargetPrice_Full(CurrentTradeAction, priceToSet);
+
+            try
+            {                
+                EnterOrderPure(priceToSet, targetHalf, stopLossPrice, StrategiesUtilities.SignalEntry_RSIBollingerHalf, DefaultQuantity, IsBuying, IsSelling);
+             
+                EnterOrderPure(priceToSet, targetFull, stopLossPrice, StrategiesUtilities.SignalEntry_RSIBollingerFull, DefaultQuantity, IsBuying, IsSelling);
+            }
+            catch (Exception ex)
+            {
+                LocalPrint($"[EnterOrder] - ERROR: " + ex.Message);
+            }
+        }
+
+        protected override void OnBarUpdate()
 		{
             //Add your custom strategy logic here.
             var passTradeCondition = CheckingTradeCondition();
@@ -139,38 +216,87 @@ namespace NinjaTrader.NinjaScript.Strategies
                 openPrice_5m = Open[0];
                 closePrice_5m = Close[0];
 
-                
+                if (TigerTradingStatus == TradingStatus.Idle)
+                {
+                    var shouldTrade = ShouldTrade();
+
+                    LocalPrint($"Check trading condition, result: {shouldTrade}");
+
+                    if (shouldTrade == RSIBollingerAction.WaitForSellSignal || shouldTrade == RSIBollingerAction.WaitForBuySignal)
+                    {
+                        TigerTradingStatus = TradingStatus.WatingForConfirmation;
+                    }
+                    else if (shouldTrade == RSIBollingerAction.SetBuyOrder || shouldTrade == RSIBollingerAction.SetSellOrder)
+                    {
+                        TigerTradingStatus = TradingStatus.PendingFill;
+
+                        // Enter Order
+                        EnterOrder(shouldTrade);                            
+                    }
+                }
+                else if (TigerTradingStatus == TradingStatus.WatingForConfirmation)
+                {
+                    var shouldTrade = ShouldTrade();
+
+                    if (shouldTrade == RSIBollingerAction.SetBuyOrder || shouldTrade == RSIBollingerAction.SetSellOrder)
+                    {
+                        TigerTradingStatus = TradingStatus.PendingFill;
+
+                        // Enter Order
+                        EnterOrder(shouldTrade);
+                    }
+                }
+                else if (TigerTradingStatus == TradingStatus.PendingFill)
+                {
+                    // Kiểm tra các điều kiện để cancel lệnh
+                }
+                else if (TigerTradingStatus == TradingStatus.OrderExists)
+                {
+                }
             }
         }
 
-        protected override bool IsHalfPriceOrder(Order order)
+        protected override bool IsHalfPriceOrder(Cbi.Order order)
         {
             throw new NotImplementedException();
         }
 
-        protected override bool IsFullPriceOrder(Order order)
+        protected override bool IsFullPriceOrder(Cbi.Order order)
         {
             throw new NotImplementedException();
         }
 
         protected override double GetStopLossPrice(RSIBollingerAction tradeAction, double setPrice)
         {
-            throw new NotImplementedException();
+            var stopLoss = StopLossInTicks * TickSize;
+            
+            return tradeAction == RSIBollingerAction.SetBuyOrder
+                ? setPrice - stopLoss
+                : setPrice + stopLoss;
         }
 
         protected override double GetSetPrice(RSIBollingerAction tradeAction)
         {
-            throw new NotImplementedException();
+            // Always return openPrice_5m because current candle must be reverse candle
+            return openPrice_5m;
         }
 
         protected override double GetTargetPrice_Half(RSIBollingerAction tradeAction, double setPrice)
         {
-            throw new NotImplementedException();
+            var target1 = TickSize * Target1InTicks; 
+
+            return tradeAction == RSIBollingerAction.SetBuyOrder
+                ? setPrice + target1
+                : setPrice - target1; 
         }
 
         protected override double GetTargetPrice_Full(RSIBollingerAction tradeAction, double setPrice)
         {
-            throw new NotImplementedException();
+            var target2 = TickSize * Target2InTicks;
+
+            return tradeAction == RSIBollingerAction.SetBuyOrder
+                ? setPrice + target2
+                : setPrice - target2;
         }
 
         protected override RSIBollingerAction ShouldTrade()
@@ -185,12 +311,69 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var rsi_5m = rsi.Value[0];
 
-            if (rsi_5m > OverBoughtValue)
-            { 
-                
-            }
-            else if (rsi_5m < OverSoldValue)
+            if (TigerTradingStatus == TradingStatus.Idle)
             {
+                // RSI > 70 
+                // Cây nến có điểm cao nhất vượt qua Bollinger Band (Std=2)                
+                if (rsi_5m > OverBoughtValue && High[0] > bollinger2.Upper[0])
+                {
+                    // Cây nến hiện tại là cây nến XANH 
+                    if (Close[0] > Open[0] && Close[0] - Open[0] > MinimumCandleBody)
+                    {
+                        // Chờ đến ĐỎ
+                        return RSIBollingerAction.WaitForSellSignal;
+                    }
+                    else
+                    {
+                        // Set lệnh ngay
+                        return RSIBollingerAction.SetSellOrder;
+                    }
+                }
+                else if (rsi_5m < OverSoldValue && Low[0] < bollinger2.Lower[0])
+                {
+                    // Cây nến hiện tại là cây nến ĐỎ
+                    if (Open[0] > Open[0] && Open[0] - Close[0] > MinimumCandleBody)
+                    {
+                        // Chờ đến ĐỎ
+                        return RSIBollingerAction.WaitForBuySignal;
+                    }
+                    else
+                    {
+                        // Wait for confirmation 
+                        return RSIBollingerAction.SetBuyOrder;
+                    }                   
+                }
+            }
+            else if (TigerTradingStatus == TradingStatus.WatingForConfirmation)
+            {
+                if (CurrentTradeAction == RSIBollingerAction.WaitForSellSignal)
+                {
+                    // Cây nến hiện tại là cây nến XANH 
+                    if (Close[0] > Open[0] && Close[0] - Open[0] > MinimumCandleBody)
+                    {
+                        // Chờ đến ĐỎ
+                        return RSIBollingerAction.WaitForSellSignal;
+                    }
+                    else
+                    {
+                        // Set lệnh ngay
+                        return RSIBollingerAction.SetSellOrder;
+                    }
+                }
+                else if (CurrentTradeAction == RSIBollingerAction.WaitForBuySignal)
+                {
+                    // Cây nến hiện tại là cây nến ĐỎ
+                    if (Open[0] > Open[0] && Open[0] - Close[0] > MinimumCandleBody)
+                    {
+                        // Chờ đến ĐỎ
+                        return RSIBollingerAction.WaitForBuySignal;
+                    }
+                    else
+                    {
+                        // Wait for confirmation 
+                        return RSIBollingerAction.SetBuyOrder;
+                    }
+                }
             }
 
             return RSIBollingerAction.NoTrade; 

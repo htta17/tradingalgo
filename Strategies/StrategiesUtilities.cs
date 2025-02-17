@@ -36,6 +36,11 @@ namespace NinjaTrader.Custom.Strategies
         public const string SignalEntry_VikkiHalf = "Entry-VH";
         public const string SignalEntry_VikkiFull = "Entry-VF";
 
+        //RSI-Bollinger 
+        public const string SignalEntry_RSIBollingerHalf = "Entry-BH";
+        public const string SignalEntry_RSIBollingerFull = "Entry-BF";
+
+
         /// <summary>
         ///  Check xem thời gian hiện tại có gần với thời gian có news không.
         /// </summary>
@@ -151,7 +156,7 @@ namespace NinjaTrader.Custom.Strategies
 
             return true;
         }
-        
+
         public static HashSet<string> SignalEntries = new HashSet<string>
         {
             // Chicken 
@@ -161,8 +166,12 @@ namespace NinjaTrader.Custom.Strategies
             SignalEntry_TrendingFull,
 
             // FVG 
-            SignalEntry_FVGHalf, 
-            SignalEntry_FVGFull
+            SignalEntry_FVGHalf,
+            SignalEntry_FVGFull, 
+
+            //RSI-Bollinger 
+            SignalEntry_RSIBollingerHalf,
+            SignalEntry_RSIBollingerFull
         };
 
         public static string GenerateKey(Order order)
@@ -190,13 +199,13 @@ namespace NinjaTrader.Custom.Strategies
     }
 
     public class SimpleInfoOrder
-    { 
+    {
         public string Name { get; set; }
 
         public string FromEntrySignal { get; set; }
     }
 
-    public class  OrderDetail 
+    public class OrderDetail
     {
         public double Price { get; set; }
 
@@ -213,7 +222,7 @@ namespace NinjaTrader.Custom.Strategies
         public int Quantity { get; set; }
     }
 
-    public class  FVGTradeDetail
+    public class FVGTradeDetail
     {
         public FVGTradeAction FVGTradeAction { get; set; }
 
@@ -230,15 +239,15 @@ namespace NinjaTrader.Custom.Strategies
 
         private int _noOfContracts = 0;
         public int NoOfContracts
-        { 
-            get 
+        {
+            get
             {
                 if (_noOfContracts == 0)
                 {
-                    _noOfContracts = (int) Math.Round(120 / Math.Abs(FilledPrice - StopLossPrice));
+                    _noOfContracts = (int)Math.Round(120 / Math.Abs(FilledPrice - StopLossPrice));
                     if (_noOfContracts == 0)
                     {
-                        _noOfContracts = 1; 
+                        _noOfContracts = 1;
                     }
                 }
                 return _noOfContracts;
@@ -252,7 +261,7 @@ namespace NinjaTrader.Custom.Strategies
         /// </summary>
         public double StopLossDistance
         {
-            get 
+            get
             {
                 if (stopLossDistance == null)
                 {
@@ -278,5 +287,10 @@ namespace NinjaTrader.Custom.Strategies
                 return targetProfitDistance.Value;
             }
         }
+    }
+
+    public class RSITradeDetail
+    { 
+
     }
 }

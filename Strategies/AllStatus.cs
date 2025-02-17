@@ -173,9 +173,13 @@ namespace NinjaTrader.Custom.Strategies
         /// </summary>
         NoTrade,
 
-        Buy, 
+        WaitForBuySignal, 
 
-        Sell
+        WaitForSellSignal, 
+
+        SetBuyOrder, 
+
+        SetSellOrder
     }
 
 

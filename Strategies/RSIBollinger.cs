@@ -97,8 +97,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         private Bollinger bollinger2 { get; set; }
         private RSI rsi { get; set; }
 
-        
-
         protected override bool IsBuying
         { 
             get 

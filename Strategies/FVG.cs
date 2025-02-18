@@ -321,10 +321,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override double GetTargetPrice_Half(FVGTradeDetail tradeDetail, double setPrice)
         {
             var targetBasedOnFVG =
-                (tradeDetail.StopLossDistance < 7) ? 5
-                : (tradeDetail.StopLossDistance >= 7 && tradeDetail.StopLossDistance < 10) ? 5
-                : (tradeDetail.StopLossDistance >= 10 && tradeDetail.StopLossDistance < 15) ? 10
-                : (tradeDetail.StopLossDistance >= 15 && tradeDetail.StopLossDistance < 20) ? 10
+                (tradeDetail.TargetProfitDistance < 7) ? 5
+                : (tradeDetail.TargetProfitDistance >= 7 && tradeDetail.TargetProfitDistance < 10) ? 5
+                : (tradeDetail.TargetProfitDistance >= 10 && tradeDetail.TargetProfitDistance < 15) ? 7
+                : (tradeDetail.TargetProfitDistance >= 15 && tradeDetail.TargetProfitDistance < 20) ? 10
                 : 15;
 
             var target = WayToSetStopLoss == FVGWayToSetStopLoss.FixedNumberOfTicks
@@ -339,7 +339,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override double GetTargetPrice_Full(FVGTradeDetail tradeDetail, double setPrice)
         {
             var targetBasedOnFVG =
-                (tradeDetail.TargetProfitDistance < 7) ? tradeDetail.TargetProfitDistance
+                (tradeDetail.TargetProfitDistance < 7) ? 7
                 : (tradeDetail.TargetProfitDistance >= 7 && tradeDetail.TargetProfitDistance < 10) ? 7
                 : (tradeDetail.TargetProfitDistance >= 10 && tradeDetail.TargetProfitDistance < 15) ? 10
                 : (tradeDetail.TargetProfitDistance >= 15 && tradeDetail.TargetProfitDistance < 20) ? 15

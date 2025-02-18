@@ -385,6 +385,7 @@
     <Compile Include="Strategies\Vikki.cs" />
     <Compile Include="Strategies\RSIBollinger.cs" />
     <Compile Include="Strategies\Rooster.cs" />
+    <Compile Include="Strategies\Hen.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

@@ -151,7 +151,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "Reversal Trade?", Order = 2, GroupName = Configuration_ChickkenParams_Name)]
         public bool AllowReversalTrade { get; set; }
 
-
         protected virtual bool InternalAllowTrendingTrade
         {
             get 
@@ -164,7 +163,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return AllowTrendingTrade;
+                return AllowReversalTrade;
             }
         }
 

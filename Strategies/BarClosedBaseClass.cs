@@ -629,13 +629,15 @@ namespace NinjaTrader.Custom.Strategies
             }
             else if (TradingStatus == TradingStatus.PendingFill)
             {
-                LocalPrint($"Transition to live, convert all pending fill orders to realtime");
+                LocalPrint($"Transition to live, convert all pending fill orders to realtime.");
                 var clonedList = ActiveOrders.Values.ToList();
                 var len = clonedList.Count;
                 for (var i = 0; i < len; i++)
                 {
                     var order = clonedList[i];
-                    GetRealtimeOrder(order);
+                    var newOrder = GetRealtimeOrder(order);
+
+                    CancelOrder(newOrder);
                 }
             }
         }

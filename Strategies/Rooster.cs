@@ -27,6 +27,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public class Rooster : Chicken
 	{
+        // Không cho phép trade ngược trend
         protected override bool InternalAllowReversalTrade
         { 
             get { return false; }

@@ -42,7 +42,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
             if (State == State.SetDefaults)
             {
-                Description = @"Enter the description for your new custom Strategy here.";
+                Description = @"EMA 20/50/100 + RSI 40/60s.";
                 Name = "Vikki";
                 Calculate = Calculate.OnBarClose;
                 EntriesPerDirection = 1;

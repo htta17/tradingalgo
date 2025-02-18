@@ -31,12 +31,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         // Không cho phép trade ngược trend
         protected override bool InternalAllowReversalTrade
         {
-            get { return false; }
+            get { return true; }
         }
 
         protected override bool InternalAllowTrendingTrade
         {
-            get { return true; }
+            get { return false; }
         }
 
         protected override void SetDefaultProperties()

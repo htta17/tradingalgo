@@ -29,21 +29,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public class RSIBollinger : BarClosedBaseClass<RSIBollingerAction, RSIBollingerAction>
     {
-        protected TradingStatus TigerTradingStatus { get; set; }
-
-        /// <summary>
-        /// Không sử dụng [TradingStatus] trong RSIBollinger do không được set trạng thái. 
-        /// </summary>
-        protected override TradingStatus TradingStatus
-        {  
-            get 
-            { 
-                return TigerTradingStatus; 
-            } 
+        public RSIBollinger() : base("TIGER")
+        {
+            HalfPriceSignals = new List<string> { StrategiesUtilities.SignalEntry_RSIBollingerHalf };
         }
+        protected TradingStatus TigerTradingStatus { get; set; }        
 
         private const string Configuration_TigerParams_Name = "Tiger parameters";
-
 
         /// <summary>
         /// Chiều cao tối thiếu của body cây nến ABS(Open - Close) 
@@ -64,7 +56,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             GroupName = Configuration_TigerParams_Name)]
         [Range(0, 49)]
         public int OverSoldValue { get; set; } = 30;
-
 
         /// <summary>
         /// OverSoldValue
@@ -198,6 +189,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        protected override void OnOrderUpdate(Cbi.Order order, double limitPrice, double stopPrice, int quantity, int filled, double averageFillPrice, OrderState orderState, DateTime time, ErrorCode error, string comment)
+        {
+            base.OnOrderUpdate(order, limitPrice, stopPrice, quantity, filled, averageFillPrice, orderState, time, error, comment);
+        }
+
         protected override void OnBarUpdate()
 		{
             //Add your custom strategy logic here.
@@ -247,9 +243,26 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (TigerTradingStatus == TradingStatus.PendingFill)
                 {
                     // Kiểm tra các điều kiện để cancel lệnh
+                    if (CurrentTradeAction == RSIBollingerAction.SetBuyOrder && Low[0] > bollinger1.Middle[0])
+                    {
+                        LocalPrint($"Price is greater than Bollinger middle, cancel all pending orders");
+                        // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
+                        CancelAllPendingOrder();
+
+                        TigerTradingStatus = TradingStatus.Idle;
+                    }   
+                    else if (CurrentTradeAction == RSIBollingerAction.SetSellOrder && High[0] < bollinger1.Middle[0])
+                    {
+                        LocalPrint($"Price is smaller than Bollinger middle, Cancel all pending orders");
+                        // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
+                        CancelAllPendingOrder();
+
+                        TigerTradingStatus = TradingStatus.Idle;
+                    }    
                 }
                 else if (TigerTradingStatus == TradingStatus.OrderExists)
                 {
+                    
                 }
             }
         }

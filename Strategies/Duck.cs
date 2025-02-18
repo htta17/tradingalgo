@@ -101,7 +101,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (State == State.SetDefaults)
             {
                 Description = @"Using Bollinger bands + DEMA 5 mins, and EMA 29 + EMA 51 in 1 minute frame to trade.";
-                Name = this.Name;
+                Name = "Duck (Realtime EMA29/51 + Bollinger)";
                 Calculate = Calculate.OnPriceChange;
                 EntriesPerDirection = 1;
                 EntryHandling = EntryHandling.AllEntries;

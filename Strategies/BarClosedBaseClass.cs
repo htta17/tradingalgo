@@ -24,12 +24,23 @@ namespace NinjaTrader.Custom.Strategies
         {
         }
 
+        protected int CurrentOrderCount { get; set; }
+
         protected T1 CurrentTradeAction { get; set; }
 
         /// <summary>
         /// Biến này dùng để di chuyển stop loss khi giá BẮT ĐẦU gần chạm đến target2 (để room cho chạy).
         /// </summary>
         protected bool StartMovingStoploss = false;
+
+        /// <summary>
+        /// If loss is more than [MaximumDayLoss], stop trading for that day
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Cho phép ghi log",
+            Order = 1,
+            GroupName = StrategiesUtilities.Configuration_General_Name)]
+        public bool AllowWriteLog { get; set; }
 
         #region Allow Trade Parameters
 
@@ -128,6 +139,8 @@ namespace NinjaTrader.Custom.Strategies
 
             PointToMoveTarget = 3;
             PointToMoveLoss = 7;
+
+            AllowWriteLog = false;
         }
 
         protected bool IsTradingHour()
@@ -148,7 +161,7 @@ namespace NinjaTrader.Custom.Strategies
         protected virtual TradingStatus TradingStatus
         {
             get
-            {
+            {                
                 if (!SimpleActiveOrders.Any())
                 {
                     return TradingStatus.Idle;
@@ -323,6 +336,7 @@ namespace NinjaTrader.Custom.Strategies
                             SimpleActiveOrders.Add(key, new SimpleInfoOrder { FromEntrySignal = order.FromEntrySignal, Name = order.Name });
                         }
                     }
+                    CurrentOrderCount = SimpleActiveOrders.Count;
                 }
             }
             catch (Exception e)
@@ -348,6 +362,11 @@ namespace NinjaTrader.Custom.Strategies
 
         protected void LocalPrint(object val)
         {
+            if (!AllowWriteLog)
+            {
+                return;
+            }    
+            
             if (val.GetType() == typeof(string))
             {
                 Print($"{LogPrefix}-{Time?[0]}-" + val);
@@ -355,7 +374,7 @@ namespace NinjaTrader.Custom.Strategies
             else
             {
                 Print(val);
-            }
+            }            
         }
 
         protected abstract double GetSetPrice(T2 tradeAction);

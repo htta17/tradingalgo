@@ -140,7 +140,7 @@ namespace NinjaTrader.Custom.Strategies
             PointToMoveTarget = 3;
             PointToMoveLoss = 7;
 
-            AllowWriteLog = false;
+            AllowWriteLog = true;
         }
 
         protected bool IsTradingHour()

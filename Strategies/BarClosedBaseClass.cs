@@ -1,10 +1,13 @@
-﻿using NinjaTrader.Cbi;
+﻿using Newtonsoft.Json.Linq;
+using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using NinjaTrader.NinjaScript;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Net.Http;
+using System.Xml.Linq;
 
 namespace NinjaTrader.Custom.Strategies
 {
@@ -18,10 +21,13 @@ namespace NinjaTrader.Custom.Strategies
         public BarClosedBaseClass(string logPrefix)
         {
             LogPrefix = logPrefix;
+
+            CrawlNewsTimeFromWeb();
         }
 
         public BarClosedBaseClass() : this("[BASED]")
         {
+            
         }
 
         protected int CurrentOrderCount { get; set; }
@@ -123,6 +129,26 @@ namespace NinjaTrader.Custom.Strategies
         /// </summary>
         protected double PointToMoveLoss = 7;
         #endregion
+
+        private async void CrawlNewsTimeFromWeb()
+        {
+            HttpClient client = new HttpClient();
+            try
+            {
+                string url = "https://www.investing.com/economic-calendar/"; // Replace with your API
+                HttpResponseMessage response = await client.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+                string responseBody = await response.Content.ReadAsStringAsync();
+
+                JObject jsonData = JObject.Parse(responseBody);
+
+                LocalPrint($"{jsonData}");
+            }
+            catch (Exception ex)
+            {
+                Print($"Error fetching data: {ex.Message}");
+            }
+        }
 
         protected virtual void SetDefaultProperties()
         {

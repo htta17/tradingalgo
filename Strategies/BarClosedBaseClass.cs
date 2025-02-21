@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using NinjaTrader.Cbi;
+﻿using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using NinjaTrader.NinjaScript;
 using System;
@@ -143,9 +142,7 @@ namespace NinjaTrader.Custom.Strategies
                 response.EnsureSuccessStatusCode();
                 string responseBody = await response.Content.ReadAsStringAsync();
 
-                JObject jsonData = JObject.Parse(responseBody);
-
-                LocalPrint($"{jsonData}");
+                LocalPrint($"{responseBody}");
             }
             catch (Exception ex)
             {

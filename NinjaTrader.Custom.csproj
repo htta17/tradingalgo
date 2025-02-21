@@ -66,10 +66,7 @@
     </Reference>
     <Reference Include="NinjaTrader.Vendor">
       <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Vendor.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\Newtonsoft.Json.dll</HintPath>
-    </Reference>
+    </Reference>    
     <Reference Include="WindowsBase">
       <HintPath>C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll</HintPath>
     </Reference>

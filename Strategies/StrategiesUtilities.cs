@@ -41,6 +41,9 @@ namespace NinjaTrader.Custom.Strategies
         public const string SignalEntry_RSIBollingerHalf = "Entry-BH";
         public const string SignalEntry_RSIBollingerFull = "Entry-BF";
 
+        // Some default news time, being used for many places.
+        public const string DefaultNewsTime = "0830,1500,1700";
+
 
         /// <summary>
         ///  Check xem thời gian hiện tại có gần với thời gian có news không.

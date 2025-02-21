@@ -27,6 +27,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 StrategiesUtilities.SignalEntry_ReversalHalf,
                 StrategiesUtilities.SignalEntry_TrendingHalf
             };
+
+            StrategySignals = new List<string>
+            {
+                StrategiesUtilities.SignalEntry_ReversalHalf,
+                StrategiesUtilities.SignalEntry_TrendingHalf,
+                StrategiesUtilities.SignalEntry_TrendingFull,
+                StrategiesUtilities.SignalEntry_ReversalHalf,
+            };
         }
         private const int DEMA_Period = 9;
         private const int FiveMinutes_Period = 14;

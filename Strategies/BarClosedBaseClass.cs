@@ -56,7 +56,7 @@ namespace NinjaTrader.Custom.Strategies
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
-        public string NewsTimeInput { get; set; } = "0830,1500,1700";
+        public string NewsTimeInput { get; set; }
 
 
         protected List<int> NewsTimes = new List<int>();
@@ -68,7 +68,7 @@ namespace NinjaTrader.Custom.Strategies
         [Display(Name = "Maximum Day Loss ($)",
             Order = 5,
             GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
-        public int MaximumDailyLoss { get; set; } = 400;
+        public int MaximumDailyLoss { get; set; }
 
         /// <summary>
         /// If gain is more than [StopWhenGain], stop trading for that day 
@@ -79,6 +79,8 @@ namespace NinjaTrader.Custom.Strategies
             GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
         public int DailyTargetProfit { get; set; } = 500;
         #endregion
+
+        protected Trends FiveMinutes_Trends { get; set; }
 
 
         #region Stoploss/Profit
@@ -132,6 +134,7 @@ namespace NinjaTrader.Custom.Strategies
 
         private async void CrawlNewsTimeFromWeb()
         {
+            return; 
             HttpClient client = new HttpClient();
             try
             {
@@ -152,10 +155,10 @@ namespace NinjaTrader.Custom.Strategies
 
         protected virtual void SetDefaultProperties()
         {
-            MaximumDailyLoss = 400;
+            MaximumDailyLoss = 260;
             DailyTargetProfit = 500;
             AllowToMoveStopLossGain = true;
-            NewsTimeInput = "0830,1500,1700";
+            NewsTimeInput = StrategiesUtilities.DefaultNewsTime;
 
             StopLossInTicks = 120;
             Target1InTicks = 60;
@@ -167,6 +170,11 @@ namespace NinjaTrader.Custom.Strategies
             PointToMoveLoss = 7;
 
             AllowWriteLog = true;
+
+            //FiveMinutes_Trends = Trends.Unknown;
+
+            CountOrder = 0;
+            HasEntrySignal = false;
         }
 
         protected bool IsTradingHour()
@@ -187,12 +195,12 @@ namespace NinjaTrader.Custom.Strategies
         protected virtual TradingStatus TradingStatus
         {
             get
-            {                
-                if (!SimpleActiveOrders.Any())
+            {
+                if (CountOrder == 0)
                 {
                     return TradingStatus.Idle;
                 }
-                else if (SimpleActiveOrders.Values.Any(order => StrategiesUtilities.SignalEntries.Contains(order.Name)))
+                else if (HasEntrySignal)
                 {
                     return TradingStatus.PendingFill;
                 }
@@ -319,6 +327,14 @@ namespace NinjaTrader.Custom.Strategies
         protected Dictionary<string, SimpleInfoOrder> SimpleActiveOrders = new Dictionary<string, SimpleInfoOrder>();
 
         private readonly object lockOjbject = new Object();
+
+        protected int CountOrder { get; set; }
+
+        /// <summary>
+        /// Check nếu SimpleActiveOrders có entry signal (vd: Entry-TH, Entry-RF, etc.) <br/>
+        /// Dùng để check xem có lệnh (PendingFill order) chờ hay không.
+        /// </summary>
+        protected bool HasEntrySignal { get; set; }
         protected override void OnOrderUpdate(Order order,
             double limitPrice,
             double stopPrice,
@@ -346,6 +362,14 @@ namespace NinjaTrader.Custom.Strategies
                     {
                         ActiveOrders.Remove(key);
                         SimpleActiveOrders.Remove(key);
+
+                        CountOrder--;
+
+                        // Nếu đang 
+                        if (HasEntrySignal)
+                        {
+                            HasEntrySignal = SimpleActiveOrders.Values.Any(a => StrategySignals.Contains(a.Name));
+                        }
                     }
                     else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
                     {
@@ -360,9 +384,15 @@ namespace NinjaTrader.Custom.Strategies
                         if (!SimpleActiveOrders.ContainsKey(key))
                         {
                             SimpleActiveOrders.Add(key, new SimpleInfoOrder { FromEntrySignal = order.FromEntrySignal, Name = order.Name });
+                            
+                            CountOrder++;
+
+                            if (!HasEntrySignal && StrategySignals.Any(c => c == key))
+                            {
+                                HasEntrySignal = true;
+                            }
                         }
-                    }
-                    CurrentOrderCount = SimpleActiveOrders.Count;
+                    }                    
                 }
             }
             catch (Exception e)
@@ -564,6 +594,12 @@ namespace NinjaTrader.Custom.Strategies
         protected DateTime filledTime = DateTime.Now;
 
         protected List<string> HalfPriceSignals { get; set; }
+
+        /// <summary>
+        /// All signals being used for this strategy, includes Half and Full size 
+        /// </summary>
+        protected List<string> StrategySignals { get; set; }
+
         // Kéo stop loss/gain
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {

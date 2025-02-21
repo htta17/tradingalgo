@@ -21,6 +21,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         public FVG() : base("FVG")
         {
             HalfPriceSignals = new List<string> { StrategiesUtilities.SignalEntry_FVGHalf };
+
+            StrategySignals = new List<string>
+            {
+                StrategiesUtilities.SignalEntry_FVGHalf,
+                StrategiesUtilities.SignalEntry_FVGFull
+            };
         }
 
         /// <summary>

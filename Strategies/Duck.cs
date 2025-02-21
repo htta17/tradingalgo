@@ -29,7 +29,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public class Duck : Strategy
 	{
-        private int DEMA_Period = 9;
+        private const int DEMA_Period = 9;
+
+        private const string Configuration_DuckParams_Name = "General configurations";
+
+        private const string Configuration_ATMParams_Name = "ATM strategies";
+
 
         private string atmStrategyId = string.Empty;
         private string orderId = string.Empty;
@@ -40,52 +45,55 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>
         /// Khoảng cách đảm bảo cho việc giá của stock chạy đúng hướng.
         /// </summary>
-        private double WarranteeFee = 3.0;
+        private double WarranteeFee;
 
         /// <summary>
         /// If loss is more than [MaximumDayLoss], won't trade for that day
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Maximum Day Loss ($)", Order = 5, GroupName = "Parameters")]
-        public int MaximumDayLoss { get; set; } = 400;
+        [Display(Name = "Maximum Day Loss ($)", Order = 5, GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
+        public int MaximumDayLoss { get; set; }
 
         /// <summary>
         /// If gain is more than [StopWhenGain], won't trade for that day
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Stop Trading if Profit is ($)", Order = 6, GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
-        public int DailyTargetProfit { get; set; } = 600;
+        public int DailyTargetProfit { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name = "Allow to move stop gain/loss", Order = 7, GroupName = "Parameters")]
-        public bool AllowToMoveStopLossGain { get; set; } = true;
+        [Display(Name = "Allow to move stop gain/loss", Order = 7, GroupName = Configuration_DuckParams_Name)]
+        public bool AllowToMoveStopLossGain { get; set; } 
 
         /// <summary>
         /// Kiếm tra giờ trade(8:00-15:00)
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Check Trading Hour", Order = 8, GroupName = "Parameters")]
-        public bool CheckTradingHour { get; set; } = true;        
+        [Display(Name = "Check Trading Hour", Order = 8, GroupName = Configuration_DuckParams_Name)]
+        public bool CheckTradingHour { get; set; } 
 
         [NinjaScriptProperty]
-        [Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = "Parameters")]
-        public string NewsTimeInput { get; set; } = "0830";
-
-        /// <summary>
-        /// ATM name for live trade.
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Default ATM Strategy", Description = "Default ATM Strategy", Order = 4, GroupName = "Importants Configurations")]
-        [TypeConverter(typeof(ATMStrategyConverter))]
-        public string FullATMName { get; set; } = "Half_MNQ";
+        [Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = Configuration_DuckParams_Name)]
+        public string NewsTimeInput { get; set; } 
 
         /// <summary>
         /// ATM name for live trade.
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Reduced size Strategy", Description = "Strategy sử dụng khi loss/gain more than a half", Order = 4, GroupName = "Importants Configurations")]
+        [Display(Name = "Default ATM Strategy", Description = "Default ATM Strategy", Order = 4, 
+            GroupName = Configuration_ATMParams_Name)]
         [TypeConverter(typeof(ATMStrategyConverter))]
-        public string HalfATMName { get; set; } = "Half_MNQ";
+        public string FullATMName { get; set; } 
+
+        /// <summary>
+        /// ATM name for live trade.
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Reduced size Strategy", 
+            Description = "Strategy sử dụng khi loss/gain more than a half", 
+            Order = 4, GroupName = Configuration_ATMParams_Name)]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public string HalfATMName { get; set; } 
 
         private double PointToMoveGainLoss = 5;
 
@@ -127,11 +135,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 FullATMName = "Half_MNQ";
                 HalfATMName = "Half_MNQ";
 
-                MaximumDayLoss = 400;
-                DailyTargetProfit = 600;
+                MaximumDayLoss = 260;
+                DailyTargetProfit = 500;
                 CheckTradingHour = true;
+                AllowToMoveStopLossGain = true;
 
-                NewsTimeInput = "0830";
+                NewsTimeInput = StrategiesUtilities.DefaultNewsTime;
             }
             else if (State == State.Configure)
             {

@@ -205,7 +205,20 @@ namespace NinjaTrader.Custom.Strategies
 
                 return TradingStatus.OrderExists;
             }
-        }        
+        }
+
+        protected override void OnBarUpdate()
+        {
+            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1 && TradingStatus == TradingStatus.OrderExists) //1 minute
+            {
+                // Close all current orders nếu sau 3:50pm
+                var currentTime = ToTime(DateTime.Now);
+                if (currentTime >= 155000 && currentTime < 160000)
+                {
+                    CloseExistingOrders();
+                }
+            }
+        }
 
         protected override void OnStateChange()
         {
@@ -611,16 +624,7 @@ namespace NinjaTrader.Custom.Strategies
 
             if (TradingStatus == TradingStatus.OrderExists)
             {
-                // Close all current orders 
-                var currentTime = ToTime(DateTime.Now);
-                if (currentTime >= 155950 && currentTime < 160000)
-                {
-                    CloseExistingOrders();
-                }
-                else
-                {
-                    MoveTargetAndStopOrdersWithNewPrice(updatedPrice, HalfPriceSignals);
-                }
+                MoveTargetAndStopOrdersWithNewPrice(updatedPrice, HalfPriceSignals);               
             }
         }
 

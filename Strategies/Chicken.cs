@@ -19,8 +19,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
     public class Chicken : BarClosedBaseClass<TradeAction, TradeAction>
     {
-        public Chicken()
-            : base("CHICKEN")
+        public Chicken() : this("CHICKEN")
         {
             HalfPriceSignals = new List<string>
             {
@@ -36,6 +35,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 StrategiesUtilities.SignalEntry_ReversalHalf,
             };
         }
+
+        public Chicken(string name) : base(name)
+        {
+            
+        }
+        
         private const int DEMA_Period = 9;
         private const int FiveMinutes_Period = 14;              
 
@@ -587,6 +592,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
+            base.OnBarUpdate();
+
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
                 StrategiesUtilities.CalculatePnL(this, Account, Print);
@@ -613,7 +620,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Check trading condition, result: {shouldTrade}");
 
                     // Điều kiện [barIndex_5m != enteredbarIndex_5m] để tránh việc trade 1 bar 5 phút nhiều lần
-                    if (shouldTrade != TradeAction.NoTrade && barIndex_5m != enteredbarIndex_5m) 
+                    if (shouldTrade != TradeAction.NoTrade && barIndex_5m != enteredbarIndex_5m)
                     {
                         enteredbarIndex_5m = barIndex_5m;
                         EnterOrder(shouldTrade);

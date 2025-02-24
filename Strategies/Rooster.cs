@@ -20,6 +20,7 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
+using NinjaTrader.Custom.Strategies;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -36,6 +37,20 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override bool InternalAllowTrendingTrade
         { 
             get { return true; }
+        }
+
+        public Rooster() : base("ROOSTER")
+        {
+            HalfPriceSignals = new List<string>
+            {   
+                StrategiesUtilities.SignalEntry_TrendingHalf
+            };
+
+            StrategySignals = new List<string>
+            {
+                StrategiesUtilities.SignalEntry_TrendingFull,
+                StrategiesUtilities.SignalEntry_TrendingHalf,
+            };
         }
 
         protected override void SetDefaultProperties()

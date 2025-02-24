@@ -150,6 +150,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
+            base.OnBarUpdate();
+
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
                 waeValueSet_5m = FindWaddahAttarExplosion();
@@ -259,10 +261,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        private void DrawFVGBox(double fillPrice, double stopLoss, double target, bool hasVolume)
+        private void DrawFVGBox(double fillPrice, double endOfGap, double stopLoss, double target, bool hasVolume)
         {
-            Draw.Rectangle(this, $"FVG_{CurrentBar}_1", false, 0, stopLoss, -2, fillPrice, Brushes.Transparent,
+            Draw.Rectangle(this, $"FVG_{CurrentBar}_1", false, 0, stopLoss, -2, endOfGap, Brushes.Transparent,
                 !hasVolume ? Brushes.DarkGray : Brushes.Red, 
+                30);
+
+            Draw.Rectangle(this, $"FVG_{CurrentBar}_3", false, 0, fillPrice, -2, endOfGap, Brushes.Transparent,
+                !hasVolume ? Brushes.Gray : Brushes.Yellow,
                 30);
 
             Draw.Rectangle(this, $"FVG_{CurrentBar}_2", false, 0, target, -2, fillPrice, Brushes.Transparent,
@@ -394,7 +400,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (High[2] < Low[0] && Low[0] - High[2] > MinDistanceToDetectFVG )
             {
                 // Draw box 
-                DrawFVGBox(High[2], Low[2], High[0], waeValueSet_5m.HasBULLVolume);
+                DrawFVGBox(High[2], Low[0], Low[2], High[0], waeValueSet_5m.HasBULLVolume);
 
                 if (waeValueSet_5m.HasBULLVolume)
                 {
@@ -413,7 +419,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             else if (Low[2] > High[0] && Low[2] - High[0] > MinDistanceToDetectFVG)
             {
                 // Draw box 
-                DrawFVGBox(Low[2], High[2], Low[0], waeValueSet_5m.HasBEARVolume); 
+                DrawFVGBox(Low[2], High[0], High[2], Low[0], waeValueSet_5m.HasBEARVolume); 
 
                 if (waeValueSet_5m.HasBEARVolume)
                 {

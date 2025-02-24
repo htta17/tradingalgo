@@ -39,6 +39,20 @@ namespace NinjaTrader.NinjaScript.Strategies
             get { return false; }
         }
 
+        public Hen() : base("HEN")
+        {
+            HalfPriceSignals = new List<string>
+            {
+                StrategiesUtilities.SignalEntry_ReversalHalf
+            };
+
+            StrategySignals = new List<string>
+            {
+                StrategiesUtilities.SignalEntry_ReversalHalf,
+                StrategiesUtilities.SignalEntry_ReversalFull,
+            };
+        }
+
         protected override void SetDefaultProperties()
         {
             base.SetDefaultProperties();

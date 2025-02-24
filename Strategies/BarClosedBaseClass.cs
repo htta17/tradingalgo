@@ -611,7 +611,16 @@ namespace NinjaTrader.Custom.Strategies
 
             if (TradingStatus == TradingStatus.OrderExists)
             {
-                MoveTargetAndStopOrdersWithNewPrice(updatedPrice, HalfPriceSignals);
+                // Close all current orders 
+                var currentTime = ToTime(DateTime.Now);
+                if (currentTime >= 155950 && currentTime < 160000)
+                {
+                    CloseExistingOrders();
+                }
+                else
+                {
+                    MoveTargetAndStopOrdersWithNewPrice(updatedPrice, HalfPriceSignals);
+                }
             }
         }
 
@@ -672,6 +681,25 @@ namespace NinjaTrader.Custom.Strategies
 
         protected abstract bool IsFullPriceOrder(Order order);
 
+        protected void CloseExistingOrders()
+        {
+            var clonedList = ActiveOrders.Values.ToList().Where(c => c.OrderType == OrderType.Limit).ToList();
+            var len = clonedList.Count;
+
+            for (var i = 0; i < len; i++)
+            {
+                var order = clonedList[i];
+                if (IsBuying)
+                {
+                    ExitLong(order.Quantity, "Close market", order.FromEntrySignal);
+                }
+                else if (IsSelling)
+                {
+                    ExitShort(order.Quantity, "Close market", order.FromEntrySignal);
+                }
+            }
+        }
+
         /// <summary>
         /// Khi State từ Historical sang Realtime thì trong ActiveOrders có thể còn lệnh
         /// Nếu ChickenStatus == ChickenStatus.OrderExists thì các lệnh trong đó là các lệnh fake
@@ -683,21 +711,7 @@ namespace NinjaTrader.Custom.Strategies
             {
                 LocalPrint($"Transition to live, clear all ActiveOrders");
 
-                var clonedList = ActiveOrders.Values.ToList().Where(c => c.OrderType == OrderType.Limit).ToList();
-                var len = clonedList.Count;
-
-                for (var i = 0; i < len; i++)
-                {
-                    var order = clonedList[i];
-                    if (IsBuying)
-                    {
-                        ExitLong(order.Quantity, "Close market", order.FromEntrySignal);
-                    }
-                    else if (IsSelling)
-                    {
-                        ExitShort(order.Quantity, "Close market", order.FromEntrySignal);
-                    }
-                }
+                CloseExistingOrders();
 
                 if (SimpleActiveOrders.Count > 0 || ActiveOrders.Count > 0)
                 {

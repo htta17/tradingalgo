@@ -37,7 +37,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             };
         }
         private const int DEMA_Period = 9;
-        private const int FiveMinutes_Period = 14;
+        private const int FiveMinutes_Period = 14;              
 
         #region 1 minute values
         protected double ema21_1m = -1;
@@ -60,7 +60,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected double lowPrice_5m = -1;
         protected double highPrice_5m = -1;
-
         protected double closePrice_5m = -1;
         protected double openPrice_5m = -1;
 
@@ -132,6 +131,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected Trends CurrentTrend = Trends.Unknown;
 
+        /// <summary>
+        /// Cách thức đặt lệnh trade (Cho trending)
+        /// </summary>
+        protected TrendPlaceToSetOrder TrendPlaceToSetOrder { get; set; }
+
         private const string Configuration_ChickkenParams_Name = "Chicken parameters";
 
         #region Importants Configurations
@@ -143,7 +147,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "Enter order price:",
             Order = 3,
             GroupName = Configuration_ChickkenParams_Name)]
-        public PlaceToSetOrder PlaceToSetOrder { get; set; } = PlaceToSetOrder.BollingerBand;
+        public ReversePlaceToSetOrder ReversePlaceToSetOrder { get; set; } = ReversePlaceToSetOrder.BollingerBand;
 
         /// <summary>
         /// Cho phép trade theo trending
@@ -197,7 +201,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             PointToMoveLoss = 7;
 
             // Chicken 
-            PlaceToSetOrder = PlaceToSetOrder.BollingerBand;
+            ReversePlaceToSetOrder = ReversePlaceToSetOrder.BollingerBand;
             AllowTrendingTrade = true;
             AllowReversalTrade = true;
         }
@@ -321,21 +325,49 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override double GetSetPrice(TradeAction tradeAction)
         {
             double price = -1;
+
             var middleEMA = (ema29_1m + ema51_1m) / 2.0;
+            var middleOfLastCandle = (highPrice_5m + lowPrice_5m) / 2.0; 
 
             switch (tradeAction)
             {
                 case TradeAction.Buy_Trending:
                 case TradeAction.Sell_Trending:
-                    price = middleEMA;
+                    {
+                        var volumeStrength = waeValuesSeries[0].WAE_Strength;
+                        if (volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium)
+                        {
+                            price = middleEMA;
+                        }
+                        else if (volumeStrength == WAE_Strength.Strong)
+                        {
+                            // Lùi lại 1/2 cây nến
+                            price = middleOfLastCandle;
+                        }
+                        else if (volumeStrength == WAE_Strength.SuperStrong)
+                        { 
+                            var wholeBody = Math.Abs(highPrice_5m - lowPrice_5m);
+
+                            if (tradeAction == TradeAction.Buy_Trending)
+                            {
+                                // Đặt lệnh BUY với 1/3 cây nến trước đó 
+                                price = highPrice_5m - (wholeBody / 3);
+                            }
+                            else if (tradeAction == TradeAction.Sell_Trending)
+                            {
+                                // Đặt lệnh SELL với 1/3 cây nến trước đó 
+                                price = lowPrice_5m + (wholeBody / 3); 
+                            }
+                        }
+                    }
                     break;
 
                 case TradeAction.Sell_Reversal:
-                    price = PlaceToSetOrder == PlaceToSetOrder.EMA2951 ? middleEMA : upperBB_5m;
+                    price = ReversePlaceToSetOrder == ReversePlaceToSetOrder.EMA2951 ? middleEMA : upperBB_5m;
                     break;
 
                 case TradeAction.Buy_Reversal:
-                    price = PlaceToSetOrder == PlaceToSetOrder.EMA2951 ? middleEMA : lowerBB_5m;
+                    price = ReversePlaceToSetOrder == ReversePlaceToSetOrder.EMA2951 ? middleEMA : lowerBB_5m;
                     break;
             }
 

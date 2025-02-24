@@ -568,7 +568,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var isTradingHour = IsTradingHour();
 
                     executionCount++;
-                    LocalPrint($"OnBarUpdate execution Count: {executionCount}, Price: {Close[0]}");
+                    //LocalPrint($"OnBarUpdate execution Count: {executionCount}, Price: {Close[0]}");
 
                     if (DuckStatus == TradingStatus.Idle)
                     {
@@ -975,7 +975,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            LocalPrint($"UpdatePendingOrder - Order {pendingOrder.OrderAction} - Price: {pendingOrder.LimitPrice} ");
+            //LocalPrint($"UpdatePendingOrder - Order {pendingOrder.OrderAction} - Price: {pendingOrder.LimitPrice} ");
 
             if (string.IsNullOrEmpty(atmStrategyId) || string.IsNullOrEmpty(orderId)) // We don't have any information
             {
@@ -986,8 +986,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 (currentAction == OrderAction.Buy && currentPrice > upperBB5m_Std2) ||
                 (currentAction == OrderAction.Sell && currentPrice < lowerBB5m_Std2);
 
-            LocalPrint($"currentAction: {currentAction}, currentPriceBar5m: {currentPrice:F2}, upperBB5m_Std2: {upperBB5m_Std2:F2}, lowerBB5m_Std2: {lowerBB5m_Std2:F2}");
-
+            //LocalPrint($"currentAction: {currentAction}, currentPriceBar5m: {currentPrice:F2}, upperBB5m_Std2: {upperBB5m_Std2:F2}, lowerBB5m_Std2: {lowerBB5m_Std2:F2}");
 
             if (cancelByPrice || (Time[0] - pendingOrder.Time).TotalMinutes > 60) // Cancel lệnh vì market đóng cửa, vì giá đi quá cao hoặc vì
             {

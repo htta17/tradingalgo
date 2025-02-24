@@ -128,8 +128,9 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Giá hiện tại cách stop loss > [PointToMoveLoss] thì di chuyển stop loss.
         /// </summary>
-        protected double PointToMoveLoss = 7;
+        protected double PointToMoveLoss = 7;        
         #endregion
+        
 
         private async void CrawlNewsTimeFromWeb()
         {
@@ -204,7 +205,7 @@ namespace NinjaTrader.Custom.Strategies
 
                 return TradingStatus.OrderExists;
             }
-        }
+        }        
 
         protected override void OnStateChange()
         {
@@ -257,7 +258,7 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
-        protected virtual bool CheckingTradeCondition()
+        protected virtual bool CheckingTradeCondition(ValidateType validateType = ValidateType.MaxDayGainLoss | ValidateType.TradingHour)
         {
             // Không đủ số lượng Bar
             if (CurrentBar < BarsRequiredToTrade)
@@ -266,7 +267,7 @@ namespace NinjaTrader.Custom.Strategies
             }
 
             // Không phải trading hour
-            if (!IsTradingHour())
+            if ((validateType & ValidateType.TradingHour) == ValidateType.TradingHour && !IsTradingHour())
             {
                 if (TradingStatus == TradingStatus.Idle)
                 {
@@ -308,7 +309,8 @@ namespace NinjaTrader.Custom.Strategies
             }
 
             // Đủ target loss/gain trong ngày
-            if (StrategiesUtilities.ReachMaxDayLossOrDayTarget(this, Account, MaximumDailyLoss, DailyTargetProfit))
+            if ((validateType & ValidateType.MaxDayGainLoss) == ValidateType.MaxDayGainLoss && 
+                StrategiesUtilities.ReachMaxDayLossOrDayTarget(this, Account, MaximumDailyLoss, DailyTargetProfit))
             {
                 return false;
             }

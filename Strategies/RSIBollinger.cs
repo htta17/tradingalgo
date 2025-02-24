@@ -202,7 +202,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void OnBarUpdate()
 		{
             //Add your custom strategy logic here.
-            var passTradeCondition = CheckingTradeCondition();
+            var passTradeCondition = CheckingTradeCondition(ValidateType.MaxDayGainLoss);
             if (!passTradeCondition)
             {
                 return;

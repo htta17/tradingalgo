@@ -11,10 +11,28 @@ namespace NinjaTrader.Custom.Strategies
     /// <summary>
     /// Lựa chọn điểm vào lệnh (Theo EMA29/51 hay theo Bollinger bands)
     /// </summary>
-    public enum PlaceToSetOrder
+    public enum ReversePlaceToSetOrder
     {       
         EMA2951,
         BollingerBand
+    }
+
+    public enum TrendPlaceToSetOrder
+    {
+        /// <summary>
+        /// EMA 21 khung 1 phút 
+        /// </summary>
+        EMA21,
+
+        /// <summary>
+        /// (EMA29 + EMA51)/2 khung 1 phút 
+        /// </summary>
+        EMA2951Average,
+
+        /// <summary>
+        /// Điểm giữa của cây nến trước
+        /// </summary>
+        MiddleOfLastCandle
     }
 
     /// <summary>
@@ -68,6 +86,16 @@ namespace NinjaTrader.Custom.Strategies
         Night_2300_0700
     }
 
+    public enum WAE_Strength
+    {
+        Weak, 
+        Medium, 
+        Strong, 
+        SuperStrong
+    }
+
+    
+
     /// <summary>
     /// Waddah Attar Explosion
     /// </summary>
@@ -75,6 +103,23 @@ namespace NinjaTrader.Custom.Strategies
     {
         // Là hệ số đảm bảo cho UpTrendVal hoặc DownTrendVal phải lớn hơn [DeadZoneVal] *  [SafetyRatio]
         public const double SafetyRatio = 1.4;
+
+        /// <summary>
+        /// Volume ≤ [WeakRange]: Weak
+        /// </summary>
+        public const int WeakRange = 150;
+
+        /// <summary>
+        /// [WeakRange] &lt; Volume ≤ [MediumRange]: Medium
+        /// </summary>
+        public const int MediumRange = 250;
+
+        /// <summary>
+        /// [MediumRange] &lt; Volume ≤ [StrongRange]: Strong <br/>
+        /// Volume &lt; [StrongRange]: SuperStrong
+        /// </summary>
+        public const int StrongRange = 300;
+
         public double DeadZoneVal { get; set; }
         public double ExplosionVal { get; set; }
         public double UpTrendVal { get; set; }
@@ -124,6 +169,36 @@ namespace NinjaTrader.Custom.Strategies
                     inDeadZone = DeadZoneVal > UpTrendVal && DeadZoneVal > DownTrendVal;
                 }
                 return inDeadZone.Value;
+            }
+        }
+
+        private WAE_Strength? wAE_Strength = null;
+        public WAE_Strength WAE_Strength
+        {
+            get
+            {
+                if (wAE_Strength == null)
+                { 
+                    var sum = DownTrendVal + UpTrendVal;
+
+                    if (sum <= WeakRange)
+                    {
+                        wAE_Strength = WAE_Strength.Weak;
+                    }
+                    else if (WeakRange < sum && sum <= MediumRange)
+                    {
+                        wAE_Strength = WAE_Strength.Medium;
+                    }
+                    else if (MediumRange < sum && sum <= StrongRange)
+                    {
+                        wAE_Strength = WAE_Strength.Strong;
+                    }
+                    else
+                    {
+                        wAE_Strength = WAE_Strength.SuperStrong;
+                    }
+                }
+                return wAE_Strength.Value;
             }
         }
     }
@@ -182,6 +257,11 @@ namespace NinjaTrader.Custom.Strategies
         SetSellOrder
     }
 
-
+    [Flags]
+    public enum ValidateType
+    {
+        TradingHour = 1, 
+        MaxDayGainLoss = 2,
+    }
     #endregion
 }

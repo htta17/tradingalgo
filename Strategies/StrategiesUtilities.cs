@@ -45,6 +45,11 @@ namespace NinjaTrader.Custom.Strategies
         public const string DefaultNewsTime = "0830,1500,1700";
 
 
+        public static double RoundPrice(double price)
+        {
+            return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
+        }
+
         /// <summary>
         ///  Check xem thời gian hiện tại có gần với thời gian có news không.
         /// </summary>

@@ -234,7 +234,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 //var entryPrice = (ema29 + ema51) / 2; // Lấy theo EMA29/51
                 var entryPrice = action == OrderAction.Buy ? lowerBB_5m : upperBB_5m;
 
-                filledPrice = Math.Round(entryPrice * 4.0) / 4.0;
+                filledPrice = StrategiesUtilities.RoundPrice(entryPrice); 
 
                 currentAction = action;
 
@@ -1000,7 +1000,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 //var entryPrice = (ema29 + ema51) / 2.0; 
                 var entryPrice = currentAction == OrderAction.Buy ? lowerBB_5m : upperBB_5m;
-                var newPrice = Math.Round(entryPrice * 4) / 4.0;
+                var newPrice = StrategiesUtilities.RoundPrice(entryPrice); 
 
                 var shouldMoveBuy = currentAction == OrderAction.Buy
                     && newPrice > pendingOrder.LimitPrice

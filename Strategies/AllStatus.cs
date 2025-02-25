@@ -116,7 +116,7 @@ namespace NinjaTrader.Custom.Strategies
 
         /// <summary>
         /// [MediumRange] &lt; Volume ≤ [StrongRange]: Strong <br/>
-        /// Volume &lt; [StrongRange]: SuperStrong
+        /// [StrongRange] &lt; Volume: SuperStrong
         /// </summary>
         public const int StrongRange = 300;
 
@@ -193,7 +193,7 @@ namespace NinjaTrader.Custom.Strategies
                     {
                         wAE_Strength = WAE_Strength.Strong;
                     }
-                    else
+                    else // StrongRange < sum 
                     {
                         wAE_Strength = WAE_Strength.SuperStrong;
                     }

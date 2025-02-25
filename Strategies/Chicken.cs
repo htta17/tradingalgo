@@ -230,10 +230,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var bollinger2 = Bollinger(2, 20);
                 bollinger2.Plots[0].Brush = bollinger2.Plots[2].Brush = Brushes.DarkCyan;
                 bollinger2.Plots[1].Brush = Brushes.DeepPink;
-
+                
                 AddChartIndicator(bollinger1);
                 AddChartIndicator(bollinger2);
-                AddChartIndicator(DEMA(9));
+                AddChartIndicator(DEMA(9));                
 
                 deadZoneSeries = new Series<double>(this);
                 waeValuesSeries = new Series<WAE_ValueSet>(this);
@@ -329,54 +329,60 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <returns></returns>
         protected override double GetSetPrice(TradeAction tradeAction)
         {
-            double price = -1;
-
             var middleEMA = (ema29_1m + ema51_1m) / 2.0;
-            var middleOfLastCandle = (highPrice_5m + lowPrice_5m) / 2.0; 
 
             switch (tradeAction)
             {
+                /*
+                 * TRENDING 
+                 */
                 case TradeAction.Buy_Trending:
                 case TradeAction.Sell_Trending:
                     {
+                        // Nếu volume đang yếu hoặc Medium thì 
                         var volumeStrength = waeValuesSeries[0].WAE_Strength;
                         if (volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium)
                         {
-                            price = middleEMA;
+                            return StrategiesUtilities.RoundPrice(middleEMA);
                         }
-                        else if (volumeStrength == WAE_Strength.Strong)
+                        else if (volumeStrength == WAE_Strength.Strong || volumeStrength == WAE_Strength.SuperStrong)
                         {
-                            // Lùi lại 1/2 cây nến
-                            price = middleOfLastCandle;
-                        }
-                        else if (volumeStrength == WAE_Strength.SuperStrong)
-                        { 
-                            var wholeBody = Math.Abs(highPrice_5m - lowPrice_5m);
+                            var currentCandleIs_RED = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m);
 
-                            if (tradeAction == TradeAction.Buy_Trending)
+                            var currentCandleIs_GREEN = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m);
+
+                            // Tìm điểm vào lệnh thích hợp. 
+                            // Nếu cây nến hiện tại cùng chiều market (Red khi bearish, hoặc Green khi bullish) 
+                            var wholeBody = Math.Abs(closePrice_5m - openPrice_5m);
+                            // Hệ số (so với cây nến trước): Lấy 1/2 nếu Strong, 1/3 nếu Super Strong
+                            var coeff = volumeStrength == WAE_Strength.Strong ? 2.0 : 3.0;
+
+                            if (tradeAction == TradeAction.Buy_Trending && currentCandleIs_GREEN)
                             {
                                 // Đặt lệnh BUY với 1/3 cây nến trước đó 
-                                price = highPrice_5m - (wholeBody / 3);
+                                return StrategiesUtilities.RoundPrice(closePrice_5m - (wholeBody / coeff));                                                                
                             }
-                            else if (tradeAction == TradeAction.Sell_Trending)
+                            else if (tradeAction == TradeAction.Sell_Trending && currentCandleIs_RED)
                             {
                                 // Đặt lệnh SELL với 1/3 cây nến trước đó 
-                                price = lowPrice_5m + (wholeBody / 3); 
+                                return StrategiesUtilities.RoundPrice(closePrice_5m + (wholeBody / coeff));                                
                             }
                         }
                     }
                     break;
-
+                /*
+                 * REVERSAL
+                 */
                 case TradeAction.Sell_Reversal:
-                    price = ReversePlaceToSetOrder == ReversePlaceToSetOrder.EMA2951 ? middleEMA : upperBB_5m;
-                    break;
+                    return StrategiesUtilities.RoundPrice(ReversePlaceToSetOrder == ReversePlaceToSetOrder.EMA2951 ? middleEMA : upperBB_5m);                    
 
                 case TradeAction.Buy_Reversal:
-                    price = ReversePlaceToSetOrder == ReversePlaceToSetOrder.EMA2951 ? middleEMA : lowerBB_5m;
-                    break;
+                    return StrategiesUtilities.RoundPrice(ReversePlaceToSetOrder == ReversePlaceToSetOrder.EMA2951 ? middleEMA : lowerBB_5m);
+                    
             }
 
-            return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
+            // Khó quá cứ lấy EMA29/51
+            return StrategiesUtilities.RoundPrice(middleEMA);
         }
 
 
@@ -416,7 +422,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     break;
             }
 
-            return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
+            return StrategiesUtilities.RoundPrice(price);
         }
 
         /// <summary>
@@ -448,7 +454,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     break;
             }
 
-            return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
+            return StrategiesUtilities.RoundPrice(price);
         }
 
         protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice)
@@ -476,7 +482,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     #endregion
             }
 
-            return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;
+            return StrategiesUtilities.RoundPrice(price);
         }
 
         /// <summary>
@@ -820,36 +826,39 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.Realtime)
             {
-                var clonedList = ActiveOrders.Values.ToList();
-                var len = clonedList.Count;
-
-                for (var i = 0; i < len; i++)
+                if (Math.Abs(filledPrice - newPrice) > 0.5)
                 {
-                    var order = clonedList[i];
-                    try
+                    var clonedList = ActiveOrders.Values.ToList();
+                    var len = clonedList.Count;
+
+                    for (var i = 0; i < len; i++)
                     {
-                        LocalPrint($"Trying to modify waiting order [{order.Name}], " +
-                            $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
-                            $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
-
-                        ChangeOrder(order, order.Quantity, newPrice, order.StopPrice);
-
-                        SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
-
-                        if (IsHalfPriceOrder(order))
+                        var order = clonedList[i];
+                        try
                         {
-                            SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Half, false);
-                        }
-                        else if (IsFullPriceOrder(order))
-                        {
-                            SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
-                        }
+                            LocalPrint($"Trying to modify waiting order [{order.Name}], " +
+                                $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
+                                $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
 
-                        filledPrice = newPrice;
-                    }
-                    catch (Exception ex)
-                    {
-                        LocalPrint($"[UpdatePendingOrder] - ERROR: {ex.Message}");
+                            ChangeOrder(order, order.Quantity, newPrice, order.StopPrice);
+
+                            SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
+
+                            if (IsHalfPriceOrder(order))
+                            {
+                                SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Half, false);
+                            }
+                            else if (IsFullPriceOrder(order))
+                            {
+                                SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
+                            }
+
+                            filledPrice = newPrice;
+                        }
+                        catch (Exception ex)
+                        {
+                            LocalPrint($"[UpdatePendingOrder] - ERROR: {ex.Message}");
+                        }
                     }
                 }
             }

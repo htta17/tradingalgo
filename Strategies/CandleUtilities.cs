@@ -41,4 +41,18 @@ namespace NinjaTrader.Custom.Strategies
                 // Close[0] > Close[1] // Close is higher than previous close (confirmation)
         }
     }
+
+    public class CandleUtilities
+    {
+        public static bool IsRedCandle(double close, double open, double? hi = null, double? low = null)
+        {
+            return close < open; 
+        }
+
+        public static bool IsGreenCandle(double close, double open, double? hi = null, double? low = null)
+        { 
+            return close > open;
+        }
+
+    }
 }

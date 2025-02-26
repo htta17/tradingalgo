@@ -341,7 +341,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         // Nếu volume đang yếu hoặc Medium thì 
                         var volumeStrength = waeValuesSeries[0].WAE_Strength;
-                        LocalPrint($"Volume Strength: SUM: {waeValuesSeries[0].DownTrendVal + waeValuesSeries[0].UpTrendVal}, { volumeStrength.ToString() }");
+                        LocalPrint($"Volume Strength: SUM: {(waeValuesSeries[0].DownTrendVal + waeValuesSeries[0].UpTrendVal):N2}, [{ volumeStrength.ToString() }]");
                         if (volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium)
                         {
                             return StrategiesUtilities.RoundPrice(middleEMA);
@@ -674,6 +674,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 lowPrice_5m = Low[0];
                 highPrice_5m = High[0];
+                closePrice_5m = Close[0];
+                openPrice_5m = Open[0];
+
                 barIndex_5m = CurrentBar;
 
                 currentDEMA_5m = DEMA(DEMA_Period).Value[0];

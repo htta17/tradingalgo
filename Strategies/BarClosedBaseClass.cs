@@ -504,11 +504,11 @@ namespace NinjaTrader.Custom.Strategies
                     SetStopLoss(fromEntrySignal, CalculationMode.Price, newPrice, false);
                 }
 
-                var text = isGainStop ? "TARGET" : "LOSS";
+                //var text = isGainStop ? "TARGET" : "LOSS";
 
-                LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
-                    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
-                    $"đến [{newPrice}] - {buyOrSell}");
+                //LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
+                //    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
+                //    $"đến [{newPrice}] - {buyOrSell}");
             }
             catch (Exception ex)
             {
@@ -565,7 +565,7 @@ namespace NinjaTrader.Custom.Strategies
 
             if (allowMoving != "")
             {
-                LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
+                //LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
 
                 MoveTargetOrStopOrder(newPrice, stopOrder, false, allowMoving, stopOrder.FromEntrySignal);
             }

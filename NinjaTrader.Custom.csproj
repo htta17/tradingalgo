@@ -72,7 +72,7 @@
     </Reference>
     <Reference Include="NinjaTrader.Vendor">
       <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Vendor.dll</HintPath>
-    </Reference>    
+    </Reference>
     <Reference Include="WindowsBase">
       <HintPath>C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll</HintPath>
     </Reference>
@@ -395,6 +395,7 @@
     <Compile Include="Strategies\RSIBollinger.cs" />
     <Compile Include="Strategies\Rooster.cs" />
     <Compile Include="Strategies\Hen.cs" />
+    <Compile Include="MySQL\DatabaseUtility.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

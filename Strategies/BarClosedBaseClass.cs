@@ -437,7 +437,7 @@ namespace NinjaTrader.Custom.Strategies
             
             if (val.GetType() == typeof(string))
             {
-                Print($"{LogPrefix}-{Time?[0]}-" + val);
+                Print($"[{LogPrefix}]-{Time?[0]}-" + val);
             }
             else
             {

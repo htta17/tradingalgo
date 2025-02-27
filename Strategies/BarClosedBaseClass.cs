@@ -172,7 +172,7 @@ namespace NinjaTrader.Custom.Strategies
             //FiveMinutes_Trends = Trends.Unknown;
 
             CountOrder = 0;
-            HasEntrySignal = false;
+            CountEntrySignal = 0;
         }
 
         protected bool IsTradingHour()
@@ -198,7 +198,7 @@ namespace NinjaTrader.Custom.Strategies
                 {
                     return TradingStatus.Idle;
                 }
-                else if (HasEntrySignal)
+                else if (CountEntrySignal > 0)
                 {
                     return TradingStatus.PendingFill;
                 }
@@ -340,13 +340,15 @@ namespace NinjaTrader.Custom.Strategies
 
         private readonly object lockOjbject = new Object();
 
+        /// <summary>
+        /// Dùng để check xem có lệnh nào không
+        /// </summary>
         protected int CountOrder { get; set; }
 
-        /// <summary>
-        /// Check nếu SimpleActiveOrders có entry signal (vd: Entry-TH, Entry-RF, etc.) <br/>
-        /// Dùng để check xem có lệnh (PendingFill order) chờ hay không.
+        /// <summary>      
+        /// Dùng để check xem có lệnh chờ (PendingFill order) hay không.
         /// </summary>
-        protected bool HasEntrySignal { get; set; }
+        protected int CountEntrySignal { get; set; }
         protected override void OnOrderUpdate(Order order,
             double limitPrice,
             double stopPrice,
@@ -367,44 +369,41 @@ namespace NinjaTrader.Custom.Strategies
             var key = StrategiesUtilities.GenerateKey(order);
 
             try
-            {
-                lock (lockOjbject)
+            {   
+                if (orderState == OrderState.Filled || orderState == OrderState.Cancelled)
                 {
-                    if (orderState == OrderState.Filled || orderState == OrderState.Cancelled)
+                    ActiveOrders.Remove(key);
+                    SimpleActiveOrders.Remove(key);
+
+                    CountOrder--;
+
+                    // Nếu đang có signal 
+                    if (EntrySignals.Contains(key))
                     {
-                        ActiveOrders.Remove(key);
-                        SimpleActiveOrders.Remove(key);
+                        CountEntrySignal--; 
+                    }
+                }
+                else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
+                {
+                    // Add or update 
+                    //ActiveOrders[key] = order;
+                    if (!ActiveOrders.ContainsKey(key))
+                    {
+                        ActiveOrders.Add(key, order);
+                    }
 
-                        CountOrder--;
+                    // Chỉ add thêm, không update
+                    if (!SimpleActiveOrders.ContainsKey(key))
+                    {
+                        SimpleActiveOrders.Add(key, new SimpleInfoOrder { FromEntrySignal = order.FromEntrySignal, Name = order.Name });
+                            
+                        CountOrder++;
 
-                        // Nếu đang 
-                        if (HasEntrySignal)
+                        if (EntrySignals.Contains(key))
                         {
-                            HasEntrySignal = SimpleActiveOrders.Values.Any(a => StrategySignals.Contains(a.Name));
+                            CountEntrySignal++;
                         }
                     }
-                    else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
-                    {
-                        // Add or update 
-                        //ActiveOrders[key] = order;
-                        if (!ActiveOrders.ContainsKey(key))
-                        {
-                            ActiveOrders.Add(key, order);
-                        }
-
-                        // Chỉ add thêm, không update
-                        if (!SimpleActiveOrders.ContainsKey(key))
-                        {
-                            SimpleActiveOrders.Add(key, new SimpleInfoOrder { FromEntrySignal = order.FromEntrySignal, Name = order.Name });
-                            
-                            CountOrder++;
-
-                            if (!HasEntrySignal && StrategySignals.Any(c => c == key))
-                            {
-                                HasEntrySignal = true;
-                            }
-                        }
-                    }                    
                 }
             }
             catch (Exception e)
@@ -504,11 +503,11 @@ namespace NinjaTrader.Custom.Strategies
                     SetStopLoss(fromEntrySignal, CalculationMode.Price, newPrice, false);
                 }
 
-                //var text = isGainStop ? "TARGET" : "LOSS";
+                var text = isGainStop ? "TARGET" : "LOSS";
 
-                //LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
-                //    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
-                //    $"đến [{newPrice}] - {buyOrSell}");
+                LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
+                    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
+                    $"đến [{newPrice}] - {buyOrSell}");
             }
             catch (Exception ex)
             {
@@ -565,7 +564,7 @@ namespace NinjaTrader.Custom.Strategies
 
             if (allowMoving != "")
             {
-                //LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
+                LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
 
                 MoveTargetOrStopOrder(newPrice, stopOrder, false, allowMoving, stopOrder.FromEntrySignal);
             }
@@ -605,12 +604,12 @@ namespace NinjaTrader.Custom.Strategies
 
         protected DateTime filledTime = DateTime.Now;
 
-        protected List<string> HalfPriceSignals { get; set; }
+        protected HashSet<string> HalfPriceSignals { get; set; }
 
         /// <summary>
         /// All signals being used for this strategy, includes Half and Full size 
         /// </summary>
-        protected List<string> StrategySignals { get; set; }
+        protected HashSet<string> EntrySignals { get; set; }
 
         // Kéo stop loss/gain
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
@@ -632,7 +631,7 @@ namespace NinjaTrader.Custom.Strategies
 
         protected abstract bool IsSelling { get; }
 
-        private void MoveTargetAndStopOrdersWithNewPrice(double updatedPrice, List<string> halfPriceSignals)
+        private void MoveTargetAndStopOrdersWithNewPrice(double updatedPrice, HashSet<string> halfPriceSignals)
         {
             if (!AllowToMoveStopLossGain)
             {

@@ -21,13 +21,13 @@ namespace NinjaTrader.NinjaScript.Strategies
     {
         public Chicken() : this("CHICKEN")
         {
-            HalfPriceSignals = new List<string>
+            HalfPriceSignals = new HashSet<string>
             {
                 StrategiesUtilities.SignalEntry_ReversalHalf,
                 StrategiesUtilities.SignalEntry_TrendingHalf
             };
 
-            StrategySignals = new List<string>
+            EntrySignals = new HashSet<string>
             {
                 StrategiesUtilities.SignalEntry_ReversalHalf,
                 StrategiesUtilities.SignalEntry_TrendingHalf,
@@ -847,6 +847,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
 
                             ChangeOrder(order, order.Quantity, newPrice, order.StopPrice);
+                            filledPrice = newPrice;
 
                             SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
 

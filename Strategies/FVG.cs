@@ -1,4 +1,4 @@
-﻿#region Using declarations
+#region Using declarations
 using NinjaTrader.Cbi;
 using NinjaTrader.Custom.Strategies;
 using NinjaTrader.Data;
@@ -20,9 +20,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         const string Configuration_FVGGroup_Name = "FVG Strategy";
         public FVG() : base("FVG")
         {
-            HalfPriceSignals = new List<string> { StrategiesUtilities.SignalEntry_FVGHalf };
+            HalfPriceSignals = new HashSet<string> { StrategiesUtilities.SignalEntry_FVGHalf };
 
-            StrategySignals = new List<string>
+            EntrySignals = new HashSet<string>
             {
                 StrategiesUtilities.SignalEntry_FVGHalf,
                 StrategiesUtilities.SignalEntry_FVGFull

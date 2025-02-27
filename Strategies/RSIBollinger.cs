@@ -31,9 +31,9 @@ namespace NinjaTrader.NinjaScript.Strategies
     {
         public RSIBollinger() : base("TIGER")
         {
-            HalfPriceSignals = new List<string> { StrategiesUtilities.SignalEntry_RSIBollingerHalf };
+            HalfPriceSignals = new HashSet<string> { StrategiesUtilities.SignalEntry_RSIBollingerHalf };
 
-            StrategySignals = new List<string> 
+            EntrySignals = new HashSet<string> 
             { 
                 StrategiesUtilities.SignalEntry_RSIBollingerHalf ,
                 StrategiesUtilities.SignalEntry_RSIBollingerFull ,

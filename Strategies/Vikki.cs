@@ -29,6 +29,17 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public class Vikki : BarClosedBaseClass<TradeAction, TradeAction>
 	{
+        public Vikki() : base("VIKKI") 
+        {
+            HalfPriceSignals = new HashSet<string> { StrategiesUtilities.SignalEntry_VikkiHalf };
+
+            EntrySignals = new HashSet<string>
+            {
+                StrategiesUtilities.SignalEntry_VikkiHalf,
+                StrategiesUtilities.SignalEntry_VikkiFull
+            };
+        }
+        
         protected override bool IsBuying => throw new NotImplementedException();
 
         protected override bool IsSelling => throw new NotImplementedException();

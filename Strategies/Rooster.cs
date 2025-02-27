@@ -41,12 +41,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         public Rooster() : base("ROOSTER")
         {
-            HalfPriceSignals = new List<string>
+            HalfPriceSignals = new HashSet<string>
             {   
                 StrategiesUtilities.SignalEntry_TrendingHalf
             };
 
-            StrategySignals = new List<string>
+            EntrySignals = new HashSet<string>
             {
                 StrategiesUtilities.SignalEntry_TrendingFull,
                 StrategiesUtilities.SignalEntry_TrendingHalf,
@@ -59,6 +59,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             Name = "Rooster (Chicken with Trending ONLY)";
             Description = "[Rooster] là giải thuật [Chicken] nhưng chỉ chạy Trending";
+
+            StopLossInTicks = 80;
+            Target1InTicks = 40;
+            Target2InTicks = 120;
 
             AllowReversalTrade = false;
             AllowTrendingTrade = true;

@@ -41,12 +41,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         public Hen() : base("HEN")
         {
-            HalfPriceSignals = new List<string>
+            HalfPriceSignals = new HashSet<string>
             {
                 StrategiesUtilities.SignalEntry_ReversalHalf
             };
 
-            StrategySignals = new List<string>
+            EntrySignals = new HashSet<string>
             {
                 StrategiesUtilities.SignalEntry_ReversalHalf,
                 StrategiesUtilities.SignalEntry_ReversalFull,

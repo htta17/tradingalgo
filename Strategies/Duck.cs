@@ -619,7 +619,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                         else
                         {
-                            LocalPrint($"{DuckStatus} - Current price: {currentPrice}");
+                            //LocalPrint($"{DuckStatus} - Current price: {currentPrice}");
                             MoveStopGainOrLoss(currentPrice);
                         }
                     }
@@ -719,7 +719,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (!foundCross)
                 {
-                    LocalPrint($"NOT found cross BUY, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastLowerBB_5m:F2}, currentDEMA: {currentDEMA:F2}, lowerBB5m:{lowerBB_5m:F2}, WarranteeFee: {WarranteeFee:F2}");
+                    //LocalPrint($"NOT found cross BUY, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastLowerBB_5m:F2}, currentDEMA: {currentDEMA:F2}, lowerBB5m:{lowerBB_5m:F2}, WarranteeFee: {WarranteeFee:F2}");
                     return ConditionIfCannotFindCross(action); // Tiếp tục trạng thái hiện tại
                 }
                 else if (open_1m < Math.Max(ema29_1m, ema51_1m)) // Found cross, nhưng Open của nến 1 phút vẫn ở dưới EMA29/51)
@@ -771,7 +771,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (!foundCross)
                 {
-                    LocalPrint($"NOT found cross SELL, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastUpperBB_5m:F2}, currentDEMA: {currentDEMA:F2}, upperBB5m:{upperBB_5m:F2}, WarranteeFee: {WarranteeFee:F2}");
+                    //LocalPrint($"NOT found cross SELL, lastDEMA: {lastDEMA:F2} lastUpperBB5m: {lastUpperBB_5m:F2}, currentDEMA: {currentDEMA:F2}, upperBB5m:{upperBB_5m:F2}, WarranteeFee: {WarranteeFee:F2}");
                     return ConditionIfCannotFindCross(action);
                 }
                 else if (open_1m > Math.Min(ema29_1m, ema51_1m)) // foundCross = true, nhưng open của nến 1 phút vẫn nằm trên EMA29/51 (chưa vượt qua được)

@@ -508,7 +508,7 @@ namespace NinjaTrader.Custom.Strategies
         protected abstract T2 ShouldTrade();
 
         
-        protected void EnterOrderPure(double priceToSet, double target, double stoploss, string signal, int quantity, bool isBuying, bool isSelling)
+        protected void EnterOrderPureUsingPrice(double priceToSet, double target, double stoploss, string signal, int quantity, bool isBuying, bool isSelling)
         {
             var text = isBuying ? "LONG" : "SHORT";
 
@@ -538,7 +538,7 @@ namespace NinjaTrader.Custom.Strategies
         }
         
 
-        protected void EnterOrderPure(bool useTicks, double priceToSet, int targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
+        protected virtual void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
         {
             var text = isBuying ? "LONG" : "SHORT";
             

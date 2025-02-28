@@ -296,11 +296,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var quantityHalf = GetNumberOfContracts_Half(fVGTradeDetail);
                 var quantityFull = GetNumberOfContracts_Full(fVGTradeDetail);
 
-                EnterOrderPure(priceToSet, targetHalf, stopLossPrice,
+                EnterOrderPureUsingPrice(priceToSet, targetHalf, stopLossPrice,
                     StrategiesUtilities.SignalEntry_FVGHalf, quantityHalf,
                     IsBuying, IsSelling);
 
-                EnterOrderPure(priceToSet, targetFull, stopLossPrice,
+                EnterOrderPureUsingPrice(priceToSet, targetFull, stopLossPrice,
                     StrategiesUtilities.SignalEntry_FVGFull, quantityFull,
                     IsBuying, IsSelling);
             }

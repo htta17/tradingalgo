@@ -182,9 +182,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             try
             {                
-                EnterOrderPure(priceToSet, targetHalf, stopLossPrice, StrategiesUtilities.SignalEntry_RSIBollingerHalf, DefaultQuantity, IsBuying, IsSelling);
+                EnterOrderPureUsingPrice(priceToSet, targetHalf, stopLossPrice, StrategiesUtilities.SignalEntry_RSIBollingerHalf, DefaultQuantity, IsBuying, IsSelling);
              
-                EnterOrderPure(priceToSet, targetFull, stopLossPrice, StrategiesUtilities.SignalEntry_RSIBollingerFull, DefaultQuantity, IsBuying, IsSelling);
+                EnterOrderPureUsingPrice(priceToSet, targetFull, stopLossPrice, StrategiesUtilities.SignalEntry_RSIBollingerFull, DefaultQuantity, IsBuying, IsSelling);
             }
             catch (Exception ex)
             {

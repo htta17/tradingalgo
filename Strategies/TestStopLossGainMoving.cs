@@ -33,7 +33,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				Description									= @"Enter the description for your new custom Strategy here.";
 				Name										= "TestStopLossGainMoving";
-				Calculate									= Calculate.OnBarClose;
+				Calculate									= Calculate.OnPriceChange;
 				EntriesPerDirection							= 1;
 				EntryHandling								= EntryHandling.AllEntries;
 				IsExitOnSessionCloseStrategy				= true;
@@ -59,15 +59,17 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		string atmStrategyId = "";
 		string orderId = "";
-		string ATMName = "Phuong";
+		string ATMName = "Rooster_Default_2cts";
 
         const string SignalEntry1 = "Entry-MiddleBB";
-        
+
+        protected override void OnAccountItemUpdate(Account account, AccountItem accountItem, double value)
+        {
+            base.OnAccountItemUpdate(account, accountItem, value);
+        }
+
         protected override void OnBarUpdate()
-		{
-			//Add your custom strategy logic here.
-			//var orders = Account.Orders.Any(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted); 
-			
+		{	
 			// Find active order
 			
 			var pendingOrders = Account.Orders.Where(c => c.OrderState == OrderState.Accepted || c.OrderState == OrderState.Working);			
@@ -82,7 +84,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 filledPrice = Close[0];
 
-                /*
+                
 				atmStrategyId = GetAtmStrategyUniqueId();
 				orderId = GetAtmStrategyUniqueId();				
 				
@@ -102,19 +104,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 				     		Print($"Enter {action} - strategyID: {atmStrategyId}");
 				  		}
 					});
-				*/
-
-                if (action == OrderAction.Buy)
-				{
-					EnterLongLimit(1, filledPrice + 1, SignalEntry1); 
-				}
-				else 
-                {
-                    EnterShortLimit(1, filledPrice + 1, SignalEntry1);
-                }
-
-                SetStopLoss(SignalEntry1, CalculationMode.Ticks, 20, false);
-                SetProfitTarget(SignalEntry1, CalculationMode.Ticks, 20);
             }
 			
 		}
@@ -140,6 +129,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 		
 		protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
 		{
+			return; 
+
 			try 
 			{
 				var updatedPrice = marketDataUpdate.Price;
@@ -168,7 +159,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 						// Move stop gain
 						if (targetOrder.LimitPrice > updatedPrice && targetOrder.LimitPrice - updatedPrice <= 5)
 						{
-                            /*
+                            
 							AtmStrategyChangeStopTarget(
 								targetOrder.LimitPrice + 5, 
 								0, 
@@ -180,17 +171,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 								Math.Max(targetOrder.StopPrice, updatedPrice - 7), 
 								targetOrder.Name, 
 								atmStrategyId);
-							*/							
-
+														
+							/*
                             SetProfitTarget(SignalEntry1, CalculationMode.Price, targetOrder.LimitPrice + 5, false);
                             SetStopLoss(SignalEntry1, CalculationMode.Price, Math.Max(stopOrder.StopPrice, updatedPrice - 7), false);
+							*/
 
                             Print($"Current GAIN: {targetOrder.LimitPrice}, updatedPrice: {updatedPrice}. Move GAIN to {targetOrder.LimitPrice + 5} - BUY");
 						}
 					}
 					else if (currentAction == OrderAction.Sell)
 					{
-                        /*
+                        
 						// Move stop gain
 						if (updatedPrice - targetOrder.LimitPrice <= 5)
 						{
@@ -206,13 +198,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 								targetOrder.Name, 
 								atmStrategyId);
 						}
-						*/
+						
 
                         //ChangeOrder(targetOrder, 0, targetOrder.LimitPrice - 5, 0);						
                         //ChangeOrder(stopOrder, 0, 0, Math.Min(stopOrder.StopPrice, updatedPrice + 7));
 
-                        SetProfitTarget(SignalEntry1, CalculationMode.Price, targetOrder.LimitPrice - 5, false);
-                        SetStopLoss(SignalEntry1, CalculationMode.Price, Math.Min(stopOrder.StopPrice, updatedPrice + 7), false);
+                        //SetProfitTarget(SignalEntry1, CalculationMode.Price, targetOrder.LimitPrice - 5, false);
+                        //SetStopLoss(SignalEntry1, CalculationMode.Price, Math.Min(stopOrder.StopPrice, updatedPrice + 7), false);
 
                         Print($"Move GAIN to {targetOrder.LimitPrice - 5} - SELL");						
 					}												

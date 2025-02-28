@@ -516,8 +516,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             FilledPrice = priceToSet;            
 
             var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet);
-            //var targetHalf = GetTargetPrice_Half(CurrentTradeAction, priceToSet);
-            //var targetFull = GetTargetPrice_Full(CurrentTradeAction, priceToSet);
 
             LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}");
 
@@ -532,10 +530,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             try
             {
                 var signalHalf = IsTrendingTrade ? StrategiesUtilities.SignalEntry_TrendingHalf : StrategiesUtilities.SignalEntry_ReversalHalf;
-                EnterOrderPure(true, priceToSet, Target1InTicks, StopLossInTicks, signalHalf, quantity, IsBuying, IsSelling);
+                EnterOrderPure(priceToSet, Target1InTicks, StopLossInTicks, signalHalf, quantity, IsBuying, IsSelling);
 
                 var signalFull = IsTrendingTrade ? StrategiesUtilities.SignalEntry_TrendingFull : StrategiesUtilities.SignalEntry_ReversalFull;
-                EnterOrderPure(true, priceToSet, Target2InTicks, StopLossInTicks, signalFull, quantity, IsBuying, IsSelling);
+                EnterOrderPure(priceToSet, Target2InTicks, StopLossInTicks, signalFull, quantity, IsBuying, IsSelling);
             }
             catch (Exception ex)
             {

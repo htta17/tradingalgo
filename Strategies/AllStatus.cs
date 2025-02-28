@@ -263,5 +263,18 @@ namespace NinjaTrader.Custom.Strategies
         TradingHour = 1, 
         MaxDayGainLoss = 2,
     }
+
+
+    public class NewsTimeReader
+    {
+        public string Sunday { get; set; }
+        public string Monday { get; set; }
+        public string Tuesday { get; set; }
+        public string Wednesday { get; set; }
+        public string Thursday { get; set; }
+        public string Friday { get; set; }
+
+        // No-work on Sabbath day, praise Jehovah.
+    }
     #endregion
 }

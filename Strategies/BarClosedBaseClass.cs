@@ -1,11 +1,14 @@
-﻿using NinjaTrader.Cbi;
+﻿using Newtonsoft.Json;
+using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using NinjaTrader.NinjaScript;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Windows.Markup;
 using System.Xml.Linq;
 
 namespace NinjaTrader.Custom.Strategies
@@ -16,12 +19,10 @@ namespace NinjaTrader.Custom.Strategies
      */
     public abstract class BarClosedBaseClass<T1, T2> : NinjaTrader.NinjaScript.Strategies.Strategy
     {
-        private string LogPrefix { get; set; }
+        private string LogPrefix { get; set; }        
         public BarClosedBaseClass(string logPrefix)
         {
             LogPrefix = logPrefix;
-
-            CrawlNewsTimeFromWeb();
         }
 
         public BarClosedBaseClass() : this("[BASED]")
@@ -48,15 +49,6 @@ namespace NinjaTrader.Custom.Strategies
         public bool AllowWriteLog { get; set; }
 
         #region Allow Trade Parameters
-
-        /// <summary>
-        /// Thời gian có news, dừng trade trước và sau thời gian có news 5 phút. 
-        /// Có 3 mốc quan trọng mặc định là 8:30am (Mở cửa Mỹ), 3:00pm (Đóng cửa Mỹ) và 5:00pm (Mở cửa châu Á).
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "News Time (Ex: 0900,1300)", Order = 10, GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
-        public string NewsTimeInput { get; set; }
-
 
         protected List<int> NewsTimes = new List<int>();
 
@@ -129,34 +121,61 @@ namespace NinjaTrader.Custom.Strategies
         /// Giá hiện tại cách stop loss > [PointToMoveLoss] thì di chuyển stop loss.
         /// </summary>
         protected double PointToMoveLoss = 7;        
-        #endregion
-        
+        #endregion        
 
-        private async void CrawlNewsTimeFromWeb()
+        private string ReadNewsInfoFromFile()
         {
-            return; 
-            HttpClient client = new HttpClient();
+            var filePath = @"\\LOVE\TradingFolder\WeekNewsTime.txt";
+
             try
             {
-                string url = "https://www.investing.com/economic-calendar/"; // Replace with your API
-                HttpResponseMessage response = await client.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-                string responseBody = await response.Content.ReadAsStringAsync();
+                if (File.Exists(filePath))
+                {
+                    string jsonContent = File.ReadAllText(filePath);
+                    var data = JsonConvert.DeserializeObject<NewsTimeReader>(jsonContent);
+                    var today = DateTime.Today.DayOfWeek;
 
-                LocalPrint($"{responseBody}");
+                    var newsTime = string.Empty;
+
+                    switch (today)
+                    { 
+                        case DayOfWeek.Sunday:
+                            return data.Sunday;
+                        case DayOfWeek.Monday: 
+                            return data.Monday;
+                        case DayOfWeek.Tuesday:
+                            return data.Tuesday;
+                        case DayOfWeek.Wednesday:
+                            return data.Wednesday;
+                        case DayOfWeek.Thursday:
+                            return data.Thursday;
+                        case DayOfWeek.Friday:
+                            return data.Friday;
+                        // No Saturday, ok? 
+                    }
+                    
+                    Print(jsonContent);
+                }
             }
             catch (Exception ex)
             {
-                Print($"Error fetching data: {ex.Message}");
+                Print(ex.ToString());
             }
+            return string.Empty; 
+        }
+
+        public override void CloseStrategy(string signalName)
+        {
+            LocalPrint($"Closing strategy");
+
+            base.CloseStrategy(signalName);
         }
 
         protected virtual void SetDefaultProperties()
         {
             MaximumDailyLoss = 260;
             DailyTargetProfit = 500;
-            AllowToMoveStopLossGain = true;
-            NewsTimeInput = StrategiesUtilities.DefaultNewsTime;
+            AllowToMoveStopLossGain = true;           
 
             StopLossInTicks = 120;
             Target1InTicks = 60;
@@ -251,7 +270,21 @@ namespace NinjaTrader.Custom.Strategies
             {
                 try
                 {
-                    NewsTimes = NewsTimeInput.Split(',').Select(c => int.Parse(c)).ToList();
+                    ClearOutputWindow();
+
+                    var newsFromFile = ReadNewsInfoFromFile();
+
+                    if (newsFromFile != string.Empty)
+                    {
+                        newsFromFile = $"{StrategiesUtilities.DefaultNewsTime},{newsFromFile}";
+                        Print($"[NewsTime]: {newsFromFile}");
+                    }
+                    else // Nếu ngày hôm nay không có gì thì chỉ lấy thời gian mở, đóng cửa. 
+                    {
+                        newsFromFile = StrategiesUtilities.DefaultNewsTime; 
+                    }
+
+                    NewsTimes = newsFromFile.Split(',').Select(c => int.Parse(c)).ToList();
                 }
                 catch (Exception e)
                 {

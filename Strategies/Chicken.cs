@@ -217,7 +217,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (State == State.Configure)
             {
-                ClearOutputWindow();
                 AddDataSeries(BarsPeriodType.Minute, 5);
                 AddDataSeries(BarsPeriodType.Minute, 1);
             }

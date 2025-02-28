@@ -125,7 +125,7 @@ namespace NinjaTrader.Custom.Strategies
 
         private string ReadNewsInfoFromFile()
         {
-            var filePath = @"\\LOVE\TradingFolder\WeekNewsTime.txt";
+            var filePath = @"\\JOYFUL\TradingFolder\WeekNewsTime.txt";
 
             try
             {

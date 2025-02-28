@@ -203,10 +203,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // General properties
             Description = @"Play on 5 minutes frame.";
             Name = this.Name;
-            BarsRequiredToTrade = 20;
-
-            SetOrderQuantity = SetOrderQuantity.Strategy;
-            DefaultQuantity = 1;
+            BarsRequiredToTrade = 20;            
 
             // Stop loss/Target profit properties
             Target1InTicks = 40;
@@ -534,7 +531,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var targetFull = GetTargetPrice_Full(CurrentTradeAction, priceToSet);
 
             var pnl = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
-            var quantity = DefaultQuantity;
+            var quantity = NumberOfContract;
 
             if (pnl >= -ReduceSizeIfProfit)
             {

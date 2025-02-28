@@ -71,7 +71,14 @@ namespace NinjaTrader.Custom.Strategies
         public int DailyTargetProfit { get; set; } = 500;
         #endregion
 
-        protected Trends FiveMinutes_Trends { get; set; }
+        /// <summary>
+        /// If gain is more than [StopWhenGain], stop trading for that day 
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Số lượng contract: ",
+            Order = 6,
+            GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
+        public int NumberOfContract { get; set; }
 
 
         #region Stoploss/Profit
@@ -195,6 +202,8 @@ namespace NinjaTrader.Custom.Strategies
 
             AllowWriteLog = true;
 
+            NumberOfContract = 1; 
+
             //FiveMinutes_Trends = Trends.Unknown;
 
             CountOrder = 0;
@@ -253,7 +262,7 @@ namespace NinjaTrader.Custom.Strategies
                 Description = @"Based Class for all Strategies which is triggered to execute with [Calculate] is [OnBarClose].";
                 // Let not set Name here, each inheritted class will set by itself
                 Calculate = Calculate.OnBarClose;
-                EntriesPerDirection = 1;
+                EntriesPerDirection = 2;
                 EntryHandling = EntryHandling.AllEntries;
                 IsExitOnSessionCloseStrategy = true;
                 ExitOnSessionCloseSeconds = 30;
@@ -518,7 +527,7 @@ namespace NinjaTrader.Custom.Strategies
                 SetStopLoss(signal, CalculationMode.Price, stoploss, false);
                 SetProfitTarget(signal, CalculationMode.Price, target);
 
-                LocalPrint($"Enter {text}  for {quantity} contracts with signal {signal} at {priceToSet:N2}, stop loss: {stoploss:N2}, target: {target:N2}");
+                LocalPrint($"Enter {text} for {quantity} contracts with signal {signal} at {priceToSet:N2}, stop loss: {stoploss:N2}, target: {target:N2}");
             }
         }
 

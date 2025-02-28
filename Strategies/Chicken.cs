@@ -6,6 +6,7 @@ using NinjaTrader.Custom.Strategies;
 using NinjaTrader.Data;
 using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript.DrawingTools;
+using SharpDX;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -509,29 +510,16 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Chưa cho move stop loss
             StartMovingStoploss = false;
 
-            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
-
-            LocalPrint($"Enter {action} at {Time[0]}");
-
-            #region Remove to improve Performance
-            /*
-            if (action == OrderAction.Buy)
-            {
-                Draw.ArrowUp(this, $"BuySignal" + barIndex_5m, false, 0, lowPrice_5m - TickSize * 10, Brushes.Green);
-            }
-            else if (action == OrderAction.Sell)
-            {
-                Draw.ArrowDown(this, $"SellSignal" + barIndex_5m, false, 0, highPrice_5m + TickSize * 10, Brushes.Red);
-            }
-            */
-            #endregion
+            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;                        
 
             double priceToSet = GetSetPrice(tradeAction);
             FilledPrice = priceToSet;            
 
             var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet);
-            var targetHalf = GetTargetPrice_Half(CurrentTradeAction, priceToSet);
-            var targetFull = GetTargetPrice_Full(CurrentTradeAction, priceToSet);
+            //var targetHalf = GetTargetPrice_Half(CurrentTradeAction, priceToSet);
+            //var targetFull = GetTargetPrice_Full(CurrentTradeAction, priceToSet);
+
+            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}");
 
             var pnl = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
             var quantity = NumberOfContract;
@@ -544,10 +532,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             try
             {
                 var signalHalf = IsTrendingTrade ? StrategiesUtilities.SignalEntry_TrendingHalf : StrategiesUtilities.SignalEntry_ReversalHalf;
-                EnterOrderPure(priceToSet, targetHalf, stopLossPrice, signalHalf, quantity, IsBuying, IsSelling);
+                EnterOrderPure(true, priceToSet, Target1InTicks, StopLossInTicks, signalHalf, quantity, IsBuying, IsSelling);
 
                 var signalFull = IsTrendingTrade ? StrategiesUtilities.SignalEntry_TrendingFull : StrategiesUtilities.SignalEntry_ReversalFull;
-                EnterOrderPure(priceToSet, targetFull, stopLossPrice, signalFull, quantity, IsBuying, IsSelling);
+                EnterOrderPure(true, priceToSet, Target2InTicks, StopLossInTicks, signalFull, quantity, IsBuying, IsSelling);
             }
             catch (Exception ex)
             {
@@ -836,7 +824,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             #region Begin of move pending order
             var newPrice = GetSetPrice(CurrentTradeAction);
-            FilledPrice = newPrice;
 
             var stopLossPrice = GetStopLossPrice(CurrentTradeAction, newPrice);
 
@@ -854,6 +841,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 if (Math.Abs(FilledPrice - newPrice) > 0.5)
                 {
+                    FilledPrice = newPrice;
                     var clonedList = ActiveOrders.Values.ToList();
                     var len = clonedList.Count;
 
@@ -866,8 +854,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
                                 $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
 
-                            ChangeOrder(order, order.Quantity, newPrice, stopLossPrice);                            
+                            ChangeOrder(order, order.Quantity, newPrice, 0);                            
 
+                            /*
                             SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
 
                             if (IsHalfPriceOrder(order))
@@ -878,6 +867,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             {
                                 SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
                             }
+                            */
                         }
                         catch (Exception ex)
                         {

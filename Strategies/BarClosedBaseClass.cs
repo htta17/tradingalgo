@@ -507,6 +507,7 @@ namespace NinjaTrader.Custom.Strategies
 
         protected abstract T2 ShouldTrade();
 
+        
         protected void EnterOrderPure(double priceToSet, double target, double stoploss, string signal, int quantity, bool isBuying, bool isSelling)
         {
             var text = isBuying ? "LONG" : "SHORT";
@@ -518,17 +519,46 @@ namespace NinjaTrader.Custom.Strategies
                 if (isBuying)
                 {
                     EnterLongLimit(0, true, quantity, priceToSet, signal);
+                    //EnterLongStopLimit(quantity, priceToSet, stoploss, signal);
+
                 }
                 else
                 {
                     EnterShortLimit(0, true, quantity, priceToSet, signal);
+                    //EnterShortStopLimit(quantity, priceToSet, stoploss, signal);
                 }
 
+                //SetStopLoss(signal, CalculationMode.Ticks, StopLossInTicks, false);
                 SetStopLoss(signal, CalculationMode.Price, stoploss, false);
+
                 SetProfitTarget(signal, CalculationMode.Price, target);
 
-                LocalPrint($"Enter {text} for {quantity} contracts with signal {signal} at {priceToSet:N2}, stop loss: {stoploss:N2}, target: {target:N2}");
+                LocalPrint($"Enter {text} for {quantity} contracts with signal [{signal}] at {priceToSet:N2}, stop loss: {stoploss:N2}, target: {target:N2}");
             }
+        }
+        
+
+        protected void EnterOrderPure(bool useTicks, double priceToSet, int targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
+        {
+            var text = isBuying ? "LONG" : "SHORT";
+            
+            if (isBuying)
+            {
+                EnterLongLimit(0, true, quantity, priceToSet, signal);                
+
+            }
+            else
+            {
+                EnterShortLimit(0, true, quantity, priceToSet, signal);
+                
+            }
+
+            SetStopLoss(signal, CalculationMode.Ticks, stoplossInTicks, false);            
+
+            SetProfitTarget(signal, CalculationMode.Ticks, targetInTicks);
+
+            LocalPrint($"Enter {text} for {quantity} contracts with signal [{signal}] at {priceToSet:N2}, stop loss ticks: {stoplossInTicks:N2}, target ticks: {targetInTicks:N2}");
+            
         }
 
         /// <summary>

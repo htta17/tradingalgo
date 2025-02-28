@@ -171,7 +171,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (TradingStatus == TradingStatus.PendingFill)
                 {
                     // Cancel order
-                    var shouldCancelOrder = ShouldCancelPendingOrdersByTimeCondition(filledTime);
+                    var shouldCancelOrder = ShouldCancelPendingOrdersByTimeCondition(FilledTime);
                     if (shouldCancelOrder)
                     {
                         CancelAllPendingOrder();
@@ -236,7 +236,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                                     SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
                                 }
 
-                                filledPrice = newPrice;
+                                FilledPrice = newPrice;
                             }
                             catch (Exception ex)
                             {
@@ -287,7 +287,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             try
             {
                 double priceToSet = GetSetPrice(fVGTradeDetail);
-                filledPrice = priceToSet;
+                FilledPrice = priceToSet;
 
                 var stopLossPrice = GetStopLossPrice(fVGTradeDetail, priceToSet);
                 var targetHalf = GetTargetPrice_Half(fVGTradeDetail, priceToSet);
@@ -402,7 +402,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (waeValueSet_5m.HasBULLVolume)
                 {
-                    filledTime = Time[0];
+                    FilledTime = Time[0];
 
                     return new FVGTradeDetail
                     {
@@ -421,7 +421,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (waeValueSet_5m.HasBEARVolume)
                 {
-                    filledTime = Time[0];
+                    FilledTime = Time[0];
 
                     return new FVGTradeDetail
                     {

@@ -60,7 +60,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             Name = "Rooster (Chicken with Trending ONLY)";
             Description = "[Rooster] là giải thuật [Chicken] nhưng chỉ chạy Trending";
 
-            StopLossInTicks = 80;
+            StopLossInTicks = 120;
             Target1InTicks = 40;
             Target2InTicks = 120;
 

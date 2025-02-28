@@ -174,7 +174,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             LocalPrint($"Enter {action} at {Time[0]}");
 
             double priceToSet = GetSetPrice(tradeAction);
-            filledPrice = priceToSet;
+            FilledPrice = priceToSet;
 
             var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet);
             var targetHalf = GetTargetPrice_Half(CurrentTradeAction, priceToSet);

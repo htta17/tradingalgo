@@ -101,7 +101,7 @@ namespace NinjaTrader.Custom.Strategies
         [Display(Name = "Target 1 Profit (Ticks):",
             Order = 16,
             GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
-        public int Target1InTicks { get; set; } = 60; // 25 points for MNQ
+        public int Target1InTicks { get; set; } = 40; // 10 points for MNQ
 
         /// <summary>
         /// Số ticks cho stop loss khi đặt stoploss dựa theo BollingerBand
@@ -123,6 +123,10 @@ namespace NinjaTrader.Custom.Strategies
         protected double PointToMoveLoss = 7;        
         #endregion        
 
+        /// <summary>
+        /// Đọc thông tin 
+        /// </summary>
+        /// <returns></returns>
         private string ReadNewsInfoFromFile()
         {
             var filePath = @"\\JOYFUL\TradingFolder\WeekNewsTime.txt";
@@ -249,7 +253,7 @@ namespace NinjaTrader.Custom.Strategies
                 Description = @"Based Class for all Strategies which is triggered to execute with [Calculate] is [OnBarClose].";
                 // Let not set Name here, each inheritted class will set by itself
                 Calculate = Calculate.OnBarClose;
-                EntriesPerDirection = 2;
+                EntriesPerDirection = 1;
                 EntryHandling = EntryHandling.AllEntries;
                 IsExitOnSessionCloseStrategy = true;
                 ExitOnSessionCloseSeconds = 30;
@@ -296,7 +300,7 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
-        protected void CancelAllPendingOrder()
+        protected virtual void CancelAllPendingOrder()
         {
             var clonedList = ActiveOrders.Values.ToList();
             var len = clonedList.Count;
@@ -636,9 +640,9 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Giá fill lệnh ban đầu 
         /// </summary>
-        protected double filledPrice = -1;
+        protected double FilledPrice = -1;
 
-        protected DateTime filledTime = DateTime.Now;
+        protected DateTime FilledTime = DateTime.Now;
 
         protected HashSet<string> HalfPriceSignals { get; set; }
 
@@ -699,14 +703,14 @@ namespace NinjaTrader.Custom.Strategies
                     for (var i = 0; i < lenStop; i++)
                     {
                         var stopOrder = stopOrders[i];
-                        MoveStopOrder(stopOrder, updatedPrice, filledPrice, IsBuying, IsSelling);
+                        MoveStopOrder(stopOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
                     }
 
                     var lenTarget = targetOrders.Count;
                     for (var i = 0; i < lenTarget; i++)
                     {
                         var targetOrder = targetOrders[i];
-                        MoveTargetOrder(targetOrder, updatedPrice, filledPrice, IsBuying, IsSelling);
+                        MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
                     }
                 }
             }

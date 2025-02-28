@@ -70,9 +70,6 @@
 	  <Reference Include="MySql.Data">
 		  <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\MySql.Data.dll</HintPath>
 	  </Reference>
-	  <Reference Include="Newtonsoft.Json">
-		  <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\Newtonsoft.Json.dll</HintPath>
-	  </Reference>
     <Reference Include="WindowsBase">
       <HintPath>C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll</HintPath>
     </Reference>

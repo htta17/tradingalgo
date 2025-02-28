@@ -134,7 +134,7 @@ namespace NinjaTrader.Custom.Strategies
                     string jsonContent = File.ReadAllText(filePath);
                     JavaScriptSerializer serializer = new JavaScriptSerializer();
 
-                    NewsTimeReader data = serializer.DeserializeObject(jsonContent) as NewsTimeReader;
+                    var data = serializer.Deserialize< NewsTimeReader>(jsonContent);
 
                     var today = DateTime.Today.DayOfWeek;
 

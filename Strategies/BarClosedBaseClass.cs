@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Web.Script.Serialization;
 using NinjaTrader.Cbi;
 using NinjaTrader.Data;
 using NinjaTrader.NinjaScript;
@@ -132,7 +132,10 @@ namespace NinjaTrader.Custom.Strategies
                 if (File.Exists(filePath))
                 {
                     string jsonContent = File.ReadAllText(filePath);
-                    var data = JsonConvert.DeserializeObject<NewsTimeReader>(jsonContent);
+                    JavaScriptSerializer serializer = new JavaScriptSerializer();
+
+                    NewsTimeReader data = serializer.DeserializeObject(jsonContent) as NewsTimeReader;
+
                     var today = DateTime.Today.DayOfWeek;
 
                     var newsTime = string.Empty;

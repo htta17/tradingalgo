@@ -203,7 +203,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             // General properties
             Description = @"Play on 5 minutes frame.";
             Name = this.Name;
-            BarsRequiredToTrade = 20;            
+            BarsRequiredToTrade = 20;
+
+            SetOrderQuantity = SetOrderQuantity.Strategy;
+            DefaultQuantity = 2;
 
             // Stop loss/Target profit properties
             Target1InTicks = 40;

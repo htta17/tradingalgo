@@ -36,12 +36,6 @@
     <Reference Include="mscorlib">
       <HintPath>C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorlib.dll</HintPath>
     </Reference>
-    <Reference Include="MySql.Data">
-      <HintPath>MySql.Data.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
@@ -73,6 +67,12 @@
     <Reference Include="NinjaTrader.Vendor">
       <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Vendor.dll</HintPath>
     </Reference>
+	  <Reference Include="MySql.Data">
+		  <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\MySql.Data.dll</HintPath>
+	  </Reference>
+	  <Reference Include="Newtonsoft.Json">
+		  <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\Newtonsoft.Json.dll</HintPath>
+	  </Reference>
     <Reference Include="WindowsBase">
       <HintPath>C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll</HintPath>
     </Reference>

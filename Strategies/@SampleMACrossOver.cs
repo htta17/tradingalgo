@@ -28,7 +28,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 //This namespace holds strategies in this folder and is required. Do not change it.
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class SampleMACrossOver : Strategy
+	public abstract class SampleMACrossOver : Strategy
 	{
 		private SMA smaFast;
 		private SMA smaSlow;

@@ -14,7 +14,7 @@ using System.Windows.Media;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class FVG : BarClosedBaseClass<FVGTradeAction, FVGTradeDetail>
+    public abstract class FVG : BarClosedBaseClass<FVGTradeAction, FVGTradeDetail>
     {
         // Constants 
         const string Configuration_FVGGroup_Name = "FVG Strategy";

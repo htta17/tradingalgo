@@ -13,7 +13,7 @@ using System.Windows.Media;
 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class PriceAction : Strategy
+    public abstract class PriceAction : Strategy
     {
         protected override void OnStateChange()
         {

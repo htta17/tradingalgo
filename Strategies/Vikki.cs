@@ -27,7 +27,7 @@ using System.Security.Cryptography;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class Vikki : BarClosedBaseClass<TradeAction, TradeAction>
+	public abstract class Vikki : BarClosedBaseClass<TradeAction, TradeAction>
 	{
         public Vikki() : base("VIKKI") 
         {

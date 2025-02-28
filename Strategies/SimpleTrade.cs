@@ -27,7 +27,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class SimpleTrade : Strategy
+	public abstract class SimpleTrade : Strategy
 	{
         private const int DEMA_Period = 9;
         private const int FiveMinutes_Period = 14;

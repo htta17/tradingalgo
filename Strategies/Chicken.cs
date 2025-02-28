@@ -18,7 +18,7 @@ using System.Windows.Media;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class Chicken : BarClosedBaseClass<TradeAction, TradeAction>
+    public abstract class Chicken : BarClosedBaseClass<TradeAction, TradeAction>
     {
         public Chicken() : this("CHICKEN")
         {

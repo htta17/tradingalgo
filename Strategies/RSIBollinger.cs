@@ -27,7 +27,7 @@ using NinjaTrader.CQG.ProtoBuf;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class RSIBollinger : BarClosedBaseClass<RSIBollingerAction, RSIBollingerAction>
+	public abstract class RSIBollinger : BarClosedBaseClass<RSIBollingerAction, RSIBollingerAction>
     {
         public RSIBollinger() : base("TIGER")
         {

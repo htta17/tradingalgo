@@ -25,7 +25,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class TestStopLossGainMoving : Strategy
+	public abstract class TestStopLossGainMoving : Strategy
 	{
 		protected override void OnStateChange()
 		{

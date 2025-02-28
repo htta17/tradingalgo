@@ -26,7 +26,7 @@ using NinjaTrader.Custom.Strategies;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class Hen : Chicken
+	public abstract class Hen : Chicken
 	{
         // Không cho phép trade ngược trend
         protected override bool InternalAllowReversalTrade

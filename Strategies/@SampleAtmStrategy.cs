@@ -24,7 +24,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 //This namespace holds Strategies in this folder and is required. Do not change it.
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class SampleAtmStrategy : Strategy
+	public abstract class SampleAtmStrategy : Strategy
 	{
 
 		private string  atmStrategyId			= string.Empty;

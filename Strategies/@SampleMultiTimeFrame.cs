@@ -28,7 +28,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 //This namespace holds strategies in this folder and is required. Do not change it.
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class SampleMultiTimeFrame : Strategy
+	public abstract class SampleMultiTimeFrame : Strategy
 	{
 		private SMA sma50B0;
 		private SMA sma50B1;

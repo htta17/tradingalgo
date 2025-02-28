@@ -67,9 +67,9 @@
     <Reference Include="NinjaTrader.Vendor">
       <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\NinjaTrader.Vendor.dll</HintPath>
     </Reference>
-	  <Reference Include="MySql.Data">
-		  <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\MySql.Data.dll</HintPath>
-	  </Reference>
+    <Reference Include="MySql.Data">
+      <HintPath>$(USERPROFILE)\Documents\NinjaTrader 8\bin\Custom\MySql.Data.dll</HintPath>
+    </Reference>
     <Reference Include="WindowsBase">
       <HintPath>C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll</HintPath>
     </Reference>
@@ -366,6 +366,7 @@
     <Compile Include="Strategies\%40SampleMultiInstrument.cs" />
     <Compile Include="Strategies\%40SampleMultiTimeFrame.cs" />
     <Compile Include="Strategies\%40Strategy.cs" />
+    <Compile Include="Strategies\ATMStrategyData.cs" />
     <Compile Include="Strategies\Chicken.cs" />
     <Compile Include="SuperDomColumns\%40APQ.cs" />
     <Compile Include="SuperDomColumns\%40Notes.cs" />
@@ -393,6 +394,8 @@
     <Compile Include="Strategies\Rooster.cs" />
     <Compile Include="Strategies\Hen.cs" />
     <Compile Include="MySQL\DatabaseUtility.cs" />
+    <Compile Include="Strategies\RoosterATM.cs" />
+    <Compile Include="Strategies\IATMStrategy.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

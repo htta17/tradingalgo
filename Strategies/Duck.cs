@@ -27,8 +27,8 @@ using System.IO;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class Duck : Strategy
-	{
+	public class Duck : Strategy, IATMStrategy
+    {
         private const int DEMA_Period = 9;
 
         private const string Configuration_DuckParams_Name = "General configurations";

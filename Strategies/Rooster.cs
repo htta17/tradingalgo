@@ -39,10 +39,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             get { return true; }
         }
 
-        public Rooster() : base("ROOSTER")
+        public Rooster() : this("ROOSTER") { }
+
+        public Rooster(string name) : base(name)
         {
             HalfPriceSignals = new HashSet<string>
-            {   
+            {
                 StrategiesUtilities.SignalEntry_TrendingHalf
             };
 

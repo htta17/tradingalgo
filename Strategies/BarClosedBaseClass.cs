@@ -176,14 +176,7 @@ namespace NinjaTrader.Custom.Strategies
                 Print(ex.ToString());
             }
             return string.Empty; 
-        }
-
-        public override void CloseStrategy(string signalName)
-        {
-            LocalPrint($"Closing strategy");
-
-            base.CloseStrategy(signalName);
-        }
+        }        
 
         protected virtual void SetDefaultProperties()
         {
@@ -569,7 +562,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="isGainStop">isGainStop = true: Profit order, isGainStop = false : Profit order</param>
         /// <param name="buyOrSell">Lệnh này là bán hay mua (dùng cho logger nên không quá quan trọng)</param>
         /// <param name="fromEntrySignal">Entry Signal</param>
-        protected void MoveTargetOrStopOrder(double newPrice, Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
+        protected virtual void MoveTargetOrStopOrder(double newPrice, Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
         {
             try
             {
@@ -791,7 +784,7 @@ namespace NinjaTrader.Custom.Strategies
         /// Nếu ChickenStatus == ChickenStatus.OrderExists thì các lệnh trong đó là các lệnh fake
         /// Nếu ChickenStatus == ChickenStatus.PendingFill thì phải transite các lệnh này sang chế độ LIVE
         /// </summary>
-        protected void TransitionOrdersToLive()
+        protected virtual void TransitionOrdersToLive()
         {
             if (TradingStatus == TradingStatus.OrderExists)
             {

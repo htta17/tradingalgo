@@ -33,6 +33,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         public RoosterATM() : base("ROOSTER_ATM") { }
 
         const string ATMStrategy_Group = "ATM Information";
+        private const string OrderEntryName = "Entry";
+        private const string OrderStopName = "Stop";
+        private const string OrderTargetName = "Target";
 
         /// <summary>
         /// ATM name for live trade.
@@ -108,6 +111,33 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.TransitionOrdersToLive();
         }
 
+        protected override void MoveTargetOrStopOrder(double newPrice, Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
+        {
+            try
+            {
+                AtmStrategyChangeStopTarget(
+                        isGainStop ? newPrice : 0,
+                        isGainStop ? 0 : newPrice,
+                        order.Name,
+                        atmStrategyId);                
+
+                var text = isGainStop ? "TARGET" : "LOSS";
+
+                LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
+                    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
+                    $"đến [{newPrice}] - {buyOrSell}");
+            }
+            catch (Exception ex)
+            {
+                LocalPrint($"[MoveTargetOrStopOrder] - ERROR: {ex.Message}");
+            }
+        }
+
+        protected override void UpdateStopLossPrice(double newStopLossPrice)
+        {
+            StopLossPrice = newStopLossPrice;
+        }
+
         private DateTime executionTime = DateTime.MinValue;
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
@@ -122,9 +152,37 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (TradingStatus == TradingStatus.OrderExists)
             {
+                // Khi giá đã ở dưới StopLossPrice
                 if ((IsBuying && updatedPrice < StopLossPrice) || (IsSelling && updatedPrice > StopLossPrice))
                 {
                     tradingStatus = CheckCurrentStatusBasedOnOrders();
+
+                    LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}"); 
+                }
+                else 
+                {
+                    var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && order.Name.Contains(OrderStopName)).ToList();
+                    var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains(OrderTargetName)).ToList();
+
+                    if (targetOrders.Count() != 1 || stopOrders.Count() != 1)
+                    {
+                        return;
+                    }
+
+                    var targetOrder = targetOrders.First(); 
+
+                    if ((IsBuying && updatedPrice > targetOrder.LimitPrice) || (IsSelling && updatedPrice < targetOrder.LimitPrice ))
+                    {
+                        tradingStatus = CheckCurrentStatusBasedOnOrders();
+
+                        LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}");
+                    }
+                    else
+                    {
+                        MoveStopOrder(stopOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);
+
+                        MoveTargetOrder(targetOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);
+                    }                    
                 }
             }
             else if (TradingStatus == TradingStatus.PendingFill)
@@ -132,6 +190,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if ((IsBuying && updatedPrice < FilledPrice) || (IsSelling && updatedPrice > FilledPrice))
                 {
                     tradingStatus = CheckCurrentStatusBasedOnOrders();
+
+                    LocalPrint($"Last TradingStatus: PendingFill, new TradingStatus: {TradingStatus}");
                 }
             }
         }
@@ -180,17 +240,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void CancelAllPendingOrder()
         {   
             AtmStrategyCancelEntryOrder(orderId);
-        }
-
-        protected override void MoveStopOrder(Order stopOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)
-        {
-            base.MoveStopOrder(stopOrder, updatedPrice, filledPrice, isBuying, isSelling);
-        }
-
-        protected override void MoveTargetOrder(Order targetOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)
-        {
-            base.MoveTargetOrder(targetOrder, updatedPrice, filledPrice, isBuying, isSelling);
-        }
+        }        
 
         protected string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyRooster.txt");
         private string atmStrategyId = string.Empty;
@@ -207,10 +257,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 LocalPrint(e.Message);
             }
         }
-
-        private const string OrderEntryName = "Entry";
-        private const string OrderStopName = "Stop";
-        private const string OrderTargetName = "Target";
 
         private TradingStatus CheckCurrentStatusBasedOnOrders()
         {

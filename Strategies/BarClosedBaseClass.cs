@@ -599,6 +599,16 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
+        protected virtual void UpdateStopLossPrice(double newStopLossPrice)
+        { 
+            // Do nothing here, this is a place holder for inheritted class 
+        }
+
+        protected virtual void UpdateTargetPrice(double newTargetPrice)
+        {
+            // Do nothing here, this is a place holder for inheritted class 
+        }
+
         /// <summary>
         /// Dịch chuyển stop loss. Có 2 trường hợp: (1) - Sau khi giá chạm vào target 1, kéo stop loss lên break even. 
         /// (2) - Khi giá gần chạm đến target 2, kéo stop loss lên gần với giá. 
@@ -650,6 +660,8 @@ namespace NinjaTrader.Custom.Strategies
             {
                 LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
 
+                UpdateStopLossPrice(newPrice);
+
                 MoveTargetOrStopOrder(newPrice, stopOrder, false, allowMoving, stopOrder.FromEntrySignal);
             }
         }
@@ -671,11 +683,15 @@ namespace NinjaTrader.Custom.Strategies
             {
                 MoveTargetOrStopOrder(targetOrderPrice + PointToMoveTarget, targetOrder, true, "BUY", targetOrder.FromEntrySignal);
 
+                UpdateTargetPrice(targetOrderPrice + PointToMoveTarget);
+
                 StartMovingStoploss = true;
             }
             else if (isSelling && updatedPrice - PointToMoveTarget < targetOrderPrice)
             {
                 MoveTargetOrStopOrder(targetOrderPrice - PointToMoveTarget, targetOrder, true, "SELL", targetOrder.FromEntrySignal);
+
+                UpdateTargetPrice(targetOrderPrice - PointToMoveTarget);
 
                 StartMovingStoploss = true;
             }

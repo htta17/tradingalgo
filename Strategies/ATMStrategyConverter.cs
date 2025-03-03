@@ -20,7 +20,7 @@ namespace NinjaTrader.Custom.Strategies
 
         public override bool GetStandardValuesExclusive(ITypeDescriptorContext context) => true;
 
-        private readonly string FolderName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "NinjaTrader 8\\templates\\AtmStrategy");
+        private readonly string FolderName = StrategiesUtilities.ATMFolderName;
 
         string[] atmStrategies;
 

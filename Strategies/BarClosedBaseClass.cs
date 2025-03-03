@@ -300,6 +300,18 @@ namespace NinjaTrader.Custom.Strategies
                     Print($"[OnStateChange] - ERROR: " + e.Message);
                 }
             }
+            else if (State == State.Realtime)
+            {
+                try
+                {
+                    // Nếu có lệnh đang chờ thì cancel 
+                    TransitionOrdersToLive();
+                }
+                catch (Exception e)
+                {
+                    LocalPrint("[OnStateChange] - ERROR" + e.Message);
+                }
+            }
         }
 
         protected virtual void CancelAllPendingOrder()
@@ -760,7 +772,7 @@ namespace NinjaTrader.Custom.Strategies
 
         protected abstract bool IsFullPriceOrder(Order order);
 
-        protected void CloseExistingOrders()
+        protected virtual void CloseExistingOrders()
         {
             var clonedList = ActiveOrders.Values.ToList().Where(c => c.OrderType == OrderType.Limit).ToList();
             var len = clonedList.Count;

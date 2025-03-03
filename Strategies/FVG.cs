@@ -121,17 +121,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 deadZoneSeries = new Series<double>(this);
                 waeValuesSeries = new Series<WAE_ValueSet>(this);
             }
-            else if (State == State.Realtime)
-            {
-                try
-                {
-                    TransitionOrdersToLive();
-                }
-                catch (Exception e)
-                {
-                    LocalPrint("[OnStateChange] - ERROR" + e.Message);
-                }
-            }
+            
         }
 
         private Series<double> deadZoneSeries;

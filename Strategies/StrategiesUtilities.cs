@@ -4,11 +4,13 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
+using System.Xml.Serialization;
 
 namespace NinjaTrader.Custom.Strategies
 {
@@ -204,6 +206,25 @@ namespace NinjaTrader.Custom.Strategies
                 }
             }
             return $"{order.Name}-{order.FromEntrySignal}-{order.Id}";
+        }
+
+        public static string ATMFolderName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "NinjaTrader 8\\templates\\AtmStrategy");
+        public static NinjaTraderConfig ReadStrategyData(string strategyName)
+        {
+            var xmlFilePath = $"{ATMFolderName}\\{strategyName}.xml";
+
+            try
+            {
+                XmlSerializer serializer = new XmlSerializer(typeof(NinjaTraderConfig));
+                using (StreamReader reader = new StreamReader(xmlFilePath))
+                {
+                    return (NinjaTraderConfig)serializer.Deserialize(reader);
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+            return null;
         }
     }
 

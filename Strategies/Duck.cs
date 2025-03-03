@@ -83,7 +83,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "Default ATM Strategy", Description = "Default ATM Strategy", Order = 4, 
             GroupName = Configuration_ATMParams_Name)]
         [TypeConverter(typeof(ATMStrategyConverter))]
-        public string FullATMName { get; set; } 
+        public string FullSizeATMName { get; set; } 
 
         /// <summary>
         /// ATM name for live trade.
@@ -93,7 +93,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             Description = "Strategy sử dụng khi loss/gain more than a half", 
             Order = 4, GroupName = Configuration_ATMParams_Name)]
         [TypeConverter(typeof(ATMStrategyConverter))]
-        public string HalfATMName { get; set; } 
+        public string HalfSizefATMName { get; set; } 
 
         private double PointToMoveGainLoss = 5;
 
@@ -132,8 +132,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 DefaultQuantity = 5;
 
                 // Set Properties		        
-                FullATMName = "Half_MNQ";
-                HalfATMName = "Half_MNQ";
+                FullSizeATMName = "Half_MNQ";
+                HalfSizefATMName = "Half_MNQ";
 
                 MaximumDayLoss = 260;
                 DailyTargetProfit = 500;
@@ -251,7 +251,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // If profit reaches half of daily goal or lose half of daily loss 
                 var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
                 var reacHalf = todaysPnL <= -MaximumDayLoss / 2 || todaysPnL >= DailyTargetProfit / 2;
-                var atmStragtegyName = reacHalf ? HalfATMName : FullATMName;
+                var atmStragtegyName = reacHalf ? HalfSizefATMName : FullSizeATMName;
 
                 try
                 {

@@ -847,9 +847,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="filledOrderTime"></param>
         /// <returns></returns>
         protected virtual bool ShouldCancelPendingOrdersByTimeCondition(DateTime filledOrderTime)
-        {
-            // Cancel lệnh do đợi quá lâu
-            var firstOrder = ActiveOrders.First().Value;
+        {               
             if ((Time[0] - filledOrderTime).TotalMinutes > 60)
             {
                 //Account.CancelAllOrders(Instrument);

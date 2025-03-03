@@ -62,7 +62,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void CloseExistingOrders()
         {
-            AtmStrategyClose(atmStrategyId);
+            if (!string.IsNullOrEmpty(atmStrategyId))
+            {
+                AtmStrategyClose(atmStrategyId);
+            }            
         }
         protected override void SetDefaultProperties()
         {
@@ -98,10 +101,40 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.OnStateChange();
 
             if (State == State.Configure)
-            { 
+            {
                 FullSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(FullSizeATMName).AtmStrategy;
 
                 HalfSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(HalfSizefATMName).AtmStrategy;
+            }
+            else if (State == State.Realtime)
+            {
+                // Load thông tin liên quan đến
+                if (File.Exists(FileName))
+                {
+                    try
+                    {
+                        var text = File.ReadAllText(FileName);
+
+                        var arr = text.Split(',');
+
+                        if (arr.Length == 1)
+                        {
+                            atmStrategyId = arr[0];
+                        }
+                        else if (arr.Length == 2)
+                        {
+                            atmStrategyId = arr[0];
+                            orderId = arr[1];
+
+                            tradingStatus = CheckCurrentStatusBasedOnOrders();
+                            LocalPrint($"Initial status - {tradingStatus}");
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Print(e.Message);
+                    }
+                }
             }
         }
 
@@ -135,6 +168,13 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void UpdateStopLossPrice(double newStopLossPrice)
         {
             StopLossPrice = newStopLossPrice;
+        }
+
+        protected override Order GetOrderFromPendingList()
+        {
+            var order = Account.Orders.FirstOrDefault(c => c.Name.Contains(OrderEntryName) && (c.OrderState == OrderState.Working || c.OrderState == OrderState.Accepted));
+
+            return order;
         }
 
         private DateTime executionTime = DateTime.MinValue;
@@ -280,11 +320,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         private string atmStrategyId = string.Empty;
         private string orderId = string.Empty;
 
-        private void SaveAtmStrategyIdToFile(string strategyId)
+        private void SaveAtmStrategyIdToFile(string strategyId, string orderId)
         {
             try
             {
-                File.WriteAllText(FileName, strategyId);
+                File.WriteAllText(FileName, $"{strategyId},{orderId}");
             }
             catch (Exception e)
             {
@@ -330,7 +370,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             orderId = GetAtmStrategyUniqueId();
 
             // Save to file, in case we need to pull [atmStrategyId] again
-            SaveAtmStrategyIdToFile(atmStrategyId);
+            SaveAtmStrategyIdToFile(atmStrategyId, orderId);
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;            
 

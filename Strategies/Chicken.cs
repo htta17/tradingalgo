@@ -534,6 +534,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private void MoveTargetsBasedOnBollinger()
         {
+            // Hàm này chỉ dùng cho đánh ngược trend, nếu trending thì out.
+            if (IsTrendingTrade)
+            {
+                return; 
+            }
             // Move target 1
             var targetHalfPriceOrders = ActiveOrders.Values.ToList().Where(c => c.FromEntrySignal == StrategiesUtilities.SignalEntry_ReversalHalf &&
                 (c.OrderType == OrderType.StopMarket || c.OrderType == OrderType.StopLimit)).ToList();
@@ -588,8 +593,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnBarUpdate()
         {
-            Print($"CurrentBar: {CurrentBar}, BarsCount: {Bars.Count}");
-
             var passTradeCondition = CheckingTradeCondition();
             if (!passTradeCondition)
             {
@@ -635,7 +638,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     UpdatePendingOrder();
                 }
                 else if (TradingStatus == TradingStatus.OrderExists)
-                {
+                {   
                     MoveTargetsBasedOnBollinger();
                 }
             }
@@ -747,6 +750,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             };
         }
 
+        protected virtual Order GetOrderFromPendingList()
+        {
+            return ActiveOrders.FirstOrDefault().Value;
+        }
+
         /// <summary>
         /// Cập nhật giá trị cho các lệnh đang chờ, hoặc cancel do: Đợi lệnh quá 1h đồng hồ, do hết giờ trade, hoặc do 1 số điều kiện khác
         /// </summary>
@@ -757,9 +765,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            #region Cancel lệnh nếu có 1 trong các điều kiện: 
+            #region Cancel lệnh nếu có 1 trong các điều kiện:             
             // Cancel lệnh do đợi quá lâu
-            var firstOrder = ActiveOrders.First().Value;
+            var firstOrder = GetOrderFromPendingList();
+
+            if (firstOrder == null)
+            {
+                return;
+            }
 
             var cancelOrderDueByTime = ShouldCancelPendingOrdersByTimeCondition(FilledTime);
             if (cancelOrderDueByTime)

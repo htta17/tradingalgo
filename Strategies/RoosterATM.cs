@@ -108,7 +108,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void TransitionOrdersToLive()
         {
-            base.TransitionOrdersToLive();
+            // Do nothing
         }
 
         protected override void MoveTargetOrStopOrder(double newPrice, Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)

@@ -711,19 +711,15 @@ namespace NinjaTrader.Custom.Strategies
         /// </summary>
         protected HashSet<string> EntrySignals { get; set; }
 
-        private DateTime executionTime = DateTime.MinValue;
-
         // Kéo stop loss/gain
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
             var updatedPrice = marketDataUpdate.Price;
 
-            if (updatedPrice < 100 || DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
+            if (updatedPrice < 100)
             {
                 return;
             }
-
-            executionTime = DateTime.Now;            
 
             if (TradingStatus == TradingStatus.OrderExists)
             {

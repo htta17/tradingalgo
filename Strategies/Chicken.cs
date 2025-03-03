@@ -588,6 +588,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnBarUpdate()
         {
+            Print($"CurrentBar: {CurrentBar}, BarsCount: {Bars.Count}");
+
             var passTradeCondition = CheckingTradeCondition();
             if (!passTradeCondition)
             {

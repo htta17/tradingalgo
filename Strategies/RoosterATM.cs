@@ -62,9 +62,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void CloseExistingOrders()
         {
-            base.CloseExistingOrders();
+            AtmStrategyClose(atmStrategyId);
         }
-
         protected override void SetDefaultProperties()
         {
             base.SetDefaultProperties();
@@ -240,7 +239,42 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void CancelAllPendingOrder()
         {   
             AtmStrategyCancelEntryOrder(orderId);
-        }        
+        }
+
+        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice)
+        {
+            if (Math.Abs(FilledPrice - newPrice) > 0.5)
+            {
+                FilledPrice = newPrice;
+                StopLossPrice = stopLossPrice;
+
+                try
+                {
+                    LocalPrint($"Trying to modify waiting order, new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
+
+                    AtmStrategyChangeEntryOrder(newPrice, stopLossPrice, orderId);
+                }
+                catch (Exception ex)
+                {
+                    LocalPrint($"[UpdatePendingOrder] - ERROR: {ex.Message}");
+                }
+            }
+        }
+
+        protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice)
+        {
+            var profitOrLoss = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
+
+            var atmStrategy = profitOrLoss >= -ReduceSizeIfProfit ? FullSizeAtmStrategy : HalfSizeAtmStrategy;
+
+            // Get stop loss and target ID based on strategy 
+            var stopLossTick = atmStrategy.Brackets[0].StopLoss;
+            var stopLossPrice = IsBuying ?
+                setPrice - stopLossTick * TickSize :
+                setPrice + stopLossTick * TickSize;
+
+            return stopLossPrice;
+        }
 
         protected string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyRooster.txt");
         private string atmStrategyId = string.Empty;

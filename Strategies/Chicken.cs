@@ -825,45 +825,38 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.Realtime)
             {
-                if (Math.Abs(FilledPrice - newPrice) > 0.5)
-                {
-                    FilledPrice = newPrice;
-                    var clonedList = ActiveOrders.Values.ToList();
-                    var len = clonedList.Count;
-
-                    for (var i = 0; i < len; i++)
-                    {
-                        var order = clonedList[i];
-                        try
-                        {
-                            LocalPrint($"Trying to modify waiting order [{order.Name}], " +
-                                $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
-                                $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
-
-                            ChangeOrder(order, order.Quantity, newPrice, 0);                            
-
-                            /*
-                            SetStopLoss(order.Name, CalculationMode.Price, stopLossPrice, false);
-
-                            if (IsHalfPriceOrder(order))
-                            {
-                                SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Half, false);
-                            }
-                            else if (IsFullPriceOrder(order))
-                            {
-                                SetProfitTarget(order.Name, CalculationMode.Price, targetPrice_Full, false);
-                            }
-                            */
-                        }
-                        catch (Exception ex)
-                        {
-                            LocalPrint($"[UpdatePendingOrder] - ERROR: {ex.Message}");
-                        }
-                    }
-                }
+                UpdatePendingOrderPure(newPrice, stopLossPrice);
             }
             #endregion
 
+        }
+
+        protected virtual void UpdatePendingOrderPure(double newPrice, double stopLossPrice)
+        {
+            if (Math.Abs(FilledPrice - newPrice) > 0.5)
+            {
+                FilledPrice = newPrice;
+                
+                var clonedList = ActiveOrders.Values.ToList();
+                var len = clonedList.Count;
+
+                for (var i = 0; i < len; i++)
+                {
+                    var order = clonedList[i];
+                    try
+                    {
+                        LocalPrint($"Trying to modify waiting order [{order.Name}], " +
+                            $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
+                            $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
+
+                        ChangeOrder(order, order.Quantity, newPrice, 0);
+                    }
+                    catch (Exception ex)
+                    {
+                        LocalPrint($"[UpdatePendingOrder] - ERROR: {ex.Message}");
+                    }
+                }
+            }
         }
 
         protected override bool IsHalfPriceOrder(Order order)

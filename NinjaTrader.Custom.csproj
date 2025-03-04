@@ -396,6 +396,7 @@
     <Compile Include="MySQL\DatabaseUtility.cs" />
     <Compile Include="Strategies\RoosterATM.cs" />
     <Compile Include="Strategies\IATMStrategy.cs" />
+    <Compile Include="Strategies\Kitty.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

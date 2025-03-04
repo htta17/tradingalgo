@@ -91,7 +91,8 @@ namespace NinjaTrader.Custom.Strategies
         Weak, 
         Medium, 
         Strong, 
-        SuperStrong
+        SuperStrong,
+        ExtremelySuperStrong,
     }
 
     
@@ -102,7 +103,7 @@ namespace NinjaTrader.Custom.Strategies
     public class WAE_ValueSet
     {
         // Là hệ số đảm bảo cho UpTrendVal hoặc DownTrendVal phải lớn hơn [DeadZoneVal] *  [SafetyRatio]
-        public const double SafetyRatio = 1.4;
+        public const double SafetyRatio = 1.1;
 
         /// <summary>
         /// Volume ≤ [WeakRange]: Weak
@@ -116,9 +117,15 @@ namespace NinjaTrader.Custom.Strategies
 
         /// <summary>
         /// [MediumRange] &lt; Volume ≤ [StrongRange]: Strong <br/>
-        /// [StrongRange] &lt; Volume: SuperStrong
+        /// [StrongRange] &lt; Volume: SuperStrong &lt; [ExtremelySuperStrong]
         /// </summary>
         public const int StrongRange = 300;
+
+        /// <summary>
+        /// [MediumRange] &lt; Volume ≤ [StrongRange]: Strong <br/>
+        /// [StrongRange] &lt; Volume: SuperStrong
+        /// </summary>
+        public const int ExtremelySuperStrong = 800;
 
         public double DeadZoneVal { get; set; }
         public double ExplosionVal { get; set; }
@@ -193,9 +200,13 @@ namespace NinjaTrader.Custom.Strategies
                     {
                         wAE_Strength = WAE_Strength.Strong;
                     }
-                    else // StrongRange < sum 
+                    else if (StrongRange < sum && sum <= ExtremelySuperStrong)
                     {
                         wAE_Strength = WAE_Strength.SuperStrong;
+                    }
+                    else // ExtremelySuperStrong < sum
+                    {
+                        wAE_Strength = WAE_Strength.ExtremelySuperStrong;
                     }
                 }
                 return wAE_Strength.Value;
@@ -263,7 +274,6 @@ namespace NinjaTrader.Custom.Strategies
         TradingHour = 1, 
         MaxDayGainLoss = 2,
     }
-
 
     public class NewsTimeReader
     {

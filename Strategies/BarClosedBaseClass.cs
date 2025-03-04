@@ -48,6 +48,11 @@ namespace NinjaTrader.Custom.Strategies
             GroupName = StrategiesUtilities.Configuration_General_Name)]
         public bool AllowWriteLog { get; set; }
 
+        /// <summary>
+        /// If = true: Set break even manually, otherwise, ATM will set breakeven.
+        /// </summary>
+        protected bool SetBreakEvenManually = true;
+
         #region Allow Trade Parameters
 
         protected List<int> NewsTimes = new List<int>();
@@ -599,16 +604,6 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
-        protected virtual void UpdateStopLossPrice(double newStopLossPrice)
-        { 
-            // Do nothing here, this is a place holder for inheritted class 
-        }
-
-        protected virtual void UpdateTargetPrice(double newTargetPrice)
-        {
-            // Do nothing here, this is a place holder for inheritted class 
-        }
-
         /// <summary>
         /// Dịch chuyển stop loss. Có 2 trường hợp: (1) - Sau khi giá chạm vào target 1, kéo stop loss lên break even. 
         /// (2) - Khi giá gần chạm đến target 2, kéo stop loss lên gần với giá. 
@@ -620,8 +615,8 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="isSelling"></param>        
         protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)
         {
-            double newPrice = -1;
-            var allowMoving = "";
+            double newPrice = -1;            
+            var allowMoving = false;
             var stopOrderPrice = stopOrder.StopPrice;
 
             // Dịch stop loss lên break even 
@@ -631,13 +626,13 @@ namespace NinjaTrader.Custom.Strategies
                 if (StartMovingStoploss && stopOrderPrice > filledPrice && stopOrderPrice + PointToMoveLoss < updatedPrice)
                 {
                     newPrice = updatedPrice - PointToMoveLoss;
-                    allowMoving = "BUY";
+                    allowMoving = true; 
                 }
                 // Kéo về break even
-                else if (stopOrderPrice < filledPrice && filledPrice + 1 < updatedPrice)
+                else if (SetBreakEvenManually && stopOrderPrice < filledPrice && filledPrice + 1 < updatedPrice)
                 {
                     newPrice = filledPrice + 1;
-                    allowMoving = "BUY";
+                    allowMoving = true;
                 }
             }
             else if (isSelling)
@@ -646,23 +641,21 @@ namespace NinjaTrader.Custom.Strategies
                 if (StartMovingStoploss && stopOrderPrice < filledPrice && stopOrderPrice - PointToMoveLoss > updatedPrice)
                 {
                     newPrice = updatedPrice + PointToMoveLoss;
-                    allowMoving = "SELL";
+                    allowMoving = true;
                 }
                 // Kéo về break even
-                else if (stopOrderPrice > filledPrice && filledPrice - 1 > updatedPrice)
+                else if (SetBreakEvenManually && stopOrderPrice > filledPrice && filledPrice - 1 > updatedPrice)
                 {
                     newPrice = filledPrice - 1;
-                    allowMoving = "SELL";
+                    allowMoving = true;
                 }
             }
 
-            if (allowMoving != "")
+            if (allowMoving)
             {
-                LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
+                LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");                
 
-                UpdateStopLossPrice(newPrice);
-
-                MoveTargetOrStopOrder(newPrice, stopOrder, false, allowMoving, stopOrder.FromEntrySignal);
+                MoveTargetOrStopOrder(newPrice, stopOrder, false, IsBuying ? "BUY" : "SELL", stopOrder.FromEntrySignal);
             }
         }
 
@@ -677,21 +670,18 @@ namespace NinjaTrader.Custom.Strategies
         protected virtual void MoveTargetOrder(Order targetOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)
         {
             var targetOrderPrice = targetOrder.LimitPrice;
+            LocalPrint($"[MoveTargetOrder] - {targetOrderPrice}");
 
             // Dịch stop gain nếu giá quá gần target            
             if (isBuying && updatedPrice + PointToMoveTarget > targetOrderPrice)
             {
                 MoveTargetOrStopOrder(targetOrderPrice + PointToMoveTarget, targetOrder, true, "BUY", targetOrder.FromEntrySignal);
 
-                UpdateTargetPrice(targetOrderPrice + PointToMoveTarget);
-
                 StartMovingStoploss = true;
             }
             else if (isSelling && updatedPrice - PointToMoveTarget < targetOrderPrice)
             {
-                MoveTargetOrStopOrder(targetOrderPrice - PointToMoveTarget, targetOrder, true, "SELL", targetOrder.FromEntrySignal);
-
-                UpdateTargetPrice(targetOrderPrice - PointToMoveTarget);
+                MoveTargetOrStopOrder(targetOrderPrice - PointToMoveTarget, targetOrder, true, "SELL", targetOrder.FromEntrySignal);                
 
                 StartMovingStoploss = true;
             }

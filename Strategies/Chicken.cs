@@ -840,13 +840,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.Realtime)
             {
-                UpdatePendingOrderPure(newPrice, stopLossPrice);
+                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full);
             }
             #endregion
 
         }
 
-        protected virtual void UpdatePendingOrderPure(double newPrice, double stopLossPrice)
+        protected virtual void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull)
         {
             if (Math.Abs(FilledPrice - newPrice) > 0.5)
             {
@@ -862,7 +862,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         LocalPrint($"Trying to modify waiting order [{order.Name}], " +
                             $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
-                            $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
+                            $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}, newTarget: {targetFull:N2}");
 
                         ChangeOrder(order, order.Quantity, newPrice, 0);
                     }

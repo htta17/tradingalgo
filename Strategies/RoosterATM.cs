@@ -84,6 +84,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             FullSizeATMName = "Rooster_Default_4cts";
             HalfSizefATMName = "Rooster_Default_2cts";
+
+            SetBreakEvenManually = false;
         }
 
         private TradingStatus tradingStatus { get; set; } = TradingStatus.Idle;
@@ -155,10 +157,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 var text = isGainStop ? "TARGET" : "LOSS";
 
-                if (!isGainStop)
+                if (isGainStop)
+                {
+                    TargetPrice = newPrice;
+                }
+                else
                 {
                     StopLossPrice = newPrice;
-                }    
+                }
 
                 LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
                     $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
@@ -168,11 +174,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 LocalPrint($"[MoveTargetOrStopOrder] - ERROR: {ex.Message}");
             }
-        }
-
-        protected override void UpdateStopLossPrice(double newStopLossPrice)
-        {
-            StopLossPrice = newStopLossPrice;
         }
 
         protected override Order GetOrderFromPendingList()
@@ -196,8 +197,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (TradingStatus == TradingStatus.OrderExists)
             {
-                // Khi giá đã ở dưới StopLossPrice
-                if ((IsBuying && updatedPrice < StopLossPrice) || (IsSelling && updatedPrice > StopLossPrice))
+                var buyPriceIsOutOfRange = IsBuying && (updatedPrice < StopLossPrice || updatedPrice > TargetPrice);
+                var sellPriceIsOutOfRange = IsSelling && (updatedPrice > StopLossPrice || updatedPrice < TargetPrice);
+
+                // Khi giá đã ở ngoài range (stoploss, target)
+                if (buyPriceIsOutOfRange || sellPriceIsOutOfRange)
                 {
                     tradingStatus = CheckCurrentStatusBasedOnOrders();
 
@@ -213,20 +217,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                         return;
                     }
 
-                    var targetOrder = targetOrders.First(); 
+                    MoveTargetOrder(targetOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);
 
-                    if ((IsBuying && updatedPrice > targetOrder.LimitPrice) || (IsSelling && updatedPrice < targetOrder.LimitPrice ))
-                    {
-                        tradingStatus = CheckCurrentStatusBasedOnOrders();
-
-                        LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}");
-                    }
-                    else
-                    {
-                        MoveStopOrder(stopOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);
-
-                        MoveTargetOrder(targetOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);
-                    }                    
+                    MoveStopOrder(stopOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);                    
                 }
             }
             else if (TradingStatus == TradingStatus.PendingFill)
@@ -241,7 +234,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         private double StopLossPrice = -1;
-        private double TargetPrice = -1; 
+        private double TargetPrice = -1;
         protected override void EnterOrder(TradeAction tradeAction)
         {
             // Set global values
@@ -252,10 +245,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
-            double priceToSet = GetSetPrice(tradeAction);
-            FilledPrice = priceToSet;
-
-            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}");
+            double priceToSet = GetSetPrice(tradeAction);            
 
             var profitOrLoss = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
 
@@ -263,13 +253,23 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var atmStrategyName = isFullSize ? FullSizeATMName : HalfSizefATMName;
 
-            var atmStrategy = isFullSize ? FullSizeAtmStrategy : HalfSizeAtmStrategy; 
+            var atmStrategy = isFullSize ? FullSizeAtmStrategy : HalfSizeAtmStrategy;
 
             // Get stop loss and target ID based on strategy 
+            FilledPrice = priceToSet;
+
             var stopLossTick = atmStrategy.Brackets[0].StopLoss;
+            var targetTick = IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target);
+
+            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}, stopLossTick: {stopLossTick}, finalTarget Tick: {targetTick}");
+
             StopLossPrice = IsBuying ?
                 priceToSet - stopLossTick * TickSize :
                 priceToSet + stopLossTick * TickSize;
+
+            TargetPrice = IsBuying ?
+                priceToSet + targetTick * TickSize :
+                priceToSet - targetTick * TickSize;
 
             try
             {
@@ -286,16 +286,17 @@ namespace NinjaTrader.NinjaScript.Strategies
             AtmStrategyCancelEntryOrder(orderId);
         }
 
-        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice)
+        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double target)
         {
             if (Math.Abs(FilledPrice - newPrice) > 0.5)
             {
                 FilledPrice = newPrice;
                 StopLossPrice = stopLossPrice;
+                TargetPrice = target;
 
                 try
                 {
-                    LocalPrint($"Trying to modify waiting order, new Price: {newPrice:N2}, new stop loss: {stopLossPrice}");
+                    LocalPrint($"Trying to modify waiting order, new Price: {newPrice:N2}, new stop loss: {stopLossPrice:N2}, new target: {target:N2}");
 
                     AtmStrategyChangeEntryOrder(newPrice, stopLossPrice, orderId);
                 }

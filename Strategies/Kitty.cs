@@ -65,19 +65,24 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 6. Thân cây nến trước không quá 60pts
              * 7. RSI > 30 (Not oversold)
              * 8. Râu nến phía DƯỚI không quá dài (Râu DƯỚI dài chứng tỏ có lực MUA mạnh, có thể đảo chiều)
+             * 9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH và có body > 50% cây nến gần nhất.
              */
 
             var bottomToBody = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
             var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, 5, 60);
             var previousBody = Math.Abs(prev_closePrice_5m - prev_openPrice_5m) < 60; 
+            var previousIsGreenAndTooStrong = 
+                CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m) && 
+                Math.Abs(prev_openPrice_5m - prev_closePrice_5m) > 0.5 * Math.Abs(closePrice_5m - openPrice_5m);
 
             var conditionForSell = currentWAE.HasBEARVolume && // 1 & 4
                 previousWAE.DownTrendVal > 0 && //2
                 currentWAE.DownTrendVal > previousWAE.DownTrendVal && //3
-                isRedCandle  && // 5 
+                isRedCandle && // 5 
                 previousBody && // 6
                 rsi_5m > 30 && // 7
-                bottomToBody; 
+                bottomToBody && // 8
+                !previousIsGreenAndTooStrong; // 9 (Don't forget NOT)                
 
             LocalPrint($@"
                 Điều kiện vào SELL: 
@@ -89,6 +94,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 6. Thân cây nến trước không quá 60pts (open: {prev_openPrice_5m:N2}, close: {prev_closePrice_5m:N2}): [{previousBody}]
                 7. RSI > 30 (Not oversold): [{rsi_5m > 30}], 
                 8. Râu nến phía DƯỚI không quá 40% toàn cây nến: [{bottomToBody}].
+                9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH và có body > 50% cây nến gần nhất.[{!previousIsGreenAndTooStrong}]
                 FINAL: [{conditionForSell}]");
 
             if (conditionForSell)
@@ -108,9 +114,13 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 6. Thân cây nến trước không quá 60pts
              * 7. RSI < 70 (Not overbought)
              * 8. Râu nến phía TRÊN không quá dài (Râu TRÊN dài chứng tỏ có lực BÁN mạnh, có thể đảo chiều)
+             * 9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ và có body > 50% cây nến gần nhất 
              */
             var isGreenCandle = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, 5, 60);
             var topToBody = CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
+            var previousIsRedAndTooStrong =
+                CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m) &&
+                Math.Abs(prev_openPrice_5m - prev_closePrice_5m) > 0.5 * Math.Abs(closePrice_5m - openPrice_5m);
 
             var conditionForBuy = currentWAE.HasBULLVolume && // 1 & 4
                 previousWAE.UpTrendVal > 0 && //2
@@ -118,7 +128,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 isGreenCandle && // 5
                 previousBody &&   // 6                
                 rsi_5m < 70 && // 7
-                topToBody; 
+                topToBody && //8
+                !previousIsRedAndTooStrong; // 9 (Don't forget NOT)
 
             LocalPrint($@"
                 Điều kiện vào BUY: 
@@ -130,6 +141,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 6. Thân cây nến trước không quá 60pts (open: {prev_openPrice_5m:N2}, close: {prev_closePrice_5m:N2}): [{previousBody}]
                 7. RSI < 70 (Not overbought): [{rsi_5m < 70}], 
                 8. Râu nến phía TRÊN không quá 40% toàn cây nến: [{topToBody}].
+                9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ và có body > 50% cây nến gần nhất. [{!previousIsRedAndTooStrong}]
                 FINAL: [{conditionForBuy}]");
 
             if (conditionForBuy)

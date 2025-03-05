@@ -80,6 +80,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double avgEMAVolume_5m = -1;
         protected double volumeBuy_5m = -1;
         protected double volumeSell_5m = -1;
+
+        // RSI
+        protected double rsi_5m = -1; 
+
         // ADX
         protected double adx_5m = -1;
         protected double plusDI_5m = -1;
@@ -91,8 +95,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double waeUptrend_5m = -1;
         protected double waeDowntrend_5m = -1;
 
-        private Series<double> deadZoneSeries;
-        private Series<WAE_ValueSet> waeValuesSeries;
+        protected Series<double> deadZoneSeries;
+        protected Series<WAE_ValueSet> waeValuesSeries;
         #endregion
 
 
@@ -361,12 +365,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                             if (tradeAction == TradeAction.Buy_Trending && currentCandleIs_GREEN)
                             {
                                 // Đặt lệnh BUY với 1/3 cây nến trước đó 
-                                return StrategiesUtilities.RoundPrice(closePrice_5m - (wholeBody / coeff));                                                                
+                                return StrategiesUtilities.RoundPrice(closePrice_5m - (wholeBody / coeff));
                             }
                             else if (tradeAction == TradeAction.Sell_Trending && currentCandleIs_RED)
                             {
                                 // Đặt lệnh SELL với 1/3 cây nến trước đó 
-                                return StrategiesUtilities.RoundPrice(closePrice_5m + (wholeBody / coeff));                                
+                                return StrategiesUtilities.RoundPrice(closePrice_5m + (wholeBody / coeff));
                             }
                         }
                     }
@@ -375,7 +379,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                  * REVERSAL
                  */
                 case TradeAction.Sell_Reversal:
-                    return StrategiesUtilities.RoundPrice(ReversePlaceToSetOrder == ReversePlaceToSetOrder.EMA2951 ? middleEMA : upperBB_5m);                    
+                    return StrategiesUtilities.RoundPrice(ReversePlaceToSetOrder == ReversePlaceToSetOrder.EMA2951 ? middleEMA : upperBB_5m);
 
                 case TradeAction.Buy_Reversal:
                     return StrategiesUtilities.RoundPrice(ReversePlaceToSetOrder == ReversePlaceToSetOrder.EMA2951 ? middleEMA : lowerBB_5m);
@@ -498,7 +502,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Chưa cho move stop loss
             StartMovingStoploss = false;
 
-            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;                        
+            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
             double priceToSet = GetSetPrice(tradeAction);
             FilledPrice = priceToSet;            
@@ -653,6 +657,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var bollinger = Bollinger(1, 20);
                 var bollingerStd2 = Bollinger(2, 20);
 
+                rsi_5m = RSI(14, 3)[0];
+
                 volume_5m = Volume[0];
                 avgEMAVolume_5m = EMA(Volume, FiveMinutes_Period)[0];
                 adx_5m = ADX(FiveMinutes_Period).Value[0];
@@ -755,6 +761,17 @@ namespace NinjaTrader.NinjaScript.Strategies
             return ActiveOrders.FirstOrDefault().Value;
         }
 
+        protected virtual bool ShouldCancelPendingOrdersByTrendCondition()
+        {
+            return
+                // Trend suy yếu, 
+                waeValuesSeries[0].IsInDeadZone ||
+                // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
+                (IsBuying && waeValuesSeries[0].HasBEARVolume) ||
+                // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
+                (IsSelling && waeValuesSeries[0].HasBULLVolume);
+        }
+
         /// <summary>
         /// Cập nhật giá trị cho các lệnh đang chờ, hoặc cancel do: Đợi lệnh quá 1h đồng hồ, do hết giờ trade, hoặc do 1 số điều kiện khác
         /// </summary>
@@ -807,14 +824,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Cancel các lệnh theo trending
             if (IsTrendingTrade)
             {
-                var cancelCausedByTrendCondition =
-                            // Trend suy yếu, 
-                            waeValuesSeries[0].IsInDeadZone ||
-                            // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
-                            (IsBuying && waeValuesSeries[0].HasBEARVolume) ||
-                            // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
-                            (IsSelling && waeValuesSeries[0].HasBULLVolume);
-                if (cancelCausedByTrendCondition)
+                if (ShouldCancelPendingOrdersByTrendCondition())
                 {
                     CancelAllPendingOrder();
                     LocalPrint($"Cancel lệnh do xu hướng hiện tại ngược với lệnh chờ");

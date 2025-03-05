@@ -44,15 +44,49 @@ namespace NinjaTrader.Custom.Strategies
 
     public class CandleUtilities
     {
-        public static bool IsRedCandle(double close, double open, double? hi = null, double? low = null)
+        public static bool IsRedCandle(double close, double open, double minBody = 5, double? hi = null, double? low = null)
         {
-            return close < open; 
+            return close < open && open - close > minBody; 
         }
 
-        public static bool IsGreenCandle(double close, double open, double? hi = null, double? low = null)
+        /// <summary>
+        /// Check 1 cây nến có phải là nến đỏ. 
+        /// </summary>
+        /// <param name="close">Giá đóng cây nến</param>
+        /// <param name="open"></param>
+        /// <param name="minBody">Giá tối thiểu của body</param>
+        /// <param name="hi"></param>
+        /// <param name="low"></param>
+        /// <returns></returns>
+        public static bool IsGreenCandle(double close, double open, double minBody = 5, double? hi = null, double? low = null)
         { 
-            return close > open;
+            return close > open && close - close > minBody;
         }
 
+        /// <summary>
+        /// Tỉ lệ tính theo phần trăm của râu nến phía trên so với toàn bộ cây nến. 
+        /// </summary>
+        /// <param name="close"></param>
+        /// <param name="open"></param>
+        /// <param name="high"></param>
+        /// <param name="low"></param>
+        /// <returns></returns>
+        public static double TopToBodyPercentage(double close, double open, double high, double low)
+        {
+            return (high - Math.Max(close, open)) / (high - low) * 100; 
+        }
+
+        /// <summary>
+        /// Tỉ lệ tính theo phần trăm của râu nến phía trên so với toàn bộ cây nến. 
+        /// </summary>
+        /// <param name="close"></param>
+        /// <param name="open"></param>
+        /// <param name="high"></param>
+        /// <param name="low"></param>
+        /// <returns></returns>
+        public static double BottomToBodyPercentage(double close, double open, double high, double low)
+        {
+            return (Math.Min(close, open) - low) / (high - low) * 100;
+        }
     }
 }

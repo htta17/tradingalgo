@@ -30,7 +30,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public class RoosterATM : Rooster, IATMStrategy
     {
-        public RoosterATM() : base("ROOSTER_ATM") { }
+        public RoosterATM(string name) : base(name) { }
+
+        public RoosterATM() : this("ROOSTER_ATM") { }
 
         const string ATMStrategy_Group = "ATM Information";
         private const string OrderEntryName = "Entry";

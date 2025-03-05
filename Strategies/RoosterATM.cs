@@ -64,10 +64,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void CloseExistingOrders()
         {
+            LocalPrint($"[CloseExistingOrders]");
             if (!string.IsNullOrEmpty(atmStrategyId))
             {
                 AtmStrategyClose(atmStrategyId);
-            }            
+            }
+            tradingStatus = TradingStatus.Idle;
         }
         protected override void SetDefaultProperties()
         {
@@ -78,7 +80,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             
 
             StopLossInTicks = 120;
-            Target1InTicks = 40;
+            Target1InTicks = 100;
             Target2InTicks = 120;
 
             AllowReversalTrade = false;
@@ -217,6 +219,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var countStopOrder = stopOrders.Count;
                     var countTargetOrder = stopOrders.Count;
 
+                    LocalPrint($"countStopOrder: {countStopOrder}, countTargetOrder: {countTargetOrder}");
+
                     if (countStopOrder == 0 || countTargetOrder == 0)
                     {
                         tradingStatus = TradingStatus.Idle;
@@ -224,12 +228,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     else if (countStopOrder == 1 && countTargetOrder == 1)
                     {
-                        TargetPrice = targetOrders.First().LimitPrice;
-                        StopLossPrice = stopOrders.First().StopPrice;
+                        var targetOrder = targetOrders.First();
+                        var stopLossOrder = stopOrders.First();
 
-                        MoveTargetOrder(targetOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);
+                        TargetPrice = targetOrder.LimitPrice;
+                        StopLossPrice = stopLossOrder.StopPrice;
 
-                        MoveStopOrder(stopOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);
+                        MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
+
+                        MoveStopOrder(stopLossOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
                     }      
                 }
             }

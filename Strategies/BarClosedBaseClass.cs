@@ -776,6 +776,7 @@ namespace NinjaTrader.Custom.Strategies
 
         protected virtual void CloseExistingOrders()
         {
+            LocalPrint($"[CloseExistingOrders]");
             var clonedList = ActiveOrders.Values.ToList().Where(c => c.OrderType == OrderType.Limit).ToList();
             var len = clonedList.Count;
 

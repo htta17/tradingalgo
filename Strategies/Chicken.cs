@@ -69,6 +69,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double closePrice_5m = -1;
         protected double openPrice_5m = -1;
 
+        protected double prev_lowPrice_5m = -1;
+        protected double prev_highPrice_5m = -1;
+        protected double prev_closePrice_5m = -1;
+        protected double prev_openPrice_5m = -1;
+
         protected double currentDEMA_5m = -1;
         protected double lastDEMA_5m = -1;
 
@@ -680,6 +685,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 highPrice_5m = High[0];
                 closePrice_5m = Close[0];
                 openPrice_5m = Open[0];
+
+                prev_lowPrice_5m = Low[1];
+                prev_highPrice_5m = High[1];
+                prev_closePrice_5m = Close[1];
+                prev_openPrice_5m = Open[1];
 
                 barIndex_5m = CurrentBar;
 

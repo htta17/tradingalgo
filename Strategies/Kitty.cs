@@ -21,6 +21,7 @@ using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
+using System.IO;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -29,7 +30,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 	public class Kitty : RoosterATM
 	{
         public Kitty() : base("KITTY")
-        { 
+        {
+            FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyKitty.txt");
         }
 
         protected override void SetDefaultProperties()
@@ -59,21 +61,38 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 2. 2 Volume ĐỎ liền nhau 
              * 3. Volume sau cao hơn volume trước 
              * 4. Volume sau cao hơn DeadZone 
-             * 5. Nến phải là nến ĐỎ 
-             * 6. Thân nến > 5 points 
+             * 5. Nến phải là nến ĐỎ, Thân nến > 5 points và < 60 pts
+             * 6. Thân cây nến trước không quá 60pts
              * 7. RSI > 30 (Not oversold)
              * 8. Râu nến phía DƯỚI không quá dài (Râu DƯỚI dài chứng tỏ có lực MUA mạnh, có thể đảo chiều)
              */
-            if (currentWAE.HasBEARVolume && // 1 & 4
+
+            var bottomToBody = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
+            var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, 5, 60);
+            var previousBody = Math.Abs(prev_closePrice_5m - prev_openPrice_5m) < 60; 
+
+            var conditionForSell = currentWAE.HasBEARVolume && // 1 & 4
                 previousWAE.DownTrendVal > 0 && //2
                 currentWAE.DownTrendVal > previousWAE.DownTrendVal && //3
-                CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, 5.0) && // 5 & 6
+                isRedCandle  && // 5 
+                previousBody && // 6
                 rsi_5m > 30 && // 7
-                CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40)
-            {
-                LocalPrint($"Found SELL signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeDowntrend_5m: {waeDowntrend_5m:N2}, " +
-                    $"waeDeadVal_5m[-1]: {waeValuesSeries[1].DeadZoneVal:N2}, waeDowntrend_5m[-1]: {waeValuesSeries[1].DownTrendVal:N2}");
+                bottomToBody; 
 
+            LocalPrint($@"
+                Điều kiện vào SELL: 
+                1. Volume ĐỎ & cao hơn DeadZone: {currentWAE.HasBEARVolume},
+                2. 2 Volume ĐỎ liền nhau: {previousWAE.DownTrendVal > 0}, 
+                3. Volume sau cao hơn volume trước: {currentWAE.DownTrendVal > previousWAE.DownTrendVal}, 
+                4. Volume sau cao hơn DeadZone: (See 1)
+                5. Nến ĐỎ, Thân nến hiện tại > 5 points và < 60 pts: {isRedCandle}
+                6. Thân cây nến trước không quá 60pts: {previousBody}
+                7. RSI > 30 (Not oversold): {rsi_5m > 30}, 
+                8. Râu nến phía DƯỚI không quá 40% toàn cây nến: {bottomToBody}.
+                FINAL: {conditionForSell}");
+
+            if (conditionForSell)
+            {
                 FilledTime = Time[0];
 
                 return TradeAction.Sell_Trending;
@@ -85,22 +104,37 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 2. 2 Volume XANH liền nhau 
              * 3. Volume sau cao hơn volume trước 
              * 4. Volume sau cao hơn DeadZone 
-             * 5. Nến phải là nến xanh 
-             * 6. Thân nến > 5 points 
+             * 5. Nến phải là nến xanh, Thân nến > 5 points và < 60 pts
+             * 6. Thân cây nến trước không quá 60pts
              * 7. RSI < 70 (Not overbought)
              * 8. Râu nến phía TRÊN không quá dài (Râu TRÊN dài chứng tỏ có lực BÁN mạnh, có thể đảo chiều)
              */
-            else if (currentWAE.HasBULLVolume && // 1 & 4
+            var isGreenCandle = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, 5, 60);
+            var topToBody = CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
+
+            var conditionForBuy = currentWAE.HasBULLVolume && // 1 & 4
                 previousWAE.UpTrendVal > 0 && //2
                 currentWAE.UpTrendVal > previousWAE.UpTrendVal && //3
-                CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, 5.0) && // 5 & 6
+                isGreenCandle && // 5
+                previousBody &&   // 6
+                Math.Abs(prev_closePrice_5m - prev_openPrice_5m) < 60 &&
                 rsi_5m < 70 && // 7
-                CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40
-                )
-            {
-                LocalPrint($"Found BUY signal (Trending) - waeDeadVal_5m: {waeDeadVal_5m:N2}, waeDowntrend_5m: {waeUptrend_5m:N2}, " +
-                    $"waeDeadVal_5m[-1]: {waeValuesSeries[1].DeadZoneVal:N2}, waeDowntrend_5m[-1]: {waeValuesSeries[1].UpTrendVal:N2}");
+                topToBody; 
 
+            LocalPrint($@"
+                Điều kiện vào BUY: 
+                1. Volume XANH & cao hơn DeadZone: {currentWAE.HasBULLVolume},
+                2. 2 Volume XANH liền nhau: {previousWAE.UpTrendVal > 0}, 
+                3. Volume sau cao hơn volume trước: {currentWAE.UpTrendVal > previousWAE.UpTrendVal}, 
+                4. Volume sau cao hơn DeadZone: (See 1)
+                5. Nến XANH, Thân nến hiện tại > 5 points và < 60 pts: {isGreenCandle}
+                6. Thân cây nến trước không quá 60pts: {previousBody}
+                7. RSI < 70 (Not overbought): {rsi_5m < 70}, 
+                8. Râu nến phía TRÊN không quá 40% toàn cây nến: {topToBody}.
+                FINAL: {conditionForBuy}");            
+
+            if (conditionForBuy)
+            {   
                 FilledTime = Time[0];
 
                 return TradeAction.Buy_Trending;

@@ -214,14 +214,23 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && order.Name.Contains(OrderStopName)).ToList();
                     var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains(OrderTargetName)).ToList();
 
-                    if (targetOrders.Count() != 1 || stopOrders.Count() != 1)
+                    var countStopOrder = stopOrders.Count;
+                    var countTargetOrder = stopOrders.Count;
+
+                    if (countStopOrder == 0 || countTargetOrder == 0)
                     {
+                        tradingStatus = TradingStatus.Idle;
                         return;
                     }
+                    else if (countStopOrder == 1 && countTargetOrder == 1)
+                    {
+                        TargetPrice = targetOrders.First().LimitPrice;
+                        StopLossPrice = stopOrders.First().StopPrice;
 
-                    MoveTargetOrder(targetOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);
+                        MoveTargetOrder(targetOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);
 
-                    MoveStopOrder(stopOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);                    
+                        MoveStopOrder(stopOrders.First(), updatedPrice, FilledPrice, IsBuying, IsSelling);
+                    }      
                 }
             }
             else if (TradingStatus == TradingStatus.PendingFill)

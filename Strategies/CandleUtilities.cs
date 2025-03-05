@@ -44,9 +44,18 @@ namespace NinjaTrader.Custom.Strategies
 
     public class CandleUtilities
     {
-        public static bool IsRedCandle(double close, double open, double minBody = 5, double? hi = null, double? low = null)
+        public static bool IsRedCandle(double close, double open, double? minBody = 5, double? maxBody = 60, double? hi = null, double? low = null)
         {
-            return close < open && open - close > minBody; 
+            var ans = close < open;
+            if (minBody.HasValue)
+            {
+                ans = ans && (open - close > minBody.Value);
+            }
+            if (maxBody.HasValue)
+            {
+                ans = ans && (open - close < maxBody.Value);
+            }
+            return ans;
         }
 
         /// <summary>
@@ -55,12 +64,22 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="close">Giá đóng cây nến</param>
         /// <param name="open"></param>
         /// <param name="minBody">Giá tối thiểu của body</param>
+        /// <param name="maxBody">Giá tối đa của body</param>
         /// <param name="hi"></param>
         /// <param name="low"></param>
         /// <returns></returns>
-        public static bool IsGreenCandle(double close, double open, double minBody = 5, double? hi = null, double? low = null)
-        { 
-            return close > open && close - close > minBody;
+        public static bool IsGreenCandle(double close, double open, double? minBody = 5, double? maxBody = 60, double? hi = null, double? low = null)
+        {
+            var ans = close > open;
+            if (minBody.HasValue)
+            {
+                ans = ans && (close - open > minBody.Value); 
+            }
+            if (maxBody.HasValue)
+            { 
+                ans = ans && (close - open < maxBody.Value);
+            }
+            return ans;
         }
 
         /// <summary>

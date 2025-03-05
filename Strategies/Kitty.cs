@@ -81,15 +81,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             LocalPrint($@"
                 Điều kiện vào SELL: 
-                1. Volume ĐỎ & cao hơn DeadZone: {currentWAE.HasBEARVolume},
-                2. 2 Volume ĐỎ liền nhau: {previousWAE.DownTrendVal > 0}, 
-                3. Volume sau cao hơn volume trước: {currentWAE.DownTrendVal > previousWAE.DownTrendVal}, 
+                1. Volume ĐỎ & cao hơn DeadZone: [{currentWAE.HasBEARVolume}],
+                2. 2 Volume ĐỎ liền nhau: [{previousWAE.DownTrendVal > 0}], 
+                3. Volume sau cao hơn volume trước: [{currentWAE.DownTrendVal > previousWAE.DownTrendVal}], 
                 4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến ĐỎ, Thân nến hiện tại > 5 points và < 60 pts: {isRedCandle}
-                6. Thân cây nến trước không quá 60pts: {previousBody}
-                7. RSI > 30 (Not oversold): {rsi_5m > 30}, 
-                8. Râu nến phía DƯỚI không quá 40% toàn cây nến: {bottomToBody}.
-                FINAL: {conditionForSell}");
+                5. Nến ĐỎ, Thân nến hiện tại > 5 points và < 60 pts: [{isRedCandle}]
+                6. Thân cây nến trước không quá 60pts: [{previousBody}]
+                7. RSI > 30 (Not oversold): [{rsi_5m > 30}], 
+                8. Râu nến phía DƯỚI không quá 40% toàn cây nến: [{bottomToBody}].
+                FINAL: [{conditionForSell}]");
 
             if (conditionForSell)
             {
@@ -123,15 +123,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             LocalPrint($@"
                 Điều kiện vào BUY: 
-                1. Volume XANH & cao hơn DeadZone: {currentWAE.HasBULLVolume},
-                2. 2 Volume XANH liền nhau: {previousWAE.UpTrendVal > 0}, 
-                3. Volume sau cao hơn volume trước: {currentWAE.UpTrendVal > previousWAE.UpTrendVal}, 
+                1. Volume XANH & cao hơn DeadZone: [{currentWAE.HasBULLVolume}],
+                2. 2 Volume XANH liền nhau: [{previousWAE.UpTrendVal > 0}], 
+                3. Volume sau cao hơn volume trước: [{currentWAE.UpTrendVal > previousWAE.UpTrendVal}], 
                 4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến XANH, Thân nến hiện tại > 5 points và < 60 pts: {isGreenCandle}
-                6. Thân cây nến trước không quá 60pts: {previousBody}
-                7. RSI < 70 (Not overbought): {rsi_5m < 70}, 
-                8. Râu nến phía TRÊN không quá 40% toàn cây nến: {topToBody}.
-                FINAL: {conditionForBuy}");            
+                5. Nến XANH, Thân nến hiện tại > 5 points và < 60 pts: [{isGreenCandle}]
+                6. Thân cây nến trước không quá 60pts: [{previousBody}]
+                7. RSI < 70 (Not overbought): [{rsi_5m < 70}], 
+                8. Râu nến phía TRÊN không quá 40% toàn cây nến: [{topToBody}].
+                FINAL: [{conditionForBuy}]");
 
             if (conditionForBuy)
             {   

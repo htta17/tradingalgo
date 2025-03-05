@@ -86,7 +86,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 3. Volume sau cao hơn volume trước: [{currentWAE.DownTrendVal > previousWAE.DownTrendVal}], 
                 4. Volume sau cao hơn DeadZone: (See 1)
                 5. Nến ĐỎ, Thân nến hiện tại > 5 points và < 60 pts: [{isRedCandle}]
-                6. Thân cây nến trước không quá 60pts: [{previousBody}]
+                6. Thân cây nến trước không quá 60pts (open: {prev_openPrice_5m:N2}, close: {prev_closePrice_5m:N2}): [{previousBody}]
                 7. RSI > 30 (Not oversold): [{rsi_5m > 30}], 
                 8. Râu nến phía DƯỚI không quá 40% toàn cây nến: [{bottomToBody}].
                 FINAL: [{conditionForSell}]");
@@ -116,8 +116,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 previousWAE.UpTrendVal > 0 && //2
                 currentWAE.UpTrendVal > previousWAE.UpTrendVal && //3
                 isGreenCandle && // 5
-                previousBody &&   // 6
-                Math.Abs(prev_closePrice_5m - prev_openPrice_5m) < 60 &&
+                previousBody &&   // 6                
                 rsi_5m < 70 && // 7
                 topToBody; 
 
@@ -128,7 +127,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 3. Volume sau cao hơn volume trước: [{currentWAE.UpTrendVal > previousWAE.UpTrendVal}], 
                 4. Volume sau cao hơn DeadZone: (See 1)
                 5. Nến XANH, Thân nến hiện tại > 5 points và < 60 pts: [{isGreenCandle}]
-                6. Thân cây nến trước không quá 60pts: [{previousBody}]
+                6. Thân cây nến trước không quá 60pts (open: {prev_openPrice_5m:N2}, close: {prev_closePrice_5m:N2}): [{previousBody}]
                 7. RSI < 70 (Not overbought): [{rsi_5m < 70}], 
                 8. Râu nến phía TRÊN không quá 40% toàn cây nến: [{topToBody}].
                 FINAL: [{conditionForBuy}]");

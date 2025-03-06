@@ -89,10 +89,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         // RSI
         protected double rsi_5m = -1; 
 
+        /*
         // ADX
         protected double adx_5m = -1;
         protected double plusDI_5m = -1;
         protected double minusDI_5m = -1;
+        */
 
         // WAE Values 
         protected double waeDeadVal_5m = -1;
@@ -656,7 +658,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            base.OnBarUpdate();
+            base.OnBarUpdate();            
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
@@ -714,10 +716,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 volume_5m = Volume[0];
                 avgEMAVolume_5m = EMA(Volume, FiveMinutes_Period)[0];
-                adx_5m = ADX(FiveMinutes_Period).Value[0];
 
+                /*
+                adx_5m = ADX(FiveMinutes_Period).Value[0];
                 plusDI_5m = DM(FiveMinutes_Period).DiPlus[0];
                 minusDI_5m = DM(FiveMinutes_Period).DiMinus[0];
+                */
 
                 upperBB_5m = bollinger.Upper[0];
                 lowerBB_5m = bollinger.Lower[0];
@@ -756,7 +760,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 LocalPrint($"Current Status: {TradingStatus}, WAE Values: DeadZoneVal: {wae.DeadZoneVal:N2}, ExplosionVal: {wae.ExplosionVal:N2}, " +
                     $"DowntrendVal: {wae.DownTrendVal:N2}, " +
-                    $"UptrendVal: {wae.UpTrendVal:N2}. ADX = {adx_5m:N2} " +
+                    $"UptrendVal: {wae.UpTrendVal:N2}." +
                     $"{(wae.HasBULLVolume ? "--> BULL Volume" : wae.HasBEARVolume ? "--> BEAR Volume" : "")}");
             }
         }

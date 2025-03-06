@@ -71,6 +71,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             tradingStatus = TradingStatus.Idle;
         }
+
+        protected override void OnBarUpdate()
+        {
+            // Cập nhật lại status 
+            tradingStatus = CheckCurrentStatusBasedOnOrders();
+
+            base.OnBarUpdate();
+        }
         protected override void SetDefaultProperties()
         {
             base.SetDefaultProperties();

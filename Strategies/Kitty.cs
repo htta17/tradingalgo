@@ -40,7 +40,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             Name = "Kitty";
             Description = "[Kitty] là giải thuật [Chicken] nhưng chỉ chạy Trending, dùng ATM Strategy để vào lệnh, dựa theo các điều kiện vào lệnh của bạn Phượng";
-        }
+        }       
 
         protected override TradeAction ShouldTrade()
         {
@@ -182,9 +182,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override bool ShouldCancelPendingOrdersByTrendCondition()
         {
+            // Nến gần nhất là ĐỎ hoặc nến rút râu phía trên
+            var reverseRed = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m) || CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) > 50;
+
+            // Nến gần nhất là ĐỎ hoặc nến rút râu phía trên
+            var reverseGreen = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m) || CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) > 50;
+
             return  
-                (IsBuying && CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m))        // Đang có lệnh MUA nhưng lại xuất hiện nến ĐỎ
-                || (IsSelling && CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m))  // Đang có lệnh BÁN nhưng lại xuất hiện nến XANH
+                (IsBuying && reverseRed)        // Đang có lệnh MUA nhưng lại xuất hiện nến ĐỎ
+                || (IsSelling && reverseGreen)  // Đang có lệnh BÁN nhưng lại xuất hiện nến XANH
                 || base.ShouldCancelPendingOrdersByTrendCondition();
         }
     }

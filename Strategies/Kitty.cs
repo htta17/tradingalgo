@@ -99,7 +99,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 2. 2 Volume ĐỎ liền nhau: [{previousWAE.DownTrendVal > 0}], 
                 3. Volume sau cao hơn volume trước: [{currentWAE.DownTrendVal > previousWAE.DownTrendVal}], 
                 4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến ĐỎ, Thân nến hiện tại > 5 points và < 60 pts: [{isRedCandle}]
+                5. Nến ĐỎ, Thân nến hiện tại > 5 points: [{isRedCandle}]
                 6. (NOT IN USE)  Thân cây nến trước không quá 60pts
                 7. RSI > 30 (Not oversold): [{rsi_5m > 30}], 
                 8. Râu nến phía DƯỚI không quá 40% toàn cây nến: [{bottomToBody}].

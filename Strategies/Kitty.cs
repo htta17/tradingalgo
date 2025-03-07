@@ -66,14 +66,22 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 7. RSI > 30 (Not oversold)
              * 8. Râu nến phía DƯỚI không quá dài (Râu DƯỚI dài chứng tỏ có lực MUA mạnh, có thể đảo chiều)
              * 9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH và có body > 50% cây nến gần nhất.
+             *          (Cây nến trước XANH chứng tỏ pull back, nếu pull back nhiều quá sẽ có thể đảo chiều)
+             * 10. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ, body của cây nến gần nhất < 30% cây nến trước. 
+             *          (Cây nến trước đã BÁN quá mạnh, cây nến vừa rồi lực BÁN đã suy giảm nhiều, có khả năng đảo chiều) 
              */
 
             var bottomToBody = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
             var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, 5, 60);
             var previousBody = Math.Abs(prev_closePrice_5m - prev_openPrice_5m) < 60; 
-            var previousIsGreenAndTooStrong = 
+            
+            var previousIsGreenAndTooStrong_FORSELL = 
                 CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m) && 
                 Math.Abs(prev_openPrice_5m - prev_closePrice_5m) > 0.5 * Math.Abs(closePrice_5m - openPrice_5m);
+
+            var previousIsRedAndTooStrong_FORSELL =
+                CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m) &&
+                Math.Abs(prev_openPrice_5m - prev_closePrice_5m) * 0.3 > Math.Abs(closePrice_5m - openPrice_5m);
 
             var conditionForSell = currentWAE.HasBEARVolume && // 1 & 4
                 previousWAE.DownTrendVal > 0 && //2
@@ -82,7 +90,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 previousBody && // 6
                 rsi_5m > 30 && // 7
                 bottomToBody && // 8
-                !previousIsGreenAndTooStrong; // 9 (Don't forget NOT)                
+                !previousIsGreenAndTooStrong_FORSELL && // 9 (Don't forget NOT)
+                !previousIsRedAndTooStrong_FORSELL; // 10 (Don't forget NOT)
 
             LocalPrint($@"
                 Điều kiện vào SELL: 
@@ -94,7 +103,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 6. Thân cây nến trước không quá 60pts (open: {prev_openPrice_5m:N2}, close: {prev_closePrice_5m:N2}): [{previousBody}]
                 7. RSI > 30 (Not oversold): [{rsi_5m > 30}], 
                 8. Râu nến phía DƯỚI không quá 40% toàn cây nến: [{bottomToBody}].
-                9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH và có body > 50% cây nến gần nhất.[{!previousIsGreenAndTooStrong}]
+                9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH và có body > 50% cây nến gần nhất.[{!previousIsGreenAndTooStrong_FORSELL}]
+                10. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ, body của cây nến gần nhất < 30% cây nến trước. [{!previousIsRedAndTooStrong_FORSELL}]
                 FINAL: [{conditionForSell}]");
 
             if (conditionForSell)
@@ -114,13 +124,20 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 6. Thân cây nến trước không quá 60pts
              * 7. RSI < 70 (Not overbought)
              * 8. Râu nến phía TRÊN không quá dài (Râu TRÊN dài chứng tỏ có lực BÁN mạnh, có thể đảo chiều)
-             * 9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ và có body > 50% cây nến gần nhất 
+             * 9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ và có body > 50% cây nến gần nhất.
+             *          (Cây nến trước ĐỎ chứng tỏ pull back, nếu pull back nhiều quá sẽ có thể đảo chiều)
+             * 10. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH, body của cây nến gần nhất < 30% cây nến trước. 
+             *          (Cây nến trước đã MUA quá mạnh, cây nến vừa rồi lực MUA đã suy giảm nhiều, có khả năng đảo chiều) 
              */
             var isGreenCandle = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, 5, 60);
             var topToBody = CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
-            var previousIsRedAndTooStrong =
+            var previousIsRedAndTooStrong_FORBUY =
                 CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m) &&
                 Math.Abs(prev_openPrice_5m - prev_closePrice_5m) > 0.5 * Math.Abs(closePrice_5m - openPrice_5m);
+
+            var previousIsGreenAndTooStrong_FORBUY =
+               CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m) &&
+               Math.Abs(prev_openPrice_5m - prev_closePrice_5m) * 0.3 > Math.Abs(closePrice_5m - openPrice_5m);
 
             var conditionForBuy = currentWAE.HasBULLVolume && // 1 & 4
                 previousWAE.UpTrendVal > 0 && //2
@@ -129,7 +146,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 previousBody &&   // 6                
                 rsi_5m < 70 && // 7
                 topToBody && //8
-                !previousIsRedAndTooStrong; // 9 (Don't forget NOT)
+                !previousIsRedAndTooStrong_FORBUY &&  // 9 (Don't forget NOT)
+                !previousIsGreenAndTooStrong_FORBUY; // 10 (Don't forget NOT)
 
             LocalPrint($@"
                 Điều kiện vào BUY: 
@@ -141,7 +159,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 6. Thân cây nến trước không quá 60pts (open: {prev_openPrice_5m:N2}, close: {prev_closePrice_5m:N2}): [{previousBody}]
                 7. RSI < 70 (Not overbought): [{rsi_5m < 70}], 
                 8. Râu nến phía TRÊN không quá 40% toàn cây nến: [{topToBody}].
-                9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ và có body > 50% cây nến gần nhất. [{!previousIsRedAndTooStrong}]
+                9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ và có body > 50% cây nến gần nhất. [{!previousIsRedAndTooStrong_FORBUY}]
+                10. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH, body của cây nến gần nhất < 30% cây nến trước. [{!previousIsGreenAndTooStrong_FORBUY}]
                 FINAL: [{conditionForBuy}]");
 
             if (conditionForBuy)

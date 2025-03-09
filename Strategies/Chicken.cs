@@ -308,72 +308,29 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (InternalAllowTrendingTrade)
             {
                 var currentWAE = waeValuesSeries[0];
-                var previousWAE = waeValuesSeries[1];
+                var previousWAE = waeValuesSeries[1];                
 
-                var bottomToBody = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
-                var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, 5, 60);
-                var previousBody = Math.Abs(prev_closePrice_5m - prev_openPrice_5m) < 60;
-
-                var conditionForSell = currentWAE.HasBEARVolume && // 1 & 4
-                    previousWAE.DownTrendVal > 0 && //2
-                    currentWAE.DownTrendVal > previousWAE.DownTrendVal && //3
-                    isRedCandle && // 5 
-                    previousBody && // 6
-                    rsi_5m > 30 && // 7
-                    bottomToBody;
-
-                LocalPrint($@"
-                Điều kiện vào SELL: 
-                1. Volume ĐỎ & cao hơn DeadZone: [{currentWAE.HasBEARVolume}],
-                2. 2 Volume ĐỎ liền nhau: [{previousWAE.DownTrendVal > 0}], 
-                3. Volume sau cao hơn volume trước: [{currentWAE.DownTrendVal > previousWAE.DownTrendVal}], 
-                4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến ĐỎ, Thân nến hiện tại > 5 points và < 60 pts: [{isRedCandle}]
-                6. Thân cây nến trước không quá 60pts (open: {prev_openPrice_5m:N2}, close: {prev_closePrice_5m:N2}): [{previousBody}]
-                7. RSI > 30 (Not oversold): [{rsi_5m > 30}], 
-                8. Râu nến phía DƯỚI không quá 40% toàn cây nến: [{bottomToBody}].
-                FINAL: [{conditionForSell}]");
-
-                if (conditionForSell)
+                // Có 2 cây nến kề nhau có cùng volume
+                if (waeValuesSeries[0].HasBEARVolume && waeValuesSeries[1].DownTrendVal > 0)
                 {
                     FilledTime = Time[0];
 
+                    // Volume tăng dần: Mua theo 1/2, 1/3 hoặc 1/4 cây nến trước. 
+
+                    // Volume giảm dần: Mua theo Bollinger band, ema29/51
+
                     return TradeAction.Sell_Trending;
                 }
+                else if (waeValuesSeries[0].HasBULLVolume && waeValuesSeries[1].DownTrendVal > 0)
+                {
+                    FilledTime = Time[0];
 
-                /*
-                 * Điều kiện vào lệnh (BUY) 
-                 * 1. Volume XANH, 
-                 * 2. 2 Volume XANH liền nhau 
-                 * 3. Volume sau cao hơn volume trước 
-                 * 4. Volume sau cao hơn DeadZone 
-                 * 5. Nến phải là nến xanh, Thân nến > 5 points và < 60 pts
-                 * 6. Thân cây nến trước không quá 60pts
-                 * 7. RSI < 70 (Not overbought)
-                 * 8. Râu nến phía TRÊN không quá dài (Râu TRÊN dài chứng tỏ có lực BÁN mạnh, có thể đảo chiều)
-                 */
-                var isGreenCandle = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, 5, 60);
-                var topToBody = CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
+                    // Volume tăng dần: Mua theo 1/2, 1/3 hoặc 1/4 cây nến trước. 
 
-                var conditionForBuy = currentWAE.HasBULLVolume && // 1 & 4
-                    previousWAE.UpTrendVal > 0 && //2
-                    currentWAE.UpTrendVal > previousWAE.UpTrendVal && //3
-                    isGreenCandle && // 5
-                    previousBody &&   // 6                
-                    rsi_5m < 70 && // 7
-                    topToBody;
+                    // Volume giảm dần: Mua theo Bollinger band, ema29/51
 
-                LocalPrint($@"
-                Điều kiện vào BUY: 
-                1. Volume XANH & cao hơn DeadZone: [{currentWAE.HasBULLVolume}],
-                2. 2 Volume XANH liền nhau: [{previousWAE.UpTrendVal > 0}], 
-                3. Volume sau cao hơn volume trước: [{currentWAE.UpTrendVal > previousWAE.UpTrendVal}], 
-                4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến XANH, Thân nến hiện tại > 5 points và < 60 pts: [{isGreenCandle}]
-                6. Thân cây nến trước không quá 60pts (open: {prev_openPrice_5m:N2}, close: {prev_closePrice_5m:N2}): [{previousBody}]
-                7. RSI < 70 (Not overbought): [{rsi_5m < 70}], 
-                8. Râu nến phía TRÊN không quá 40% toàn cây nến: [{topToBody}].
-                FINAL: [{conditionForBuy}]");
+                    return TradeAction.Buy_Trending;
+                }
             }
 
             return TradeAction.NoTrade;

@@ -32,7 +32,11 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Điểm giữa của cây nến trước
         /// </summary>
-        MiddleOfLastCandle
+        MiddleOfLastCandle, 
+
+        BollingerBandHigh, 
+
+        BollingerBandLow
     }
 
     /// <summary>

@@ -61,7 +61,7 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 2. 2 Volume ĐỎ liền nhau 
              * 3. Volume sau cao hơn volume trước 
              * 4. Volume sau cao hơn DeadZone 
-             * 5. Nến phải là nến ĐỎ, Thân nến > 5 points và < 60 pts
+             * 5. Nến phải là nến ĐỎ, Thân nến > 5 points
              * 6. (NOT IN USE) Thân cây nến trước không quá 60pts
              * 7. RSI > 30 (Not oversold)
              * 8. Râu nến phía DƯỚI không quá dài (Râu DƯỚI dài chứng tỏ có lực MUA mạnh, có thể đảo chiều)
@@ -120,7 +120,7 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 2. 2 Volume XANH liền nhau 
              * 3. Volume sau cao hơn volume trước 
              * 4. Volume sau cao hơn DeadZone 
-             * 5. Nến phải là nến xanh, Thân nến > 5 points và < 60 pts
+             * 5. Nến phải là nến xanh, Thân nến > 5 points
              * 6. (NOT IN USE)  Thân cây nến trước không quá 60pts
              * 7. RSI < 70 (Not overbought)
              * 8. Râu nến phía TRÊN không quá dài (Râu TRÊN dài chứng tỏ có lực BÁN mạnh, có thể đảo chiều)

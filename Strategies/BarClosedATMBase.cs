@@ -264,6 +264,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double TargetPrice = -1;
         protected override void EnterOrder(T1 tradeAction)
         {
+            if (State != State.Realtime)
+            {
+                return;
+            }
             // Set global values
             CurrentTradeAction = tradeAction;
 

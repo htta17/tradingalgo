@@ -72,22 +72,25 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var bottomToBody = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
             var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, 5);
-            //var previousBody = Math.Abs(prev_closePrice_5m - prev_openPrice_5m) < 60; 
+            
+            var isPreviousGreen = CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m);
+            var isPreviousRed = CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m);
 
-            var additionalText = 
-                $"prev: (close: {prev_closePrice_5m:N2}, open: {prev_openPrice_5m:N2}, body: {Math.Abs(prev_closePrice_5m - prev_openPrice_5m)}), " +
-                $"current: (close: {closePrice_5m:N2}, open: {openPrice_5m:N2}, body: {Math.Abs(closePrice_5m - openPrice_5m)}), " +
-                $"Previous Is Red: {CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m)}, Previous Is Green: {CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m)}, " +
-                $""
-                ;
+            var previousBodyLength = Math.Abs(prev_openPrice_5m - prev_closePrice_5m);
+            var currentBodyLength = Math.Abs(closePrice_5m - openPrice_5m); 
 
-            var previousIsGreenAndTooStrong_FORSELL = 
-                CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m) && 
-                Math.Abs(prev_openPrice_5m - prev_closePrice_5m) > 0.5 * Math.Abs(closePrice_5m - openPrice_5m);
+            var previousReverseAndTooStrong = previousBodyLength >= (0.5 * currentBodyLength);
 
-            var previousIsRedAndTooStrong_FORSELL =
-                CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m) &&
-                Math.Abs(prev_openPrice_5m - prev_closePrice_5m) * 0.3 > Math.Abs(closePrice_5m - openPrice_5m);
+            var previousContinueAndTooStrong = (previousBodyLength * 0.3) >= currentBodyLength; 
+
+            var previousIsGreenAndTooStrong_FORSELL = isPreviousGreen && previousReverseAndTooStrong;
+
+            var previousIsRedAndTooStrong_FORSELL = isPreviousRed && previousContinueAndTooStrong; 
+
+            var additionalText =
+@$"                        prev: (close: {prev_closePrice_5m:N2}, open: {prev_openPrice_5m:N2}, body: {previousBodyLength:N2}), 
+                        current: (close: {closePrice_5m:N2}, open: {openPrice_5m:N2}, body: {currentBodyLength:N2}),  
+                        Previous red: {isPreviousRed}, Previous green: {isPreviousGreen}" ;
 
             var conditionForSell = currentWAE.HasBEARVolume && // 1 & 4
                 previousWAE.DownTrendVal > 0 && //2
@@ -139,13 +142,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             var isGreenCandle = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, 5);
             var topToBody = CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
 
-            var previousIsRedAndTooStrong_FORBUY = // Nếu điều kiện này = true thì không vào, false thì có thể vào
-                CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m) &&
-                (Math.Abs(prev_openPrice_5m - prev_closePrice_5m) > (0.5 * Math.Abs(closePrice_5m - openPrice_5m))); 
+            var previousIsRedAndTooStrong_FORBUY = isPreviousRed && previousReverseAndTooStrong;
 
-            var previousIsGreenAndTooStrong_FORBUY =
-               CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m) &&
-               Math.Abs(prev_openPrice_5m - prev_closePrice_5m) * 0.3 > Math.Abs(closePrice_5m - openPrice_5m);
+            var previousIsGreenAndTooStrong_FORBUY = isPreviousGreen && previousContinueAndTooStrong;
 
             var conditionForBuy = currentWAE.HasBULLVolume && // 1 & 4
                 previousWAE.UpTrendVal > 0 && //2

@@ -20,15 +20,22 @@ using NinjaTrader.NinjaScript;
 using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
+using NinjaTrader.Custom.Strategies;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public abstract class TestStopLossGainMoving : Strategy
+	public class TestStopLossGainMoving : BarClosedATMBase<TradeAction>
 	{
-		protected override void OnStateChange()
+        protected override bool IsBuying => throw new NotImplementedException();
+
+        protected override bool IsSelling => throw new NotImplementedException();
+
+        protected override void OnStateChange()
 		{
+			base.OnStateChange();
+
 			if (State == State.SetDefaults)
 			{
 				Description									= @"Enter the description for your new custom Strategy here.";
@@ -57,61 +64,34 @@ namespace NinjaTrader.NinjaScript.Strategies
 			}
 		}
 
-		string atmStrategyId = "";
-		string orderId = "";
-		string ATMName = "Rooster_Default_2cts";
-
-        const string SignalEntry1 = "Entry-MiddleBB";
-
-        
-
-        protected override void OnPositionUpdate(Position position, double averagePrice, int quantity, MarketPosition marketPosition)
+        protected override void SetDefaultProperties()
         {
-            Print($"[OnPositionUpdate]");
-            base.OnPositionUpdate(position, averagePrice, quantity, marketPosition);
+			FullSizeATMName = "TestingMoving";
+
+			HalfSizefATMName = "TestingMoving";
+        }
+
+        protected override double GetSetPrice(TradeAction tradeAction)
+        {
+			return Close[0];
         }
 
         protected override void OnBarUpdate()
 		{
-			//Add your custom strategy logic here.
-			var orders = Account.Orders.Any(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted); 
-			
-			// Find active order
-			
-			var pendingOrders = Account.Orders.Where(c => c.OrderState == OrderState.Accepted || c.OrderState == OrderState.Working);			
-			
-			if (Position.Quantity == 0 && !pendingOrders.Any() &&  State == State.Realtime)
+			tradingStatus = CheckCurrentStatusBasedOnOrders();
+
+			if (TradingStatus == TradingStatus.Idle)
 			{
-				Print($"NO active position. Enter RANDOM now");	
-				
-				var num = (new Random()).Next(0,9); 
-				
-				var action = Open[1] < Close[1] ? OrderAction.Buy : OrderAction.Sell;
-
-                filledPrice = Close[0];
-                
-				atmStrategyId = GetAtmStrategyUniqueId();
-				orderId = GetAtmStrategyUniqueId();				
-				
-				AtmStrategyCreate (
-					action, 
-					OrderType.Limit,
-					0, 
-					0, 
-					TimeInForce.Day, 
-					orderId, 
-					ATMName, 
-					atmStrategyId, 
-					(atmCallbackErrorCode, atmCallBackId) =>
-					{
-				  		if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId) 
-						{
-				     		Print($"Enter {action} - strategyID: {atmStrategyId}, orders: {Account.Orders.Where(c => c.OrderState == OrderState.Accepted || c.OrderState == OrderState.Working)}");
-
-
-				  		}
-					});
-            }
+				var lastCandleIsRed = CandleUtilities.IsRedCandle(Close[0], Open[0]);
+				if (lastCandleIsRed)
+				{
+					EnterOrder(TradeAction.Sell_Trending);
+				}
+				else
+				{
+					EnterOrder(TradeAction.Buy_Trending);
+				}
+			}
 			
 		}
 		
@@ -129,110 +109,25 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 	   		Print($"[OnOrderUpdate] - Id: {order.Id}, limitPrice: {limitPrice:F2}, stop: {stopPrice:F2} {orderState}");		
 	    }
-		
-        protected override void OnExecutionUpdate(Execution execution, string executionId, double price, int quantity, MarketPosition marketPosition, string orderId, DateTime time)
-        {
-            Print($"[OnExecutionUpdate] ");
 
-            base.OnExecutionUpdate(execution, executionId, price, quantity, marketPosition, orderId, time);
+        protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice)
+        {
+            throw new NotImplementedException();
         }
 
+        protected override double GetTargetPrice_Half(TradeAction tradeAction, double setPrice)
+        {
+            throw new NotImplementedException();
+        }
 
-        private OrderAction currentAction = OrderAction.Buy;
-		private double filledPrice = -1; 	
-		
-		protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
-		{
-			try 
-			{
-				var updatedPrice = marketDataUpdate.Price;
+        protected override double GetTargetPrice_Full(TradeAction tradeAction, double setPrice)
+        {
+            throw new NotImplementedException();
+        }
 
-				if (updatedPrice < 100)
-				{
-					return;
-				}
-				
-				var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && order.Name.Contains("Stop")).ToList();
-				var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains("target")).ToList();
-				
-				var countTarget = targetOrders.Count(); 
-				var countStop = stopOrders.Count();				
-				
-				// Start of countTarget == 1 &&  countStop == 1
-				if (countTarget == 1 &&  countStop == 1) 
-				{
-					var targetOrder = targetOrders.FirstOrDefault(); 
-					var stopOrder = stopOrders.FirstOrDefault();
-
-                    //Print($"countTarget: {countTarget}, countStop: {countTarget}, gain: {targetOrder.LimitPrice}, stop: {stopOrder.StopPrice} ");
-
-                    if (currentAction == OrderAction.Buy)
-					{
-						// Move stop gain
-						if (targetOrder.LimitPrice > updatedPrice && targetOrder.LimitPrice - updatedPrice <= 5)
-						{
-                            /*
-							AtmStrategyChangeStopTarget(
-								targetOrder.LimitPrice + 5, 
-								0, 
-								targetOrder.Name, 
-								atmStrategyId);
-							
-							AtmStrategyChangeStopTarget(
-								0, 
-								Math.Max(targetOrder.StopPrice, updatedPrice - 7), 
-								targetOrder.Name, 
-								atmStrategyId);
-							*/							
-
-                            SetProfitTarget(SignalEntry1, CalculationMode.Price, targetOrder.LimitPrice + 5, false);
-                            SetStopLoss(SignalEntry1, CalculationMode.Price, Math.Max(stopOrder.StopPrice, updatedPrice - 7), false);
-
-                            Print($"Current GAIN: {targetOrder.LimitPrice}, updatedPrice: {updatedPrice}. Move GAIN to {targetOrder.LimitPrice + 5} - BUY");
-						}
-					}
-					else if (currentAction == OrderAction.Sell)
-					{
-                        /*
-						// Move stop gain
-						if (updatedPrice - targetOrder.LimitPrice <= 5)
-						{
-							AtmStrategyChangeStopTarget(
-								targetOrder.LimitPrice - 5, 
-								Math.Min(stopOrder.StopPrice, updatedPrice + 7), 
-								targetOrder.Name, 
-								atmStrategyId);
-							
-							AtmStrategyChangeStopTarget(
-								targetOrder.LimitPrice - 5, 
-								Math.Min(stopOrder.StopPrice, updatedPrice + 7), 
-								targetOrder.Name, 
-								atmStrategyId);
-						}
-						*/
-
-                        //ChangeOrder(targetOrder, 0, targetOrder.LimitPrice - 5, 0);						
-                        //ChangeOrder(stopOrder, 0, 0, Math.Min(stopOrder.StopPrice, updatedPrice + 7));
-
-                        SetProfitTarget(SignalEntry1, CalculationMode.Price, targetOrder.LimitPrice - 5, false);
-                        SetStopLoss(SignalEntry1, CalculationMode.Price, Math.Min(stopOrder.StopPrice, updatedPrice + 7), false);
-
-                        Print($"Move GAIN to {targetOrder.LimitPrice - 5} - SELL");						
-					}												
-				}
-				// End of countTarget == 1 &&  countStop == 1
-				
-				/*
-				* Keep it blank intentionally
-				*/
-			}
-			catch(Exception e)
-			{
-				Print(e.Message);
-			}
-		}		
-		/*
-		* End of the class. Keep it blank intentionally.
-		*/
-	}
+        protected override TradeAction ShouldTrade()
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

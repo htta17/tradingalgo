@@ -200,12 +200,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             var updatedPrice = marketDataUpdate.Price;
 
-            if (updatedPrice < 100 || DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
+            if (updatedPrice < 100)  // || DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
             {
                 return;
             }
 
-            executionTime = DateTime.Now;
+            //executionTime = DateTime.Now;
 
             if (TradingStatus == TradingStatus.OrderExists)
             {

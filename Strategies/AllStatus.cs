@@ -256,16 +256,12 @@ namespace NinjaTrader.Custom.Strategies
     #endregion
 
     #region Tiger (RSI + Bollinger reverse) 
-    public enum RSIBollingerAction
+    public enum ADXBollingerAction
     {
         /// <summary>
         /// Không làm gì 
         /// </summary>
-        NoTrade,
-
-        WaitForBuySignal, 
-
-        WaitForSellSignal, 
+        NoTrade,       
 
         SetBuyOrder, 
 

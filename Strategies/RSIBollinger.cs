@@ -22,25 +22,25 @@ using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
 using NinjaTrader.CQG.ProtoBuf;
+using System.IO;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public abstract class RSIBollinger : BarClosedBaseClass<RSIBollingerAction, RSIBollingerAction>
+	public abstract class RSIBollinger : BarClosedBaseClass<ADXBollingerAction, ADXBollingerAction>
     {
         public RSIBollinger() : base("TIGER")
         {
-            HalfPriceSignals = new HashSet<string> { StrategiesUtilities.SignalEntry_RSIBollingerHalf };
-
-            EntrySignals = new HashSet<string> 
-            { 
-                StrategiesUtilities.SignalEntry_RSIBollingerHalf ,
-                StrategiesUtilities.SignalEntry_RSIBollingerFull ,
-            };
+            
         }        
 
         private const string Configuration_TigerParams_Name = "Tiger parameters";
+
+        const string ATMStrategy_Group = "ATM Information";
+        private const string OrderEntryName = "Entry";
+        private const string OrderStopName = "Stop";
+        private const string OrderTargetName = "Target";
 
         /// <summary>
         /// Chiều cao tối thiếu của body cây nến ABS(Open - Close) 
@@ -53,51 +53,89 @@ namespace NinjaTrader.NinjaScript.Strategies
         public int MinimumCandleBody {  get; set; }
 
         /// <summary>
-        /// OverSoldValue
+        /// ATM name for live trade.
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Over sold value",
-            Order = 1,
-            GroupName = Configuration_TigerParams_Name)]
-        [Range(0, 49)]
-        public int OverSoldValue { get; set; }
+        [Display(Name = "Default ATM Strategy", Description = "Default ATM Strategy", Order = 1,
+            GroupName = ATMStrategy_Group)]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public string FullSizeATMName { get; set; }
 
         /// <summary>
-        /// OverSoldValue
+        /// ATM name for live trade.
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Over bought value",
-            Order = 1,
-            GroupName = Configuration_TigerParams_Name)]
-        [Range(51, 100)]
-        public int OverBoughtValue { get; set; }
+        [Display(Name = "Reduced size Strategy",
+            Description = "Strategy sử dụng khi loss/gain more than a half",
+            Order = 2, GroupName = ATMStrategy_Group)]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public string HalfSizefATMName { get; set; }
+
+        private AtmStrategy FullSizeAtmStrategy { get; set; }
+
+        private AtmStrategy HalfSizeAtmStrategy { get; set; }
+
+        private TradingStatus tradingStatus { get; set; } = TradingStatus.Idle;
+
+        /// <summary>
+        /// - Nếu đang lỗ (&lt; $100) hoặc đang lời thì vào 2 contracts <br/>
+        /// - Nếu đang lỗ > $100 thì vào 1 contract
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Reduce number of contract when profit less than (< 0):", Order = 2, GroupName = Configuration_TigerParams_Name)]
+        public int ReduceSizeIfProfit { get; set; }
+
+
+        /// <summary>
+        /// - Nếu đang lỗ (&lt; $100) hoặc đang lời thì vào 2 contracts <br/>
+        /// - Nếu đang lỗ > $100 thì vào 1 contract
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Enter order  ADX < ?:", Order = 2, GroupName = "Trading Parameters")]
+        public int ADXToEnterOrder { get; set; }
+
+
+        /// <summary>
+        /// - Nếu đang lỗ (&lt; $100) hoặc đang lời thì vào 2 contracts <br/>
+        /// - Nếu đang lỗ > $100 thì vào 1 contract
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Vào lệnh nếu ADX < ?:", Order = 2, GroupName = "Trading Parameters")]
+        public int ADXToCancelOrder { get; set; }
+
+        protected override TradingStatus TradingStatus
+        {
+            get
+            {
+                return tradingStatus;
+            }
+        }      
 
         protected override void SetDefaultProperties()
         {
             base.SetDefaultProperties();
 
-            Name = "Tiger [RSI + Bollinger (Reverse)]";
+            Name = "Tiger [ADX + Bollinger (Reverse)]";
+            Description = "";
 
-            OverBoughtValue = 70;
-            OverSoldValue = 30;
-            MinimumCandleBody = 2;
+            tradingStatus = TradingStatus.Idle;
 
-            Target1InTicks = 40;
-            Target2InTicks = 120;
-            StopLossInTicks = 120;
+            FullSizeATMName = "Rooster_Default_4cts";
+            HalfSizefATMName = "Rooster_Default_2cts";
 
-            DefaultQuantity = 2; 
+            ADXToEnterOrder = 18;
+            ADXToCancelOrder = 22; 
         }
         
-        private Bollinger bollinger1 { get; set; }
-        private Bollinger bollinger2 { get; set; }
-        private RSI rsi { get; set; }
+        private Bollinger bollinger1Indicator_5m { get; set; }
+        private Bollinger bollinger2Indicator_5m { get; set; }
+        private ADX adxIndicator_5m { get; set; }
 
         protected override bool IsBuying
         { 
             get 
             { 
-                return CurrentTradeAction == RSIBollingerAction.SetBuyOrder; 
+                return CurrentTradeAction == ADXBollingerAction.SetBuyOrder; 
             } 
         }
 
@@ -105,7 +143,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return CurrentTradeAction == RSIBollingerAction.SetSellOrder;
+                return CurrentTradeAction == ADXBollingerAction.SetSellOrder;
             }
         }
 
@@ -115,6 +153,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double closePrice_5m = -1;
         protected double openPrice_5m = -1;
 
+        protected double adx_5m = -1;
+
+        protected double upperBB_5m = -1;
+        protected double lowerBB_5m = -1;
+        protected double middleBB_5m = -1;
+
+        protected double upperStd2BB_5m = -1;
+        protected double lowerStd2BB_5m = -1;
 
         protected override void OnStateChange()
 		{
@@ -125,43 +171,132 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ClearOutputWindow();
                 AddDataSeries(BarsPeriodType.Minute, 5);
                 AddDataSeries(BarsPeriodType.Minute, 1);
+
+                FullSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(FullSizeATMName).AtmStrategy;
+
+                HalfSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(HalfSizefATMName).AtmStrategy;
             }
             else if (State == State.DataLoaded)
             {
-                bollinger1 = Bollinger(1, 20);
-                bollinger1.Plots[0].Brush = bollinger1.Plots[2].Brush = Brushes.DarkCyan;
-                bollinger1.Plots[1].Brush = Brushes.DeepPink;
+                bollinger1Indicator_5m = Bollinger(1, 20);
+                bollinger1Indicator_5m.Plots[0].Brush = bollinger1Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
+                bollinger1Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
 
-                bollinger2 = Bollinger(2, 20);
-                bollinger2.Plots[0].Brush = bollinger2.Plots[2].Brush = Brushes.DarkCyan;
-                bollinger2.Plots[1].Brush = Brushes.DeepPink;
+                bollinger2Indicator_5m = Bollinger(2, 20);
+                bollinger2Indicator_5m.Plots[0].Brush = bollinger2Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
+                bollinger2Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
 
-                rsi = RSI(14, 3);
-                rsi.Plots[0].Brush = Brushes.DeepPink;
-                rsi.Plots[1].Brush = Brushes.Gray;
+                adxIndicator_5m = ADX(14);                
 
-                AddChartIndicator(bollinger1);
-                AddChartIndicator(bollinger2);                
+                AddChartIndicator(bollinger1Indicator_5m);
+                AddChartIndicator(bollinger2Indicator_5m);                
 
-                AddChartIndicator(rsi);
-
-               
+                AddChartIndicator(adxIndicator_5m);
             }
             else if (State == State.Realtime)
             {
-                try
+                // Load thông tin liên quan đến
+                if (File.Exists(FileName))
                 {
-                    // Nếu có lệnh đang chờ thì cancel 
-                    TransitionOrdersToLive();
+                    try
+                    {
+                        var text = File.ReadAllText(FileName);
+
+                        var arr = text.Split(',');
+
+                        if (arr.Length == 1)
+                        {
+                            atmStrategyId = arr[0];
+                        }
+                        else if (arr.Length == 2)
+                        {
+                            atmStrategyId = arr[0];
+                            orderId = arr[1];
+
+                            tradingStatus = CheckCurrentStatusBasedOnOrders();
+                            LocalPrint($"Initial status - {tradingStatus}");
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Print(e.Message);
+                    }
                 }
-                catch (Exception e)
-                {
-                    LocalPrint("[OnStateChange] - ERROR" + e.Message);
-                }       
+
+               
             }
         }
 
-        protected virtual void EnterOrder(RSIBollingerAction tradeAction)
+        protected string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyRSI.txt");
+        private string atmStrategyId = string.Empty;
+        private string orderId = string.Empty;
+
+        private void SaveAtmStrategyIdToFile(string strategyId, string orderId)
+        {
+            try
+            {
+                File.WriteAllText(FileName, $"{strategyId},{orderId}");
+            }
+            catch (Exception e)
+            {
+                LocalPrint(e.Message);
+            }
+        }
+
+        private TradingStatus CheckCurrentStatusBasedOnOrders()
+        {
+            var activeOrders = Account.Orders
+                                .Where(c => c.OrderState == OrderState.Accepted || c.OrderState == OrderState.Working)
+                                .Select(c => new { c.OrderState, c.Name, c.OrderType })
+                                .ToList();
+
+            if (activeOrders.Count == 0)
+            {
+                return TradingStatus.Idle;
+            }
+            else if (activeOrders.Count == 1 && activeOrders[0].Name == OrderEntryName)
+            {
+                return TradingStatus.PendingFill;
+            }
+            else
+            {
+                return TradingStatus.OrderExists;
+            }
+        }
+
+        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling)
+        {
+            // Vào lệnh theo ATM 
+            atmStrategyId = GetAtmStrategyUniqueId();
+            orderId = GetAtmStrategyUniqueId();
+
+            // Save to file, in case we need to pull [atmStrategyId] again
+            SaveAtmStrategyIdToFile(atmStrategyId, orderId);
+
+            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
+
+            // Enter a BUY/SELL order current price
+            AtmStrategyCreate(
+                action,
+                OrderType.Limit, // Market price if fill immediately
+                priceToSet,
+                0,
+                TimeInForce.Day,
+                orderId,
+                atmStragtegyName,
+                atmStrategyId,
+                (atmCallbackErrorCode, atmCallBackId) =>
+                {
+                    if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
+                    {
+                        tradingStatus = TradingStatus.PendingFill;
+                    }
+                });
+        }
+
+        private double StopLossPrice = -1;
+        private double TargetPrice = -1;
+        protected virtual void EnterOrder(ADXBollingerAction tradeAction)
         {
             // Set global values
             CurrentTradeAction = tradeAction;
@@ -171,20 +306,35 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
-            LocalPrint($"Enter {action} at {Time[0]}");
-
             double priceToSet = GetSetPrice(tradeAction);
+
+            var profitOrLoss = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
+
+            var isFullSize = profitOrLoss >= -ReduceSizeIfProfit;
+
+            var atmStrategyName = isFullSize ? FullSizeATMName : HalfSizefATMName;
+
+            var atmStrategy = isFullSize ? FullSizeAtmStrategy : HalfSizeAtmStrategy;
+
+            // Get stop loss and target ID based on strategy 
             FilledPrice = priceToSet;
 
-            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet);
-            var targetHalf = GetTargetPrice_Half(CurrentTradeAction, priceToSet);
-            var targetFull = GetTargetPrice_Full(CurrentTradeAction, priceToSet);
+            var stopLossTick = atmStrategy.Brackets[0].StopLoss;
+            var targetTick = IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target);
+
+            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}, stopLossTick: {stopLossTick}, finalTarget Tick: {targetTick}");
+
+            StopLossPrice = IsBuying ?
+                priceToSet - stopLossTick * TickSize :
+                priceToSet + stopLossTick * TickSize;
+
+            TargetPrice = IsBuying ?
+                priceToSet + targetTick * TickSize :
+                priceToSet - targetTick * TickSize;
 
             try
-            {                
-                EnterOrderPureUsingPrice(priceToSet, targetHalf, stopLossPrice, StrategiesUtilities.SignalEntry_RSIBollingerHalf, DefaultQuantity, IsBuying, IsSelling);
-             
-                EnterOrderPureUsingPrice(priceToSet, targetFull, stopLossPrice, StrategiesUtilities.SignalEntry_RSIBollingerFull, DefaultQuantity, IsBuying, IsSelling);
+            {
+                EnterOrderPure(priceToSet, 0, 0, atmStrategyName, 0, IsBuying, IsSelling);
             }
             catch (Exception ex)
             {
@@ -192,12 +342,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override void OnOrderUpdate(Cbi.Order order, double limitPrice, double stopPrice, int quantity, int filled, double averageFillPrice, OrderState orderState, DateTime time, ErrorCode error, string comment)
+        protected override void CancelAllPendingOrder()
         {
-            base.OnOrderUpdate(order, limitPrice, stopPrice, quantity, filled, averageFillPrice, orderState, time, error, comment);
-        }
+            AtmStrategyCancelEntryOrder(orderId);
 
-        private TradingStatus InternalTradingStatus = TradingStatus.Idle; 
+            tradingStatus = TradingStatus.Idle;
+        }
 
         protected override void OnBarUpdate()
 		{
@@ -215,37 +365,67 @@ namespace NinjaTrader.NinjaScript.Strategies
                 openPrice_5m = Open[0];
                 closePrice_5m = Close[0];
 
+                adx_5m = adxIndicator_5m.Value[0];
+
+                upperBB_5m = bollinger1Indicator_5m.Upper[0];
+                lowerBB_5m = bollinger1Indicator_5m.Lower[0];
+                middleBB_5m = bollinger1Indicator_5m.Middle[0];
+
+                upperStd2BB_5m = bollinger2Indicator_5m.Upper[0];
+                lowerStd2BB_5m = bollinger2Indicator_5m.Lower[0];
+
                 if (TradingStatus == TradingStatus.Idle)
                 {
                     var shouldTrade = ShouldTrade();
 
                     LocalPrint($"Check trading condition, result: {shouldTrade}");
 
-                    if (shouldTrade == RSIBollingerAction.WaitForSellSignal || shouldTrade == RSIBollingerAction.WaitForBuySignal)
-                    {
-                        InternalTradingStatus = TradingStatus.WatingForConfirmation;
-                    }
-                    else if (shouldTrade == RSIBollingerAction.SetBuyOrder || shouldTrade == RSIBollingerAction.SetSellOrder)
+                    if (shouldTrade == ADXBollingerAction.SetBuyOrder || shouldTrade == ADXBollingerAction.SetSellOrder)
                     {
                         // Enter Order
-                        EnterOrder(shouldTrade);                            
+                        EnterOrder(shouldTrade);
                     }
                 }
                 else if (TradingStatus == TradingStatus.PendingFill)
                 {
                     // Kiểm tra các điều kiện để cancel lệnh
-                    if (CurrentTradeAction == RSIBollingerAction.SetBuyOrder && Low[0] > bollinger1.Middle[0])
+
+                    if (adx_5m > ADXToCancelOrder)
                     {
                         LocalPrint($"Price is greater than Bollinger middle, cancel all pending orders");
                         // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
                         CancelAllPendingOrder();
-                    }   
-                    else if (CurrentTradeAction == RSIBollingerAction.SetSellOrder && High[0] < bollinger1.Middle[0])
+                    }
+                    else if (CurrentTradeAction == ADXBollingerAction.SetBuyOrder && lowPrice_5m > middleBB_5m)
+                    {
+                        LocalPrint($"Price is greater than Bollinger middle, cancel all pending orders");
+                        // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
+                        CancelAllPendingOrder();
+                    }
+                    else if (CurrentTradeAction == ADXBollingerAction.SetSellOrder && highPrice_5m < middleBB_5m)
                     {
                         LocalPrint($"Price is smaller than Bollinger middle, Cancel all pending orders");
                         // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
                         CancelAllPendingOrder();
-                    }    
+                    }
+                    else 
+                    {
+                        var shouldTrade = ShouldTrade();
+
+                        // Xem điều kiện có bị thay đổi gì không? 
+                        if (shouldTrade == ADXBollingerAction.NoTrade)
+                        {
+                            // Do nothing, do việc cancel xảy ra khi adx_5m > [ADXToCancelOrder]
+                        }
+                        else if (shouldTrade == CurrentTradeAction)
+                        {
+
+                        }    
+
+
+
+
+                    }
                 }
                 else if (TradingStatus == TradingStatus.OrderExists)
                 {
@@ -259,122 +439,137 @@ namespace NinjaTrader.NinjaScript.Strategies
             throw new NotImplementedException();
         }
 
+        protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
+        {
+            var updatedPrice = marketDataUpdate.Price;
+
+            if (updatedPrice < 100)  // || DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
+            {
+                return;
+            }
+
+            //executionTime = DateTime.Now;
+
+            if (TradingStatus == TradingStatus.OrderExists)
+            {
+                var buyPriceIsOutOfRange = IsBuying && (updatedPrice < StopLossPrice || updatedPrice > TargetPrice);
+                var sellPriceIsOutOfRange = IsSelling && (updatedPrice > StopLossPrice || updatedPrice < TargetPrice);
+
+                // Khi giá đã ở ngoài range (stoploss, target)
+                if (buyPriceIsOutOfRange || sellPriceIsOutOfRange)
+                {
+                    tradingStatus = CheckCurrentStatusBasedOnOrders();
+
+                    LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}");
+                }
+                else
+                {
+                    var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && order.Name.Contains(OrderStopName)).ToList();
+                    var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains(OrderTargetName)).ToList();
+
+                    var countStopOrder = stopOrders.Count;
+                    var countTargetOrder = stopOrders.Count;
+
+                    LocalPrint($"countStopOrder: {countStopOrder}, countTargetOrder: {countTargetOrder}");
+
+                    if (countStopOrder == 0 || countTargetOrder == 0)
+                    {
+                        tradingStatus = TradingStatus.Idle;
+                        return;
+                    }
+                    else if (countStopOrder == 1 && countTargetOrder == 1)
+                    {
+                        var targetOrder = targetOrders.First();
+                        var stopLossOrder = stopOrders.First();
+
+                        TargetPrice = targetOrder.LimitPrice;
+                        StopLossPrice = stopLossOrder.StopPrice;
+
+                        MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
+
+                        MoveStopOrder(stopLossOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
+                    }
+                }
+            }
+            else if (TradingStatus == TradingStatus.PendingFill)
+            {
+                if ((IsBuying && updatedPrice < FilledPrice) || (IsSelling && updatedPrice > FilledPrice))
+                {
+                    tradingStatus = CheckCurrentStatusBasedOnOrders();
+
+                    LocalPrint($"Last TradingStatus: PendingFill, new TradingStatus: {TradingStatus}");
+                }
+            }
+        }
+
         protected override bool IsFullPriceOrder(Cbi.Order order)
         {
             throw new NotImplementedException();
         }
 
-        protected override double GetStopLossPrice(RSIBollingerAction tradeAction, double setPrice)
+        protected override double GetStopLossPrice(ADXBollingerAction tradeAction, double setPrice)
         {
             var stopLoss = StopLossInTicks * TickSize;
             
-            return tradeAction == RSIBollingerAction.SetBuyOrder
+            return tradeAction == ADXBollingerAction.SetBuyOrder
                 ? setPrice - stopLoss
                 : setPrice + stopLoss;
         }
 
-        protected override double GetSetPrice(RSIBollingerAction tradeAction)
+        protected override double GetSetPrice(ADXBollingerAction tradeAction)
         {
-            // Always return openPrice_5m because current candle must be reverse candle
-            return openPrice_5m;
+            if (tradeAction == ADXBollingerAction.SetBuyOrder)
+            {
+                return lowerStd2BB_5m; 
+            }
+            else if (tradeAction == ADXBollingerAction.SetSellOrder)
+            {
+                return upperStd2BB_5m;
+            }
+            return middleBB_5m;
         }
 
-        protected override double GetTargetPrice_Half(RSIBollingerAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Half(ADXBollingerAction tradeAction, double setPrice)
         {
             var target1 = TickSize * Target1InTicks; 
 
-            return tradeAction == RSIBollingerAction.SetBuyOrder
+            return tradeAction == ADXBollingerAction.SetBuyOrder
                 ? setPrice + target1
                 : setPrice - target1; 
         }
 
-        protected override double GetTargetPrice_Full(RSIBollingerAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Full(ADXBollingerAction tradeAction, double setPrice)
         {
             var target2 = TickSize * Target2InTicks;
 
-            return tradeAction == RSIBollingerAction.SetBuyOrder
+            return tradeAction == ADXBollingerAction.SetBuyOrder
                 ? setPrice + target2
                 : setPrice - target2;
         }
 
-        protected override RSIBollingerAction ShouldTrade()
+        protected override ADXBollingerAction ShouldTrade()
         {
             var time = ToTime(Time[0]);
 
             // Từ 3:30pm - 5:05pm thì không nên trade 
             if (time >= 153000 && time < 170500)
             {
-                return RSIBollingerAction.NoTrade;
+                return ADXBollingerAction.NoTrade;
             }
 
-            var rsi_5m = rsi.Value[0];
-
-            if (InternalTradingStatus == TradingStatus.Idle)
+            if (adx_5m < ADXToEnterOrder) 
             {
-                // RSI > 70 
-                // Cây nến có điểm cao nhất vượt qua Bollinger Band (Std=2)                
-                if (rsi_5m > OverBoughtValue && High[0] > bollinger2.Upper[0])
+                if (lowPrice_5m > middleBB_5m)
                 {
-                    // Cây nến hiện tại là cây nến XANH 
-                    if (Close[0] > Open[0] && Close[0] - Open[0] > MinimumCandleBody)
-                    {
-                        // Chờ đến ĐỎ
-                        return RSIBollingerAction.WaitForSellSignal;
-                    }
-                    else
-                    {
-                        // Set lệnh ngay
-                        return RSIBollingerAction.SetSellOrder;
-                    }
+                    return ADXBollingerAction.SetSellOrder;
                 }
-                else if (rsi_5m < OverSoldValue && Low[0] < bollinger2.Lower[0])
+                else if (highPrice_5m < middleBB_5m)
                 {
-                    // Cây nến hiện tại là cây nến ĐỎ
-                    if (Open[0] > Open[0] && Open[0] - Close[0] > MinimumCandleBody)
-                    {
-                        // Chờ đến ĐỎ
-                        return RSIBollingerAction.WaitForBuySignal;
-                    }
-                    else
-                    {
-                        // Wait for confirmation 
-                        return RSIBollingerAction.SetBuyOrder;
-                    }                   
+                    return ADXBollingerAction.SetBuyOrder;
                 }
-            }
-            else if (InternalTradingStatus == TradingStatus.WatingForConfirmation)
-            {
-                if (CurrentTradeAction == RSIBollingerAction.WaitForSellSignal)
-                {
-                    // Cây nến hiện tại là cây nến XANH 
-                    if (Close[0] > Open[0] && Close[0] - Open[0] > MinimumCandleBody)
-                    {
-                        // Chờ đến ĐỎ
-                        return RSIBollingerAction.WaitForSellSignal;
-                    }
-                    else
-                    {
-                        // Set lệnh ngay
-                        return RSIBollingerAction.SetSellOrder;
-                    }
-                }
-                else if (CurrentTradeAction == RSIBollingerAction.WaitForBuySignal)
-                {
-                    // Cây nến hiện tại là cây nến ĐỎ
-                    if (Open[0] > Open[0] && Open[0] - Close[0] > MinimumCandleBody)
-                    {
-                        // Chờ đến ĐỎ
-                        return RSIBollingerAction.WaitForBuySignal;
-                    }
-                    else
-                    {
-                        // Wait for confirmation 
-                        return RSIBollingerAction.SetBuyOrder;
-                    }
-                }
-            }
+            } 
 
-            return RSIBollingerAction.NoTrade; 
+            return ADXBollingerAction.NoTrade; 
         }
     }
 }

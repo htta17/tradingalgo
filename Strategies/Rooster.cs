@@ -249,8 +249,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             base.OnBarUpdate();
 
-            LocalPrint("Here");
-
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
                 StrategiesUtilities.CalculatePnL(this, Account, Print);
@@ -495,9 +493,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
         }
-
-        private double StopLossPrice = -1;
-        private double TargetPrice = -1;
+       
         protected override void EnterOrder(TradeAction tradeAction)
         {
             // Set global values

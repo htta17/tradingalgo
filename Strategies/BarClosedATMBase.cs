@@ -53,11 +53,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             return order;
         }
 
-        protected override void UpdatePendingOrder()
-        {
-            base.UpdatePendingOrder();
-        }
-
         protected override void TransitionOrdersToLive()
         {
             // Since we cannot use ATM in History, we don't have to do anything here.
@@ -96,7 +91,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Reduce number of contract when profit less than (< 0):", Order = 2, GroupName = Configuration_TigerParams_Name)]
         public int ReduceSizeIfProfit { get; set; }
-
         protected AtmStrategy FullSizeAtmStrategy { get; set; }
 
         protected AtmStrategy HalfSizeAtmStrategy { get; set; }
@@ -400,6 +394,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             try
             {
+                LocalPrint("MoveTargetOrStopOrder in [ATM]");
                 AtmStrategyChangeStopTarget(
                         isGainStop ? newPrice : 0,
                         isGainStop ? 0 : newPrice,

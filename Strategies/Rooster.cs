@@ -86,6 +86,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected Series<double> deadZoneSeries;
         protected Series<WAE_ValueSet> waeValuesSeries;
+
+        private Bollinger bollinger1Indicator_5m { get; set; }
+        private Bollinger bollinger2Indicator_5m { get; set; }
         #endregion
 
         protected virtual bool ShouldCancelPendingOrdersByTrendCondition()
@@ -236,7 +239,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void OnBarUpdate()
         {
             // Cập nhật lại status 
-            tradingStatus = CheckCurrentStatusBasedOnOrders();
+            tradingStatus = CheckCurrentStatusBasedOnOrders();            
 
             var passTradeCondition = CheckingTradeCondition();
             if (!passTradeCondition)
@@ -245,6 +248,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             base.OnBarUpdate();
+
+            LocalPrint("Here");
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
@@ -373,9 +378,28 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (State == State.Configure)
             {
+                AddDataSeries(BarsPeriodType.Minute, 5);
+                AddDataSeries(BarsPeriodType.Minute, 1);
+
                 FullSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(FullSizeATMName).AtmStrategy;
 
                 HalfSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(HalfSizefATMName).AtmStrategy;
+            }
+            else if (State == State.DataLoaded )
+            {
+                bollinger1Indicator_5m = Bollinger(1, 20);
+                bollinger1Indicator_5m.Plots[0].Brush = bollinger1Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
+                bollinger1Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
+
+                bollinger2Indicator_5m = Bollinger(2, 20);
+                bollinger2Indicator_5m.Plots[0].Brush = bollinger2Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
+                bollinger2Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
+
+                deadZoneSeries = new Series<double>(this);
+                waeValuesSeries = new Series<WAE_ValueSet>(this);
+
+                AddChartIndicator(bollinger1Indicator_5m);
+                AddChartIndicator(bollinger2Indicator_5m);
             }
             else if (State == State.Realtime)
             {
@@ -408,41 +432,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
         }
-
-
-
-        protected override void MoveTargetOrStopOrder(double newPrice, Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
-        {
-            try
-            {
-                AtmStrategyChangeStopTarget(
-                        isGainStop ? newPrice : 0,
-                        isGainStop ? 0 : newPrice,
-                        order.Name,
-                        atmStrategyId);
-
-                var text = isGainStop ? "TARGET" : "LOSS";
-
-                if (isGainStop)
-                {
-                    TargetPrice = newPrice;
-                }
-                else
-                {
-                    StopLossPrice = newPrice;
-                }
-
-                LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
-                    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
-                    $"đến [{newPrice}] - {buyOrSell}");
-            }
-            catch (Exception ex)
-            {
-                LocalPrint($"[MoveTargetOrStopOrder] - ERROR: {ex.Message}");
-            }
-        }
-
-        private DateTime executionTime = DateTime.MinValue;
+       
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
             var updatedPrice = marketDataUpdate.Price;

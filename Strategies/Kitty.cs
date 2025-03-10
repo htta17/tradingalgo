@@ -74,8 +74,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, 5);
             //var previousBody = Math.Abs(prev_closePrice_5m - prev_openPrice_5m) < 60; 
 
-            var additionalText = $"prev: (close: {prev_closePrice_5m:N2}, open: {prev_openPrice_5m: N2}, body: {Math.Abs(prev_closePrice_5m - prev_openPrice_5m)}), " +
-                $"current: (close: {closePrice_5m:N2}, open: {openPrice_5m: N2}, body: {Math.Abs(closePrice_5m - openPrice_5m)}), ";
+            var additionalText = 
+                $"prev: (close: {prev_closePrice_5m:N2}, open: {prev_openPrice_5m:N2}, body: {Math.Abs(prev_closePrice_5m - prev_openPrice_5m)}), " +
+                $"current: (close: {closePrice_5m:N2}, open: {openPrice_5m:N2}, body: {Math.Abs(closePrice_5m - openPrice_5m)}), " +
+                $"Previous Is Red: {CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m)}, Previous Is Green: {CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m)}, " +
+                $""
+                ;
 
             var previousIsGreenAndTooStrong_FORSELL = 
                 CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m) && 
@@ -105,7 +109,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 6. (NOT IN USE)  Thân cây nến trước không quá 60pts
                 7. RSI > 30 (Not oversold): [{rsi_5m > 30}], 
                 8. Râu nến phía DƯỚI không quá 40% toàn cây nến: [{bottomToBody}].
-                9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH và có body > 50% cây nến gần nhất.[{!previousIsGreenAndTooStrong_FORSELL}] {additionalText}
+                9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH và có body > 50% cây nến gần nhất.[{!previousIsGreenAndTooStrong_FORSELL}] 
+                        {additionalText}
                 10. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ, body của cây nến gần nhất < 30% cây nến trước. [{!previousIsRedAndTooStrong_FORSELL}]
                 FINAL: [{conditionForSell}]");
 
@@ -136,7 +141,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var previousIsRedAndTooStrong_FORBUY = // Nếu điều kiện này = true thì không vào, false thì có thể vào
                 CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m) &&
-                Math.Abs(prev_openPrice_5m - prev_closePrice_5m) > 0.5 * Math.Abs(closePrice_5m - openPrice_5m); 
+                (Math.Abs(prev_openPrice_5m - prev_closePrice_5m) > (0.5 * Math.Abs(closePrice_5m - openPrice_5m))); 
 
             var previousIsGreenAndTooStrong_FORBUY =
                CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m) &&

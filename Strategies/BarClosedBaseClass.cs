@@ -598,6 +598,7 @@ namespace NinjaTrader.Custom.Strategies
         {
             try
             {
+                LocalPrint("MoveTargetOrStopOrder in [BarClosedBaseClass]");
                 if (isGainStop)
                 {
                     SetProfitTarget(fromEntrySignal, CalculationMode.Price, newPrice);
@@ -684,18 +685,21 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="isSelling"></param>        
         protected virtual void MoveTargetOrder(Order targetOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)
         {
-            var targetOrderPrice = targetOrder.LimitPrice;
-            LocalPrint($"[MoveTargetOrder] - {targetOrderPrice}");
+            var targetOrderPrice = targetOrder.LimitPrice;            
 
             // Dịch stop gain nếu giá quá gần target            
             if (isBuying && updatedPrice + PointToMoveTarget > targetOrderPrice)
             {
+                LocalPrint($"[MoveTargetOrder] - Moving target BUY --> True ({updatedPrice:N2} + {PointToMoveTarget} > {targetOrderPrice:N2})");
+
                 MoveTargetOrStopOrder(targetOrderPrice + PointToMoveTarget, targetOrder, true, "BUY", targetOrder.FromEntrySignal);
 
                 StartMovingStoploss = true;
             }
             else if (isSelling && updatedPrice - PointToMoveTarget < targetOrderPrice)
             {
+                LocalPrint($"[MoveTargetOrder] - Moving target SELL --> True ({updatedPrice:N2} - {PointToMoveTarget} < {targetOrderPrice:N2})");
+
                 MoveTargetOrStopOrder(targetOrderPrice - PointToMoveTarget, targetOrder, true, "SELL", targetOrder.FromEntrySignal);                
 
                 StartMovingStoploss = true;

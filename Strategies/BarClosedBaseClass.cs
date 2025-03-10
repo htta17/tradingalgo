@@ -208,6 +208,8 @@ namespace NinjaTrader.Custom.Strategies
             CountEntrySignal = 0;
         }
 
+        protected abstract void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull);
+
         protected bool IsTradingHour()
         {
             var time = ToTime(Time[0]);

@@ -390,7 +390,7 @@
     <Compile Include="Strategies\FVG.cs" />
     <Compile Include="Strategies\BarClosedBaseClass.cs" />
     <Compile Include="Strategies\Vikki.cs" />
-    <Compile Include="Strategies\RSIBollinger.cs" />
+    <Compile Include="Strategies\ADXBollinger.cs" />
     <Compile Include="Strategies\Rooster.cs" />
     <Compile Include="Strategies\Hen.cs" />
     <Compile Include="MySQL\DatabaseUtility.cs" />

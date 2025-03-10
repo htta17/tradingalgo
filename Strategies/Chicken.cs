@@ -875,7 +875,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         }
 
-        protected virtual void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull)
+        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull)
         {
             if (Math.Abs(FilledPrice - newPrice) > 0.5)
             {

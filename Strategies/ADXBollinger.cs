@@ -28,9 +28,9 @@ using System.IO;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public abstract class RSIBollinger : BarClosedBaseClass<ADXBollingerAction, ADXBollingerAction>
+	public class ADXBollinger : BarClosedBaseClass<ADXBollingerAction, ADXBollingerAction>
     {
-        public RSIBollinger() : base("TIGER")
+        public ADXBollinger() : base("TIGER")
         {
             
         }        
@@ -41,16 +41,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         private const string OrderEntryName = "Entry";
         private const string OrderStopName = "Stop";
         private const string OrderTargetName = "Target";
-
-        /// <summary>
-        /// Chiều cao tối thiếu của body cây nến ABS(Open - Close) 
-        /// </summary>
-        /// [NinjaScriptProperty]
-        [Display(Name = "Minimum Candle body size",
-            Order = 1,
-            Description = "Chiều cao tối thiếu của body cây nến",
-            GroupName = Configuration_TigerParams_Name)]        
-        public int MinimumCandleBody {  get; set; }
 
         /// <summary>
         /// ATM name for live trade.
@@ -109,7 +99,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 return tradingStatus;
             }
-        }      
+        }
+
+        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull)
+        {
+            
+        }
 
         protected override void SetDefaultProperties()
         {
@@ -227,7 +222,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyRSI.txt");
+        protected string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyADX.txt");
         private string atmStrategyId = string.Empty;
         private string orderId = string.Empty;
 
@@ -278,7 +273,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Enter a BUY/SELL order current price
             AtmStrategyCreate(
                 action,
-                OrderType.Limit, // Market price if fill immediately
+                OrderType.Limit,
                 priceToSet,
                 0,
                 TimeInForce.Day,
@@ -419,7 +414,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                         else if (shouldTrade == CurrentTradeAction)
                         {
+                            // Nếu cùng chiều thì di chuyển điểm vào lệnh. 
 
+                            
                         }    
 
 

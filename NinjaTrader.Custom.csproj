@@ -391,10 +391,9 @@
     <Compile Include="Strategies\BarClosedBaseClass.cs" />
     <Compile Include="Strategies\Vikki.cs" />
     <Compile Include="Strategies\ADXBollinger.cs" />
-    <Compile Include="Strategies\Rooster.cs" />
     <Compile Include="Strategies\Hen.cs" />
     <Compile Include="MySQL\DatabaseUtility.cs" />
-    <Compile Include="Strategies\RoosterATM.cs" />
+    <Compile Include="Strategies\Rooster.cs" />
     <Compile Include="Strategies\IATMStrategy.cs" />
     <Compile Include="Strategies\Kitty.cs" />
   </ItemGroup>

@@ -332,6 +332,11 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
+        protected virtual void UpdateEntryOrder(double setPrice, double stopLoss, double stopGain)
+        {
+
+        }
+
         protected virtual bool CheckingTradeCondition(ValidateType validateType = ValidateType.MaxDayGainLoss | ValidateType.TradingHour)
         {
             // Không đủ số lượng Bar

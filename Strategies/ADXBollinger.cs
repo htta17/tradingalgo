@@ -101,9 +101,25 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull)
+        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double target)
         {
-            
+            if (Math.Abs(FilledPrice - newPrice) > 0.5)
+            {
+                FilledPrice = newPrice;
+                StopLossPrice = stopLossPrice;
+                TargetPrice = target;
+
+                try
+                {
+                    LocalPrint($"Trying to modify waiting order, new Price: {newPrice:N2}, new stop loss: {stopLossPrice:N2}, new target: {target:N2}");
+
+                    AtmStrategyChangeEntryOrder(newPrice, stopLossPrice, orderId);
+                }
+                catch (Exception ex)
+                {
+                    LocalPrint($"[UpdatePendingOrder] - ERROR: {ex.Message}");
+                }
+            }
         }
 
         protected override void SetDefaultProperties()
@@ -346,6 +362,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnBarUpdate()
 		{
+            // Cập nhật lại status 
+            tradingStatus = CheckCurrentStatusBasedOnOrders();
+
             //Add your custom strategy logic here.
             var passTradeCondition = CheckingTradeCondition(ValidateType.MaxDayGainLoss);
             if (!passTradeCondition)
@@ -412,16 +431,27 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             // Do nothing, do việc cancel xảy ra khi adx_5m > [ADXToCancelOrder]
                         }
-                        else if (shouldTrade == CurrentTradeAction)
+                        else
                         {
-                            // Nếu cùng chiều thì di chuyển điểm vào lệnh. 
+                            if (shouldTrade == CurrentTradeAction)
+                            {
+                                var newPrice = GetSetPrice(shouldTrade);
 
-                            
-                        }    
+                                var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice);                                
 
+                                var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice);
 
+                                LocalPrint($"Update entry price to {newPrice}");
 
+                                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full);
+                            }
+                            else
+                            {
+                                CancelAllPendingOrder(); 
 
+                                EnterOrder(shouldTrade);
+                            }
+                        }
                     }
                 }
                 else if (TradingStatus == TradingStatus.OrderExists)
@@ -496,6 +526,37 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     LocalPrint($"Last TradingStatus: PendingFill, new TradingStatus: {TradingStatus}");
                 }
+            }
+        }
+
+        protected override void MoveTargetOrStopOrder(double newPrice, Cbi.Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
+        {
+            try
+            {
+                AtmStrategyChangeStopTarget(
+                        isGainStop ? newPrice : 0,
+                        isGainStop ? 0 : newPrice,
+                        order.Name,
+                        atmStrategyId);
+
+                var text = isGainStop ? "TARGET" : "LOSS";
+
+                if (isGainStop)
+                {
+                    TargetPrice = newPrice;
+                }
+                else
+                {
+                    StopLossPrice = newPrice;
+                }
+
+                LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
+                    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
+                    $"đến [{newPrice}] - {buyOrSell}");
+            }
+            catch (Exception ex)
+            {
+                LocalPrint($"[MoveTargetOrStopOrder] - ERROR: {ex.Message}");
             }
         }
 

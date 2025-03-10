@@ -37,16 +37,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         #region Parameters
         /// <summary>
-        /// - Nếu đang lỗ (&lt; $100) hoặc đang lời thì vào 2 contracts <br/>
-        /// - Nếu đang lỗ > $100 thì vào 1 contract
+        /// ADX khung 5 phút &lt; [ADXToEnterOrder] thì set lệnh LIMIT
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Enter order  ADX < ?:", Order = 2, GroupName = "Trading Parameters")]
         public int ADXToEnterOrder { get; set; }
 
         /// <summary>
-        /// - Nếu đang lỗ (&lt; $100) hoặc đang lời thì vào 2 contracts <br/>
-        /// - Nếu đang lỗ > $100 thì vào 1 contract
+        /// ADX khung 5 phút > [ADXToCancelOrder] thì cancel lệnh LIMIT
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Vào lệnh nếu ADX < ?:", Order = 2, GroupName = "Trading Parameters")]
@@ -140,14 +138,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             else if (State == State.Realtime)
             {
             }
-        }       
-
-        protected override void CancelAllPendingOrder()
-        {
-            AtmStrategyCancelEntryOrder(orderId);
-
-            tradingStatus = TradingStatus.Idle;
-        }
+        }  
 
         protected override void OnBarUpdate()
 		{
@@ -249,9 +240,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
         }
-
-        
-
         protected override double GetSetPrice(ADXBollingerAction tradeAction)
         {
             if (tradeAction == ADXBollingerAction.SetBuyOrder)

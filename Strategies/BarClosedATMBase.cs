@@ -36,6 +36,33 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         }
 
+        protected override void CloseExistingOrders()
+        {
+            LocalPrint($"[CloseExistingOrders]");
+            if (!string.IsNullOrEmpty(atmStrategyId))
+            {
+                AtmStrategyClose(atmStrategyId);
+            }
+            tradingStatus = TradingStatus.Idle;
+        }
+
+        protected override Order GetOrderFromPendingList()
+        {
+            var order = Account.Orders.FirstOrDefault(c => c.Name.Contains(OrderEntryName) && (c.OrderState == OrderState.Working || c.OrderState == OrderState.Accepted));
+
+            return order;
+        }
+
+        protected override void UpdatePendingOrder()
+        {
+            base.UpdatePendingOrder();
+        }
+
+        protected override void TransitionOrdersToLive()
+        {
+            // Since we cannot use ATM in History, we don't have to do anything here.
+        }
+
         protected const string Configuration_TigerParams_Name = "Based ATM Parameters";
 
         protected const string ATMStrategy_Group = "ATM Information";
@@ -287,7 +314,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-
         protected override void CancelAllPendingOrder()
         {
             AtmStrategyCancelEntryOrder(orderId);
@@ -324,9 +350,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains(OrderTargetName)).ToList();
 
                     var countStopOrder = stopOrders.Count;
-                    var countTargetOrder = stopOrders.Count;
-
-                    LocalPrint($"countStopOrder: {countStopOrder}, countTargetOrder: {countTargetOrder}");
+                    var countTargetOrder = stopOrders.Count;                    
 
                     if (countStopOrder == 0 || countTargetOrder == 0)
                     {
@@ -340,6 +364,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         TargetPrice = targetOrder.LimitPrice;
                         StopLossPrice = stopLossOrder.StopPrice;
+
+                        LocalPrint($"countStopOrder: {countStopOrder}, countTargetOrder: {countTargetOrder}, current Target: {TargetPrice:N2}, currentStop: {StopLossPrice:n2}");
 
                         MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
 

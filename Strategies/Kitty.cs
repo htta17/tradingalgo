@@ -41,7 +41,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             Name = "Kitty";
             Description = "[Kitty] là giải thuật [Chicken] nhưng chỉ chạy Trending, dùng ATM Strategy để vào lệnh, dựa theo các điều kiện vào lệnh của bạn Phượng";
         }       
-
         protected override TradeAction ShouldTrade()
         {
             var time = ToTime(Time[0]);

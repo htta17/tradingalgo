@@ -30,6 +30,9 @@ namespace NinjaTrader.Custom.Strategies
             
         }
 
+        protected int CurrentBarIndex_5m = 0;
+        protected int EnteredBarIndex_5m = 0;
+
         protected int CurrentOrderCount { get; set; }
 
         protected T1 CurrentTradeAction { get; set; }
@@ -181,7 +184,12 @@ namespace NinjaTrader.Custom.Strategies
                 Print(ex.ToString());
             }
             return string.Empty; 
-        }        
+        }
+
+        protected virtual void UpdatePendingOrder()
+        {
+
+        }
 
         protected virtual void SetDefaultProperties()
         {
@@ -780,6 +788,11 @@ namespace NinjaTrader.Custom.Strategies
         protected abstract bool IsHalfPriceOrder(Order order);
 
         protected abstract bool IsFullPriceOrder(Order order);
+
+        protected virtual Order GetOrderFromPendingList()
+        {
+            return ActiveOrders.FirstOrDefault().Value;
+        }
 
         protected virtual void CloseExistingOrders()
         {

@@ -75,10 +75,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double prev_openPrice_5m = -1;
 
         protected double currentDEMA_5m = -1;
-        protected double lastDEMA_5m = -1;
-
-        protected int barIndex_5m = 0;
-        protected int enteredbarIndex_5m = 0;
+        protected double lastDEMA_5m = -1;        
 
         // Volume 
         protected double volume_5m = -1;
@@ -105,8 +102,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected Series<double> deadZoneSeries;
         protected Series<WAE_ValueSet> waeValuesSeries;
         #endregion
-
-
 
         /// <summary>
         /// Lệnh hiện tại là lệnh mua
@@ -145,8 +140,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return CurrentTradeAction == TradeAction.Buy_Trending || CurrentTradeAction == TradeAction.Sell_Trending;
             }
         }
-
-        protected Trends CurrentTrend = Trends.Unknown;
 
         /// <summary>
         /// Cách thức đặt lệnh trade (Cho trending)
@@ -511,6 +504,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Set global values
             CurrentTradeAction = tradeAction;
 
+            EnteredBarIndex_5m = CurrentBarIndex_5m;
+
             // Chưa cho move stop loss
             StartMovingStoploss = false;
 
@@ -643,9 +638,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Check trading condition, result: {shouldTrade}");
 
                     // Điều kiện [barIndex_5m != enteredbarIndex_5m] để tránh việc trade 1 bar 5 phút nhiều lần
-                    if (shouldTrade != TradeAction.NoTrade && barIndex_5m != enteredbarIndex_5m)
+                    if (shouldTrade != TradeAction.NoTrade && CurrentBarIndex_5m != EnteredBarIndex_5m)
                     {
-                        enteredbarIndex_5m = barIndex_5m;
                         EnterOrder(shouldTrade);
                     }
                 }
@@ -700,7 +694,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 prev_closePrice_5m = Close[1];
                 prev_openPrice_5m = Open[1];
 
-                barIndex_5m = CurrentBar;
+                CurrentBarIndex_5m = CurrentBar;
 
                 currentDEMA_5m = DEMA(DEMA_Period).Value[0];
                 lastDEMA_5m = DEMA(DEMA_Period).Value[1];
@@ -775,11 +769,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             };
         }
 
-        protected virtual Order GetOrderFromPendingList()
-        {
-            return ActiveOrders.FirstOrDefault().Value;
-        }
-
         protected virtual bool ShouldCancelPendingOrdersByTrendCondition()
         {
             return
@@ -794,14 +783,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <summary>
         /// Cập nhật giá trị cho các lệnh đang chờ, hoặc cancel do: Đợi lệnh quá 1h đồng hồ, do hết giờ trade, hoặc do 1 số điều kiện khác
         /// </summary>
-        protected virtual void UpdatePendingOrder()
+        protected override void UpdatePendingOrder()
         {
             if (TradingStatus != TradingStatus.PendingFill)
             {
                 return;
             }
 
-            #region Cancel lệnh nếu có 1 trong các điều kiện:             
+            #region Cancel lệnh nếu có 1 trong các điều kiện:
             // Cancel lệnh do đợi quá lâu
             var firstOrder = GetOrderFromPendingList();
 

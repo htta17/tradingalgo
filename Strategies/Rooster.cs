@@ -235,9 +235,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains(OrderTargetName)).ToList();
 
                     var countStopOrder = stopOrders.Count;
-                    var countTargetOrder = stopOrders.Count;
-
-                    LocalPrint($"countStopOrder: {countStopOrder}, countTargetOrder: {countTargetOrder}");
+                    var countTargetOrder = stopOrders.Count;                    
 
                     if (countStopOrder == 0 || countTargetOrder == 0)
                     {
@@ -251,6 +249,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         TargetPrice = targetOrder.LimitPrice;
                         StopLossPrice = stopLossOrder.StopPrice;
+
+                        LocalPrint($"countStopOrder: {countStopOrder}, countTargetOrder: {countTargetOrder}. Checking to move target and stop loss");
 
                         MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
 

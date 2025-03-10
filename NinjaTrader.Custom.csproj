@@ -396,6 +396,7 @@
     <Compile Include="Strategies\Rooster.cs" />
     <Compile Include="Strategies\IATMStrategy.cs" />
     <Compile Include="Strategies\Kitty.cs" />
+    <Compile Include="Strategies\BarClosedATMBase.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

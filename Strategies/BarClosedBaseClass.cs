@@ -17,7 +17,7 @@ namespace NinjaTrader.Custom.Strategies
      * Based Class cho các Strategies sử dụng tính toán khi đóng cây nến [OnBarClose]. Lưu ý các điểm sau: 
      * 1. Luôn luôn vào 2 order, 1 half size và 1 full size. Dịch stop loss khi break even hiện tại đang dựa khi số lượng order là 1
      */
-    public abstract class BarClosedBaseClass<T1, T2> : NinjaTrader.NinjaScript.Strategies.Strategy
+    public abstract class BarClosedBaseClass<T1> : NinjaTrader.NinjaScript.Strategies.Strategy
     {
         private string LogPrefix { get; set; }        
         public BarClosedBaseClass(string logPrefix)
@@ -491,7 +491,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
         /// <returns></returns>
-        protected abstract double GetStopLossPrice(T2 tradeAction, double setPrice);
+        protected abstract double GetStopLossPrice(T1 tradeAction, double setPrice);
 
         protected void LocalPrint(object val)
         {
@@ -510,7 +510,7 @@ namespace NinjaTrader.Custom.Strategies
             }            
         }
 
-        protected abstract double GetSetPrice(T2 tradeAction);
+        protected abstract double GetSetPrice(T1 tradeAction);
 
         /// <summary>
         /// Giải thuật nào sử dụng thì implement hàm này
@@ -518,12 +518,13 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="tradeAction"></param>
         /// <param name="setPrice"></param>
         /// <returns></returns>
-        protected abstract double GetTargetPrice_Half(T2 tradeAction, double setPrice);
+        protected abstract double GetTargetPrice_Half(T1 tradeAction, double setPrice);
 
-        protected abstract double GetTargetPrice_Full(T2 tradeAction, double setPrice);
+        protected abstract double GetTargetPrice_Full(T1 tradeAction, double setPrice);
 
-        protected abstract T2 ShouldTrade();
+        protected abstract T1 ShouldTrade();
 
+        protected abstract void EnterOrder(T1 action);
         
         protected void EnterOrderPureUsingPrice(double priceToSet, double target, double stoploss, string signal, int quantity, bool isBuying, bool isSelling)
         {
@@ -552,8 +553,7 @@ namespace NinjaTrader.Custom.Strategies
 
                 LocalPrint($"Enter {text} for {quantity} contracts with signal [{signal}] at {priceToSet:N2}, stop loss: {stoploss:N2}, target: {target:N2}");
             }
-        }
-        
+        }        
 
         protected virtual void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
         {

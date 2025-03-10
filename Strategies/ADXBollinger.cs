@@ -28,54 +28,14 @@ using System.IO;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class ADXBollinger : BarClosedBaseClass<ADXBollingerAction, ADXBollingerAction>
+	public class ADXBollinger : BarClosedATMBase<ADXBollingerAction>
     {
         public ADXBollinger() : base("TIGER")
         {
             
-        }        
+        }
 
-        private const string Configuration_TigerParams_Name = "Tiger parameters";
-
-        const string ATMStrategy_Group = "ATM Information";
-        private const string OrderEntryName = "Entry";
-        private const string OrderStopName = "Stop";
-        private const string OrderTargetName = "Target";
-
-        /// <summary>
-        /// ATM name for live trade.
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Default ATM Strategy", Description = "Default ATM Strategy", Order = 1,
-            GroupName = ATMStrategy_Group)]
-        [TypeConverter(typeof(ATMStrategyConverter))]
-        public string FullSizeATMName { get; set; }
-
-        /// <summary>
-        /// ATM name for live trade.
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Reduced size Strategy",
-            Description = "Strategy sử dụng khi loss/gain more than a half",
-            Order = 2, GroupName = ATMStrategy_Group)]
-        [TypeConverter(typeof(ATMStrategyConverter))]
-        public string HalfSizefATMName { get; set; }
-
-        private AtmStrategy FullSizeAtmStrategy { get; set; }
-
-        private AtmStrategy HalfSizeAtmStrategy { get; set; }
-
-        private TradingStatus tradingStatus { get; set; } = TradingStatus.Idle;
-
-        /// <summary>
-        /// - Nếu đang lỗ (&lt; $100) hoặc đang lời thì vào 2 contracts <br/>
-        /// - Nếu đang lỗ > $100 thì vào 1 contract
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Reduce number of contract when profit less than (< 0):", Order = 2, GroupName = Configuration_TigerParams_Name)]
-        public int ReduceSizeIfProfit { get; set; }
-
-
+        #region Parameters
         /// <summary>
         /// - Nếu đang lỗ (&lt; $100) hoặc đang lời thì vào 2 contracts <br/>
         /// - Nếu đang lỗ > $100 thì vào 1 contract
@@ -84,7 +44,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "Enter order  ADX < ?:", Order = 2, GroupName = "Trading Parameters")]
         public int ADXToEnterOrder { get; set; }
 
-
         /// <summary>
         /// - Nếu đang lỗ (&lt; $100) hoặc đang lời thì vào 2 contracts <br/>
         /// - Nếu đang lỗ > $100 thì vào 1 contract
@@ -92,35 +51,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Vào lệnh nếu ADX < ?:", Order = 2, GroupName = "Trading Parameters")]
         public int ADXToCancelOrder { get; set; }
-
-        protected override TradingStatus TradingStatus
-        {
-            get
-            {
-                return tradingStatus;
-            }
-        }
-
-        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double target)
-        {
-            if (Math.Abs(FilledPrice - newPrice) > 0.5)
-            {
-                FilledPrice = newPrice;
-                StopLossPrice = stopLossPrice;
-                TargetPrice = target;
-
-                try
-                {
-                    LocalPrint($"Trying to modify waiting order, new Price: {newPrice:N2}, new stop loss: {stopLossPrice:N2}, new target: {target:N2}");
-
-                    AtmStrategyChangeEntryOrder(newPrice, stopLossPrice, orderId);
-                }
-                catch (Exception ex)
-                {
-                    LocalPrint($"[UpdatePendingOrder] - ERROR: {ex.Message}");
-                }
-            }
-        }
+        #endregion       
 
         protected override void SetDefaultProperties()
         {
@@ -135,7 +66,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             HalfSizefATMName = "Rooster_Default_2cts";
 
             ADXToEnterOrder = 18;
-            ADXToCancelOrder = 22; 
+            ADXToCancelOrder = 22;
+
+            FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyADX.txt");
         }
         
         private Bollinger bollinger1Indicator_5m { get; set; }
@@ -206,152 +139,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.Realtime)
             {
-                // Load thông tin liên quan đến
-                if (File.Exists(FileName))
-                {
-                    try
-                    {
-                        var text = File.ReadAllText(FileName);
-
-                        var arr = text.Split(',');
-
-                        if (arr.Length == 1)
-                        {
-                            atmStrategyId = arr[0];
-                        }
-                        else if (arr.Length == 2)
-                        {
-                            atmStrategyId = arr[0];
-                            orderId = arr[1];
-
-                            tradingStatus = CheckCurrentStatusBasedOnOrders();
-                            LocalPrint($"Initial status - {tradingStatus}");
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Print(e.Message);
-                    }
-                }
-
-               
             }
-        }
-
-        protected string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyADX.txt");
-        private string atmStrategyId = string.Empty;
-        private string orderId = string.Empty;
-
-        private void SaveAtmStrategyIdToFile(string strategyId, string orderId)
-        {
-            try
-            {
-                File.WriteAllText(FileName, $"{strategyId},{orderId}");
-            }
-            catch (Exception e)
-            {
-                LocalPrint(e.Message);
-            }
-        }
-
-        private TradingStatus CheckCurrentStatusBasedOnOrders()
-        {
-            var activeOrders = Account.Orders
-                                .Where(c => c.OrderState == OrderState.Accepted || c.OrderState == OrderState.Working)
-                                .Select(c => new { c.OrderState, c.Name, c.OrderType })
-                                .ToList();
-
-            if (activeOrders.Count == 0)
-            {
-                return TradingStatus.Idle;
-            }
-            else if (activeOrders.Count == 1 && activeOrders[0].Name == OrderEntryName)
-            {
-                return TradingStatus.PendingFill;
-            }
-            else
-            {
-                return TradingStatus.OrderExists;
-            }
-        }
-
-        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling)
-        {
-            // Vào lệnh theo ATM 
-            atmStrategyId = GetAtmStrategyUniqueId();
-            orderId = GetAtmStrategyUniqueId();
-
-            // Save to file, in case we need to pull [atmStrategyId] again
-            SaveAtmStrategyIdToFile(atmStrategyId, orderId);
-
-            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
-
-            // Enter a BUY/SELL order current price
-            AtmStrategyCreate(
-                action,
-                OrderType.Limit,
-                priceToSet,
-                0,
-                TimeInForce.Day,
-                orderId,
-                atmStragtegyName,
-                atmStrategyId,
-                (atmCallbackErrorCode, atmCallBackId) =>
-                {
-                    if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
-                    {
-                        tradingStatus = TradingStatus.PendingFill;
-                    }
-                });
-        }
-
-        private double StopLossPrice = -1;
-        private double TargetPrice = -1;
-        protected virtual void EnterOrder(ADXBollingerAction tradeAction)
-        {
-            // Set global values
-            CurrentTradeAction = tradeAction;
-
-            // Chưa cho move stop loss
-            StartMovingStoploss = false;
-
-            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
-
-            double priceToSet = GetSetPrice(tradeAction);
-
-            var profitOrLoss = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
-
-            var isFullSize = profitOrLoss >= -ReduceSizeIfProfit;
-
-            var atmStrategyName = isFullSize ? FullSizeATMName : HalfSizefATMName;
-
-            var atmStrategy = isFullSize ? FullSizeAtmStrategy : HalfSizeAtmStrategy;
-
-            // Get stop loss and target ID based on strategy 
-            FilledPrice = priceToSet;
-
-            var stopLossTick = atmStrategy.Brackets[0].StopLoss;
-            var targetTick = IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target);
-
-            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}, stopLossTick: {stopLossTick}, finalTarget Tick: {targetTick}");
-
-            StopLossPrice = IsBuying ?
-                priceToSet - stopLossTick * TickSize :
-                priceToSet + stopLossTick * TickSize;
-
-            TargetPrice = IsBuying ?
-                priceToSet + targetTick * TickSize :
-                priceToSet - targetTick * TickSize;
-
-            try
-            {
-                EnterOrderPure(priceToSet, 0, 0, atmStrategyName, 0, IsBuying, IsSelling);
-            }
-            catch (Exception ex)
-            {
-                LocalPrint($"[EnterOrder] - ERROR: " + ex.Message);
-            }
-        }
+        }       
 
         protected override void CancelAllPendingOrder()
         {
@@ -461,118 +250,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override bool IsHalfPriceOrder(Cbi.Order order)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
-        {
-            var updatedPrice = marketDataUpdate.Price;
-
-            if (updatedPrice < 100)  // || DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
-            {
-                return;
-            }
-
-            //executionTime = DateTime.Now;
-
-            if (TradingStatus == TradingStatus.OrderExists)
-            {
-                var buyPriceIsOutOfRange = IsBuying && (updatedPrice < StopLossPrice || updatedPrice > TargetPrice);
-                var sellPriceIsOutOfRange = IsSelling && (updatedPrice > StopLossPrice || updatedPrice < TargetPrice);
-
-                // Khi giá đã ở ngoài range (stoploss, target)
-                if (buyPriceIsOutOfRange || sellPriceIsOutOfRange)
-                {
-                    tradingStatus = CheckCurrentStatusBasedOnOrders();
-
-                    LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}");
-                }
-                else
-                {
-                    var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && order.Name.Contains(OrderStopName)).ToList();
-                    var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains(OrderTargetName)).ToList();
-
-                    var countStopOrder = stopOrders.Count;
-                    var countTargetOrder = stopOrders.Count;
-
-                    LocalPrint($"countStopOrder: {countStopOrder}, countTargetOrder: {countTargetOrder}");
-
-                    if (countStopOrder == 0 || countTargetOrder == 0)
-                    {
-                        tradingStatus = TradingStatus.Idle;
-                        return;
-                    }
-                    else if (countStopOrder == 1 && countTargetOrder == 1)
-                    {
-                        var targetOrder = targetOrders.First();
-                        var stopLossOrder = stopOrders.First();
-
-                        TargetPrice = targetOrder.LimitPrice;
-                        StopLossPrice = stopLossOrder.StopPrice;
-
-                        MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
-
-                        MoveStopOrder(stopLossOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
-                    }
-                }
-            }
-            else if (TradingStatus == TradingStatus.PendingFill)
-            {
-                if ((IsBuying && updatedPrice < FilledPrice) || (IsSelling && updatedPrice > FilledPrice))
-                {
-                    tradingStatus = CheckCurrentStatusBasedOnOrders();
-
-                    LocalPrint($"Last TradingStatus: PendingFill, new TradingStatus: {TradingStatus}");
-                }
-            }
-        }
-
-        protected override void MoveTargetOrStopOrder(double newPrice, Cbi.Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
-        {
-            try
-            {
-                AtmStrategyChangeStopTarget(
-                        isGainStop ? newPrice : 0,
-                        isGainStop ? 0 : newPrice,
-                        order.Name,
-                        atmStrategyId);
-
-                var text = isGainStop ? "TARGET" : "LOSS";
-
-                if (isGainStop)
-                {
-                    TargetPrice = newPrice;
-                }
-                else
-                {
-                    StopLossPrice = newPrice;
-                }
-
-                LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
-                    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
-                    $"đến [{newPrice}] - {buyOrSell}");
-            }
-            catch (Exception ex)
-            {
-                LocalPrint($"[MoveTargetOrStopOrder] - ERROR: {ex.Message}");
-            }
-        }
-
-        protected override bool IsFullPriceOrder(Cbi.Order order)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override double GetStopLossPrice(ADXBollingerAction tradeAction, double setPrice)
-        {
-            var stopLoss = StopLossInTicks * TickSize;
-            
-            return tradeAction == ADXBollingerAction.SetBuyOrder
-                ? setPrice - stopLoss
-                : setPrice + stopLoss;
-        }
+        
 
         protected override double GetSetPrice(ADXBollingerAction tradeAction)
         {
@@ -585,6 +263,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return upperStd2BB_5m;
             }
             return middleBB_5m;
+        }
+
+        protected override double GetStopLossPrice(ADXBollingerAction tradeAction, double setPrice)
+        {
+            var stopLoss = StopLossInTicks * TickSize;
+
+            return tradeAction == ADXBollingerAction.SetBuyOrder
+                ? setPrice - stopLoss
+                : setPrice + stopLoss;
         }
 
         protected override double GetTargetPrice_Half(ADXBollingerAction tradeAction, double setPrice)

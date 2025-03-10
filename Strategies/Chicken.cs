@@ -18,7 +18,7 @@ using System.Windows.Media;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public abstract class Chicken : BarClosedBaseClass<TradeAction, TradeAction>
+    public abstract class Chicken : BarClosedBaseClass<TradeAction>
     {
         public Chicken() : this("CHICKEN")
         {
@@ -506,7 +506,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Đặt lệnh mua/bán
         /// </summary>
         /// <param name="tradeAction"></param>
-        protected virtual void EnterOrder(TradeAction tradeAction)
+        protected override void EnterOrder(TradeAction tradeAction)
         {
             // Set global values
             CurrentTradeAction = tradeAction;

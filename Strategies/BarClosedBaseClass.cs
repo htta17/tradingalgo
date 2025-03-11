@@ -597,8 +597,7 @@ namespace NinjaTrader.Custom.Strategies
         protected virtual void MoveTargetOrStopOrder(double newPrice, Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
         {
             try
-            {
-                LocalPrint("MoveTargetOrStopOrder in [BarClosedBaseClass]");
+            {   
                 if (isGainStop)
                 {
                     SetProfitTarget(fromEntrySignal, CalculationMode.Price, newPrice);

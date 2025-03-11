@@ -63,7 +63,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             FullSizeATMName = "Rooster_Default_4cts";
             HalfSizefATMName = "Rooster_Default_2cts";
 
-            ADXToEnterOrder = 20;
+            ADXToEnterOrder = 22;
             ADXToCancelOrder = 24;
 
             FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyADX.txt");

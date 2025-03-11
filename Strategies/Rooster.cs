@@ -412,12 +412,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         if (arr.Length == 1)
                         {
-                            atmStrategyId = arr[0];
+                            AtmStrategyId = arr[0];
                         }
                         else if (arr.Length == 2)
                         {
-                            atmStrategyId = arr[0];
-                            orderId = arr[1];
+                            AtmStrategyId = arr[0];
+                            OrderId = arr[1];
 
                             tradingStatus = CheckCurrentStatusBasedOnOrders();
                             LocalPrint($"Initial status - {tradingStatus}");

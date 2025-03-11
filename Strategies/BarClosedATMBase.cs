@@ -39,9 +39,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void CloseExistingOrders()
         {
             LocalPrint($"[CloseExistingOrders]");
-            if (!string.IsNullOrEmpty(atmStrategyId))
+            if (!string.IsNullOrEmpty(AtmStrategyId))
             {
-                AtmStrategyClose(atmStrategyId);
+                AtmStrategyClose(AtmStrategyId);
             }
             tradingStatus = TradingStatus.Idle;
         }
@@ -95,13 +95,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected AtmStrategy HalfSizeAtmStrategy { get; set; }
 
-#pragma warning disable CS3005 // Identifier differing only in case is not CLS-compliant
         protected TradingStatus tradingStatus { get; set; } = TradingStatus.Idle;
 
-        protected string atmStrategyId = string.Empty;
+        protected string AtmStrategyId = string.Empty;
 
-        protected string orderId = string.Empty;
-#pragma warning restore CS3005 // Identifier differing only in case is not CLS-compliant
+        protected string OrderId = string.Empty;
 
         protected override TradingStatus TradingStatus
         {
@@ -123,7 +121,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     LocalPrint($"Trying to modify waiting order, new Price: {newPrice:N2}, new stop loss: {stopLossPrice:N2}, new target: {target:N2}");
 
-                    AtmStrategyChangeEntryOrder(newPrice, stopLossPrice, orderId);
+                    AtmStrategyChangeEntryOrder(newPrice, stopLossPrice, OrderId);
                 }
                 catch (Exception ex)
                 {
@@ -175,12 +173,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         if (arr.Length == 1)
                         {
-                            atmStrategyId = arr[0];
+                            AtmStrategyId = arr[0];
                         }
                         else if (arr.Length == 2)
                         {
-                            atmStrategyId = arr[0];
-                            orderId = arr[1];
+                            AtmStrategyId = arr[0];
+                            OrderId = arr[1];
 
                             tradingStatus = CheckCurrentStatusBasedOnOrders();
                             LocalPrint($"Initial status - {tradingStatus}");
@@ -233,11 +231,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling)
         {
             // Vào lệnh theo ATM 
-            atmStrategyId = GetAtmStrategyUniqueId();
-            orderId = GetAtmStrategyUniqueId();
+            AtmStrategyId = GetAtmStrategyUniqueId();
+            OrderId = GetAtmStrategyUniqueId();
 
             // Save to file, in case we need to pull [atmStrategyId] again
-            SaveAtmStrategyIdToFile(atmStrategyId, orderId);
+            SaveAtmStrategyIdToFile(AtmStrategyId, OrderId);
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
@@ -250,12 +248,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 priceToSet,
                 0,
                 TimeInForce.Day,
-                orderId,
+                OrderId,
                 atmStragtegyName,
-                atmStrategyId,
+                AtmStrategyId,
                 (atmCallbackErrorCode, atmCallBackId) =>
                 {
-                    if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
+                    if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == AtmStrategyId)
                     {
                         tradingStatus = TradingStatus.PendingFill;                        
                     }
@@ -318,7 +316,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void CancelAllPendingOrder()
         {
-            AtmStrategyCancelEntryOrder(orderId);
+            AtmStrategyCancelEntryOrder(OrderId);
 
             tradingStatus = TradingStatus.Idle;
         }
@@ -368,9 +366,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         var stopLossOrder = stopOrders.First();
 
                         TargetPrice = targetOrder.LimitPrice;
-                        StopLossPrice = stopLossOrder.StopPrice;
-
-                        LocalPrint($"countStopOrder: {countStopOrder}, countTargetOrder: {countTargetOrder}, current Target: {TargetPrice:N2}, currentStop: {StopLossPrice:n2}");
+                        StopLossPrice = stopLossOrder.StopPrice;                        
 
                         MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
 
@@ -403,13 +399,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void MoveTargetOrStopOrder(double newPrice, Cbi.Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
         {
+            LocalPrint("MoveTargetOrStopOrder on ATM");
             try
             {
                 AtmStrategyChangeStopTarget(
                         isGainStop ? newPrice : 0,
                         isGainStop ? 0 : newPrice,
                         order.Name,
-                        atmStrategyId);
+                        AtmStrategyId);
 
                 var text = isGainStop ? "TARGET" : "LOSS";
 

@@ -493,62 +493,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Last TradingStatus: PendingFill, new TradingStatus: {TradingStatus}");
                 }
             }
-        }
-
-
-        
-
-        private void SaveAtmStrategyIdToFile(string strategyId, string orderId)
-        {
-            try
-            {
-                File.WriteAllText(FileName, $"{strategyId},{orderId}");
-            }
-            catch (Exception e)
-            {
-                LocalPrint(e.Message);
-            }
-        }
-
-        /// <summary>
-        /// Do ATM không dùng signal, nên 
-        /// </summary>
-        /// <param name="priceToSet"></param>
-        /// <param name="targetInTicks"></param>
-        /// <param name="stoplossInTicks"></param>
-        /// <param name="atmStragtegyName"></param>
-        /// <param name="quantity"></param>
-        /// <param name="isBuying"></param>
-        /// <param name="isSelling"></param>
-        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling)
-        {
-            // Vào lệnh theo ATM 
-            atmStrategyId = GetAtmStrategyUniqueId();
-            orderId = GetAtmStrategyUniqueId();
-
-            // Save to file, in case we need to pull [atmStrategyId] again
-            SaveAtmStrategyIdToFile(atmStrategyId, orderId);
-
-            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
-
-            // Enter a BUY/SELL order current price
-            AtmStrategyCreate(
-                action,
-                OrderType.Limit, // Market price if fill immediately
-                priceToSet,
-                0,
-                TimeInForce.Day,
-                orderId,
-                atmStragtegyName,
-                atmStrategyId,
-                (atmCallbackErrorCode, atmCallBackId) =>
-                {
-                    if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
-                    {
-                        tradingStatus = TradingStatus.PendingFill;
-                    }
-                });
-        }
+        }        
 
         // <summary>
         /// Tìm giá để set dựa theo EMA29/51 hoặc dựa theo Bollinger bands

@@ -169,9 +169,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (TradingStatus == TradingStatus.Idle)
                 {
-                    var shouldTrade = ShouldTrade();
-
-                    LocalPrint($"Check trading condition, result: {shouldTrade}");
+                    var shouldTrade = ShouldTrade();                    
 
                     if (shouldTrade == ADXBollingerAction.SetBuyOrder || shouldTrade == ADXBollingerAction.SetSellOrder)
                     {

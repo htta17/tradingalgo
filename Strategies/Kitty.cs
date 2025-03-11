@@ -68,6 +68,7 @@ namespace NinjaTrader.NinjaScript.Strategies
              *          (Cây nến trước XANH chứng tỏ pull back, nếu pull back nhiều quá sẽ có thể đảo chiều)
              * 10. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ, body của cây nến gần nhất < 30% cây nến trước. 
              *          (Cây nến trước đã BÁN quá mạnh, cây nến vừa rồi lực BÁN đã suy giảm nhiều, có khả năng đảo chiều) 
+             * 11. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Cây nến ĐỎ và có open > lower bollinger (std=2) và có close < lower bollinger (std=2)
              */
 
             var bottomToBody = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
@@ -92,6 +93,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                         current: (close: {closePrice_5m:N2}, open: {openPrice_5m:N2}, body: {currentBodyLength:N2}),  
                         Previous red: {isPreviousRed}, Previous green: {isPreviousGreen}" ;
 
+            // Điều kiện về ngược trend: Cây nến đã vượt qua BollingerBand 
+            var bodyPassBollingerDOWN = openPrice_5m > lowerStd2BB_5m && closePrice_5m < lowerStd2BB_5m;
+
             var conditionForSell = currentWAE.HasBEARVolume && // 1 & 4
                 previousWAE.DownTrendVal > 0 && //2
                 currentWAE.DownTrendVal > previousWAE.DownTrendVal && //3
@@ -100,7 +104,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 rsi_5m > 30 && // 7
                 bottomToBody && // 8
                 !previousIsGreenAndTooStrong_FORSELL && // 9 (Don't forget NOT)
-                !previousIsRedAndTooStrong_FORSELL; // 10 (Don't forget NOT)
+                !previousIsRedAndTooStrong_FORSELL && // 10 (Don't forget NOT)
+                !bodyPassBollingerDOWN; // 11 (Don't forget NOT)
 
             LocalPrint($@"
                 Điều kiện vào SELL: 
@@ -114,6 +119,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 8. Râu nến phía DƯỚI không quá 40% toàn cây nến: [{bottomToBody}].
                 9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH và có body > 50% cây nến gần nhất.[{!previousIsGreenAndTooStrong_FORSELL}] {additionalText}
                 10. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ, body của cây nến gần nhất < 30% cây nến trước. [{!previousIsRedAndTooStrong_FORSELL}]
+                11. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Cây nến ĐỎ và có open > lower bollinger (std=2) và có close < lower bollinger (std=2): [{!bodyPassBollingerDOWN}]
                 FINAL: [{conditionForSell}]");
 
             if (conditionForSell)
@@ -137,6 +143,7 @@ namespace NinjaTrader.NinjaScript.Strategies
              *          (Cây nến trước ĐỎ chứng tỏ pull back, nếu pull back nhiều quá sẽ có thể đảo chiều)
              * 10. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH, body của cây nến gần nhất < 30% cây nến trước. 
              *          (Cây nến trước đã MUA quá mạnh, cây nến vừa rồi lực MUA đã suy giảm nhiều, có khả năng đảo chiều) 
+             * 11. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Cây nến XANH và có open < upper bollinger (std=2) và có close > upper bollinger (std=2)
              */
             var isGreenCandle = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, 5);
             var topToBody = CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
@@ -144,6 +151,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             var previousIsRedAndTooStrong_FORBUY = isPreviousRed && previousReverseAndTooStrong;
 
             var previousIsGreenAndTooStrong_FORBUY = isPreviousGreen && previousContinueAndTooStrong;
+
+            // Điều kiện về ngược trend: Cây nến đã vượt qua BollingerBand 
+            var bodyPassBollingerUP = openPrice_5m < upperStd2BB_5m && closePrice_5m > upperStd2BB_5m;
 
             var conditionForBuy = currentWAE.HasBULLVolume && // 1 & 4
                 previousWAE.UpTrendVal > 0 && //2
@@ -153,7 +163,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 rsi_5m < 70 && // 7
                 topToBody && //8
                 !previousIsRedAndTooStrong_FORBUY &&  // 9 (Don't forget NOT)
-                !previousIsGreenAndTooStrong_FORBUY; // 10 (Don't forget NOT)            
+                !previousIsGreenAndTooStrong_FORBUY && // 10 (Don't forget NOT)
+                !bodyPassBollingerUP; // 11 (Don't forget NOT)
 
             LocalPrint($@"
                 Điều kiện vào BUY: 
@@ -167,6 +178,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 8. Râu nến phía TRÊN không quá 40% toàn cây nến: [{topToBody}].
                 9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ và có body > 50% cây nến gần nhất. [{!previousIsRedAndTooStrong_FORBUY}] {additionalText}, 
                 10. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH, body của cây nến gần nhất < 30% cây nến trước. [{!previousIsGreenAndTooStrong_FORBUY}]
+                11. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Cây nến XANH và có open < upper bollinger (std=2) và có close > upper bollinger (std=2): [{!bodyPassBollingerUP}]
                 FINAL: [{conditionForBuy}]");
 
             if (conditionForBuy)

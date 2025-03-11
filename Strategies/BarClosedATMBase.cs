@@ -27,11 +27,14 @@ using System.IO;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
+    /**
+     * Based class for ATM orders
+     */
 	public abstract class BarClosedATMBase<T1> : BarClosedBaseClass<T1>
     {
 		public BarClosedATMBase(string name) : base(name) { }
 
-        public BarClosedATMBase() : this("[BASED ATM]")
+        public BarClosedATMBase() : this("BASED ATM")
         {
 
         }

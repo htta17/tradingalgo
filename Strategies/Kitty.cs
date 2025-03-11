@@ -39,7 +39,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
 
             Name = "Kitty";
-            Description = "[Kitty] là giải thuật [Chicken] nhưng chỉ chạy Trending, dùng ATM Strategy để vào lệnh, dựa theo các điều kiện vào lệnh của bạn Phượng";
+            Description = "[Kitty] là giải thuật [Rooster], được viết riêng cho my love Phượng Phan.";
         }       
         protected override TradeAction ShouldTrade()
         {

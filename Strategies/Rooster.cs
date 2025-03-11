@@ -351,8 +351,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             base.SetDefaultProperties();
 
-            Name = "Rooster ATM (Chicken with Trending ONLY)";
-            Description = "[Rooster ATM] là giải thuật [Chicken] nhưng chỉ chạy Trending, dùng ATM Strategy để vào lệnh";
+            Name = "Rooster (Trending with Volume)";
+            Description = "[Rooster] là giải thuật trade theo Trending, dùng ATM Strategy để vào lệnh";
 
             FullSizeATMName = "Rooster_Default_4cts";
             HalfSizefATMName = "Rooster_Default_2cts";

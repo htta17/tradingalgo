@@ -149,6 +149,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         private const string Configuration_ChickkenParams_Name = "Chicken parameters";
 
         #region Importants Configurations
+        /// <summary>
+        /// If gain is more than [StopWhenGain], stop trading for that day 
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Số lượng contract: ",
+            Order = 6,
+            GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
+        public int NumberOfContract { get; set; }
 
         /// <summary>
         /// Điểm vào lệnh (Theo EMA29/51 hay Bollinger band)
@@ -222,6 +230,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             ReversePlaceToSetOrder = ReversePlaceToSetOrder.BollingerBand;
             AllowTrendingTrade = true;
             AllowReversalTrade = true;
+
+            NumberOfContract = 1;
         }
 
         protected override void OnStateChange()

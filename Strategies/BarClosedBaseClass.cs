@@ -79,16 +79,6 @@ namespace NinjaTrader.Custom.Strategies
         public int DailyTargetProfit { get; set; } = 500;
         #endregion
 
-        /// <summary>
-        /// If gain is more than [StopWhenGain], stop trading for that day 
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Số lượng contract: ",
-            Order = 6,
-            GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
-        public int NumberOfContract { get; set; }
-
-
         #region Stoploss/Profit
 
         /// <summary>
@@ -107,7 +97,7 @@ namespace NinjaTrader.Custom.Strategies
         [Display(Name = "Stop loss (Ticks):",
             Order = 15,
             GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
-        public int StopLossInTicks { get; set; } = 120; // 25 points for MNQ
+        public int StopLossInTicks { get; set; } // 25 points for MNQ
 
         /// <summary>
         /// Số ticks cho stop loss khi đặt stoploss dựa theo BollingerBand
@@ -116,7 +106,7 @@ namespace NinjaTrader.Custom.Strategies
         [Display(Name = "Target 1 Profit (Ticks):",
             Order = 16,
             GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
-        public int Target1InTicks { get; set; } = 40; // 10 points for MNQ
+        public int Target1InTicks { get; set; } // 10 points for MNQ
 
         /// <summary>
         /// Số ticks cho stop loss khi đặt stoploss dựa theo BollingerBand
@@ -125,7 +115,7 @@ namespace NinjaTrader.Custom.Strategies
         [Display(Name = "Target 2 Profit (Ticks):",
             Order = 17,
             GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
-        public int Target2InTicks { get; set; } = 120; // 25 points for MNQ        
+        public int Target2InTicks { get; set; } // 25 points for MNQ        
 
         /// <summary>
         /// Giá hiện tại cách target &lt; [PointToMoveTarget] thì di chuyển target.
@@ -200,9 +190,7 @@ namespace NinjaTrader.Custom.Strategies
             StopLossInTicks = 120;
             Target1InTicks = 60;
             Target2InTicks = 120;            
-            AllowWriteLog = true;
-
-            NumberOfContract = 1; 
+            AllowWriteLog = true;           
 
             //FiveMinutes_Trends = Trends.Unknown;
 

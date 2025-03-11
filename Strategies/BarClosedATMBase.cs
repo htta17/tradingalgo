@@ -241,6 +241,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
+            FilledPrice = priceToSet;
+
             // Enter a BUY/SELL order current price
             AtmStrategyCreate(
                 action,
@@ -255,7 +257,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
                     {
-                        tradingStatus = TradingStatus.PendingFill;
+                        tradingStatus = TradingStatus.PendingFill;                        
                     }
                 });
         }
@@ -270,6 +272,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             // Set global values
             CurrentTradeAction = tradeAction;
+
+            EnteredBarIndex_5m = CurrentBarIndex_5m;
 
             // Chưa cho move stop loss
             StartMovingStoploss = false;
@@ -290,9 +294,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             FilledPrice = priceToSet;
 
             var stopLossTick = atmStrategy.Brackets[0].StopLoss;
-            var targetTick = IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target);
-
-            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}, stopLossTick: {stopLossTick}, finalTarget Tick: {targetTick}");
+            var targetTick = IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target);            
 
             StopLossPrice = IsBuying ?
                 priceToSet - stopLossTick * TickSize :
@@ -301,6 +303,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             TargetPrice = IsBuying ?
                 priceToSet + targetTick * TickSize :
                 priceToSet - targetTick * TickSize;
+
+            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}, StopLossPrice: {StopLossPrice:N2}, target: {TargetPrice:N2}, stopLossTick: {stopLossTick}, finalTarget Tick: {targetTick}");
 
             try
             {
@@ -318,17 +322,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             tradingStatus = TradingStatus.Idle;
         }
-        
+
+        DateTime executionTime = DateTime.MinValue;
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
             var updatedPrice = marketDataUpdate.Price;
 
-            if (updatedPrice < 100)  // || DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
+            if (updatedPrice < 100 && DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
             {
                 return;
             }
 
-            //executionTime = DateTime.Now;
+            executionTime = DateTime.Now;
 
             if (TradingStatus == TradingStatus.OrderExists)
             {
@@ -340,7 +345,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     tradingStatus = CheckCurrentStatusBasedOnOrders();
 
-                    LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}");
+                    LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}. TargetPrice: {TargetPrice:N2}" +
+                        $"updatedPrice:{updatedPrice:N2}, StopLossPrice: {StopLossPrice:N2}, " +
+                        $"buyPriceIsOutOfRange: {buyPriceIsOutOfRange}, :sellPriceIsOutOfRange: {sellPriceIsOutOfRange}. ");
                 }
                 else
                 {
@@ -398,7 +405,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             try
             {
-                LocalPrint("MoveTargetOrStopOrder in [ATM]");
                 AtmStrategyChangeStopTarget(
                         isGainStop ? newPrice : 0,
                         isGainStop ? 0 : newPrice,

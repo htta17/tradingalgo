@@ -103,7 +103,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected double upperStd2BB_5m = -1;
         protected double lowerStd2BB_5m = -1;
-
         protected override void OnStateChange()
 		{
 			base.OnStateChange();
@@ -138,10 +137,20 @@ namespace NinjaTrader.NinjaScript.Strategies
             else if (State == State.Realtime)
             {
             }
-        }  
+        }
 
+        private DateTime executionTime = DateTime.MinValue;
         protected override void OnBarUpdate()
 		{
+            /*
+            if (DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
+            {
+                return;
+            }
+
+            executionTime = DateTime.Now;
+            */
+
             // Cập nhật lại status 
             tradingStatus = CheckCurrentStatusBasedOnOrders();
 
@@ -152,21 +161,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
+            base.OnBarUpdate();
+
+            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
-                lowPrice_5m = Low[0];
-                highPrice_5m = High[0];
-                openPrice_5m = Open[0];
-                closePrice_5m = Close[0];
-
-                adx_5m = adxIndicator_5m.Value[0];
-
-                upperBB_5m = bollinger1Indicator_5m.Upper[0];
-                lowerBB_5m = bollinger1Indicator_5m.Lower[0];
-                middleBB_5m = bollinger1Indicator_5m.Middle[0];
-
-                upperStd2BB_5m = bollinger2Indicator_5m.Upper[0];
-                lowerStd2BB_5m = bollinger2Indicator_5m.Lower[0];
+                StrategiesUtilities.CalculatePnL(this, Account, Print);
 
                 if (TradingStatus == TradingStatus.Idle)
                 {
@@ -202,7 +201,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
                         CancelAllPendingOrder();
                     }
-                    else 
+                    else
                     {
                         var shouldTrade = ShouldTrade();
 
@@ -217,9 +216,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                             {
                                 var newPrice = GetSetPrice(shouldTrade);
 
-                                var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice);                                
+                                var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice);
 
                                 var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice);
+
+                                FilledPrice = newPrice;
 
                                 LocalPrint($"Update entry price to {newPrice}");
 
@@ -227,7 +228,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             }
                             else
                             {
-                                CancelAllPendingOrder(); 
+                                CancelAllPendingOrder();
 
                                 EnterOrder(shouldTrade);
                             }
@@ -236,21 +237,39 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (TradingStatus == TradingStatus.OrderExists)
                 {
-                    
+
                 }
+            }
+            else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
+            {
+                lowPrice_5m = Low[0];
+                highPrice_5m = High[0];
+                openPrice_5m = Open[0];
+                closePrice_5m = Close[0];
+
+                adx_5m = adxIndicator_5m.Value[0];
+
+                upperBB_5m = bollinger1Indicator_5m.Upper[0];
+                lowerBB_5m = bollinger1Indicator_5m.Lower[0];
+                middleBB_5m = bollinger1Indicator_5m.Middle[0];
+
+                upperStd2BB_5m = bollinger2Indicator_5m.Upper[0];
+                lowerStd2BB_5m = bollinger2Indicator_5m.Lower[0];
+
+                CurrentBarIndex_5m = CurrentBar;
             }
         }
         protected override double GetSetPrice(ADXBollingerAction tradeAction)
         {
             if (tradeAction == ADXBollingerAction.SetBuyOrder)
             {
-                return lowerStd2BB_5m; 
+                return StrategiesUtilities.RoundPrice(lowerStd2BB_5m); 
             }
             else if (tradeAction == ADXBollingerAction.SetSellOrder)
             {
-                return upperStd2BB_5m;
+                return StrategiesUtilities.RoundPrice(upperStd2BB_5m);
             }
-            return middleBB_5m;
+            return StrategiesUtilities.RoundPrice(middleBB_5m);
         }
 
         protected override double GetStopLossPrice(ADXBollingerAction tradeAction, double setPrice)
@@ -282,27 +301,23 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override ADXBollingerAction ShouldTrade()
         {
-            var time = ToTime(Time[0]);
-
-            // Từ 3:30pm - 5:05pm thì không nên trade 
-            if (time >= 153000 && time < 170500)
-            {
-                return ADXBollingerAction.NoTrade;
-            }
+            var answer = ADXBollingerAction.NoTrade;            
 
             if (adx_5m < ADXToEnterOrder) 
             {
                 if (lowPrice_5m > middleBB_5m)
                 {
-                    return ADXBollingerAction.SetSellOrder;
+                    answer = ADXBollingerAction.SetSellOrder;
                 }
                 else if (highPrice_5m < middleBB_5m)
                 {
-                    return ADXBollingerAction.SetBuyOrder;
+                    answer = ADXBollingerAction.SetBuyOrder;
                 }
-            } 
+            }
 
-            return ADXBollingerAction.NoTrade; 
+            LocalPrint($"[ShouldTrade]: adx_5m: {adx_5m:N2}, ADXToEnterOrder: {ADXToEnterOrder}, lowPrice_5m: {lowPrice_5m:N2}, middleBB_5m: {middleBB_5m:N2}, highPrice_5m: {highPrice_5m}, ans: {answer}. ");
+
+            return answer; 
         }
     }
 }

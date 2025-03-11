@@ -356,8 +356,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             FullSizeATMName = "Rooster_Default_4cts";
             HalfSizefATMName = "Rooster_Default_2cts";
-
-            SetBreakEvenManually = false;
         }
 
         protected override bool IsBuying

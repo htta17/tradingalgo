@@ -130,7 +130,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 adxIndicator_5m = ADX(14);                
 
                 AddChartIndicator(bollinger1Indicator_5m);
-                AddChartIndicator(bollinger2Indicator_5m);                
+                AddChartIndicator(bollinger2Indicator_5m);
 
                 AddChartIndicator(adxIndicator_5m);
             }
@@ -139,17 +139,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        private DateTime executionTime = DateTime.MinValue;
+        private DateTime barUpdateExecutionTime = DateTime.MinValue;
         protected override void OnBarUpdate()
 		{
-            /*
-            if (DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
-            {
-                return;
-            }
-
-            executionTime = DateTime.Now;
-            */
 
             // Cập nhật lại status 
             tradingStatus = CheckCurrentStatusBasedOnOrders();
@@ -165,6 +157,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
+                if (DateTime.Now.Subtract(barUpdateExecutionTime).TotalSeconds < 1) // Avoid duplicated
+                {
+                    return;
+                }
+                barUpdateExecutionTime = DateTime.Now;
+
                 StrategiesUtilities.CalculatePnL(this, Account, Print);
 
                 if (TradingStatus == TradingStatus.Idle)

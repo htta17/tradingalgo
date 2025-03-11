@@ -140,6 +140,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             FullSizeATMName = "Rooster_Default_4cts";
             HalfSizefATMName = "Rooster_Default_2cts";
+
+            SetBreakEvenManually = false;
         }       
 
         protected override void OnStateChange()
@@ -200,6 +202,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             try
             {
                 File.WriteAllText(FileName, $"{strategyId},{orderId}");
+
+                LocalPrint($"Saved strategyId [{strategyId}] and orderId [{orderId}] to file");
             }
             catch (Exception e)
             {
@@ -343,7 +347,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     tradingStatus = CheckCurrentStatusBasedOnOrders();
 
-                    LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}. TargetPrice: {TargetPrice:N2}" +
+                    LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}. TargetPrice: {TargetPrice:N2}, " +
                         $"updatedPrice:{updatedPrice:N2}, StopLossPrice: {StopLossPrice:N2}, " +
                         $"buyPriceIsOutOfRange: {buyPriceIsOutOfRange}, :sellPriceIsOutOfRange: {sellPriceIsOutOfRange}. ");
                 }
@@ -362,15 +366,20 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     else if (countStopOrder == 1 && countTargetOrder == 1)
                     {
-                        var targetOrder = targetOrders.First();
-                        var stopLossOrder = stopOrders.First();
+                        var targetOrder = targetOrders.FirstOrDefault();
+                        var stopLossOrder = stopOrders.FirstOrDefault();
 
-                        TargetPrice = targetOrder.LimitPrice;
-                        StopLossPrice = stopLossOrder.StopPrice;                        
+                        if (targetOrder != null)
+                        {
+                            TargetPrice = targetOrder.LimitPrice;
+                            MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
+                        }
 
-                        MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
-
-                        MoveStopOrder(stopLossOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
+                        if (stopLossOrder != null)
+                        {
+                            StopLossPrice = stopLossOrder.StopPrice;
+                            MoveStopOrder(stopLossOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
+                        }
                     }
                 }
             }

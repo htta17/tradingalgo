@@ -629,8 +629,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="isBuying"></param>
         /// <param name="isSelling"></param>        
         protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)
-        {
-            LocalPrint("[MoveStopOrder] on BarClosed- Start");
+        {   
             double newPrice = -1;            
             var allowMoving = false;
             var stopOrderPrice = stopOrder.StopPrice;
@@ -673,7 +672,6 @@ namespace NinjaTrader.Custom.Strategies
 
                 MoveTargetOrStopOrder(newPrice, stopOrder, false, IsBuying ? "BUY" : "SELL", stopOrder.FromEntrySignal);
             }
-            LocalPrint("[MoveStopOrder] on BarClosed- End");
         }
 
         /// <summary>
@@ -794,7 +792,7 @@ namespace NinjaTrader.Custom.Strategies
 
         protected abstract bool IsFullPriceOrder(Order order);
 
-        protected virtual Order GetOrderFromPendingList()
+        protected virtual Order GetPendingOrder()
         {
             return ActiveOrders.FirstOrDefault().Value;
         }

@@ -130,13 +130,13 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Giá hiện tại cách target &lt; [PointToMoveTarget] thì di chuyển target.
         /// </summary>
-        protected double PointToMoveTarget = 3;
+        protected const double PointToMoveTarget = 5.0;
 
         /// <summary>
         /// Giá hiện tại cách stop loss > [PointToMoveLoss] thì di chuyển stop loss.
         /// </summary>
-        protected double PointToMoveLoss = 7;        
-        #endregion        
+        protected const double PointToMoveLoss = 7.0;
+        #endregion
 
         /// <summary>
         /// Đọc thông tin 
@@ -195,17 +195,11 @@ namespace NinjaTrader.Custom.Strategies
         {
             MaximumDailyLoss = 260;
             DailyTargetProfit = 500;
-            AllowToMoveStopLossGain = true;           
+            AllowToMoveStopLossGain = true;
 
             StopLossInTicks = 120;
             Target1InTicks = 60;
-            Target2InTicks = 120;
-
-            AllowToMoveStopLossGain = true;            
-
-            PointToMoveTarget = 3;
-            PointToMoveLoss = 7;
-
+            Target2InTicks = 120;            
             AllowWriteLog = true;
 
             NumberOfContract = 1; 

@@ -46,7 +46,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             tradingStatus = TradingStatus.Idle;
         }
 
-        protected override Order GetOrderFromPendingList()
+        protected override Order GetPendingOrder()
         {
             var order = Account.Orders.FirstOrDefault(c => c.Name.Contains(OrderEntryName) && (c.OrderState == OrderState.Working || c.OrderState == OrderState.Accepted));
 
@@ -264,14 +264,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                 });
         }
 
+        DateTime enterOrderTimed = DateTime.MinValue; 
+
         protected double StopLossPrice = -1;
         protected double TargetPrice = -1;
         protected override void EnterOrder(T1 tradeAction)
         {
-            if (State != State.Realtime)
+            if (State != State.Realtime || DateTime.Now.Subtract(enterOrderTimed).TotalSeconds < 5)
             {
                 return;
             }
+            enterOrderTimed = DateTime.Now;
+
             // Set global values
             CurrentTradeAction = tradeAction;
 
@@ -330,7 +334,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             var updatedPrice = marketDataUpdate.Price;
 
-            if (updatedPrice < 100 && DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
+            if (updatedPrice < 100)
+            {
+                return;
+            }
+
+            if (DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
             {
                 return;
             }
@@ -357,7 +366,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains(OrderTargetName)).ToList();
 
                     var countStopOrder = stopOrders.Count;
-                    var countTargetOrder = stopOrders.Count;                    
+                    var countTargetOrder = targetOrders.Count;                    
 
                     if (countStopOrder == 0 || countTargetOrder == 0)
                     {
@@ -366,8 +375,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     else if (countStopOrder == 1 && countTargetOrder == 1)
                     {
-                        var targetOrder = targetOrders.FirstOrDefault();
-                        var stopLossOrder = stopOrders.FirstOrDefault();
+                        var targetOrder = targetOrders.LastOrDefault();
+                        var stopLossOrder = stopOrders.LastOrDefault();
 
                         if (targetOrder != null)
                         {
@@ -408,16 +417,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void MoveTargetOrStopOrder(double newPrice, Cbi.Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
         {
-            LocalPrint("MoveTargetOrStopOrder on ATM");
             try
             {
+                var text = isGainStop ? "TARGET" : "LOSS";
+                LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
+                    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
+                    $"đến [{newPrice}] - {buyOrSell}");
+
                 AtmStrategyChangeStopTarget(
                         isGainStop ? newPrice : 0,
                         isGainStop ? 0 : newPrice,
                         order.Name,
-                        AtmStrategyId);
-
-                var text = isGainStop ? "TARGET" : "LOSS";
+                        AtmStrategyId);                
 
                 if (isGainStop)
                 {
@@ -427,10 +438,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     StopLossPrice = newPrice;
                 }
-
-                LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
-                    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
-                    $"đến [{newPrice}] - {buyOrSell}");
             }
             catch (Exception ex)
             {

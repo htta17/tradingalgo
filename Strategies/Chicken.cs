@@ -215,8 +215,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             // Stop loss/Target profit properties
             Target1InTicks = 40;
-            PointToMoveTarget = 3;
-            PointToMoveLoss = 7;
 
             ReduceSizeIfProfit = 100;
 
@@ -792,7 +790,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             #region Cancel lệnh nếu có 1 trong các điều kiện:
             // Cancel lệnh do đợi quá lâu
-            var firstOrder = GetOrderFromPendingList();
+            var firstOrder = GetPendingOrder();
 
             if (firstOrder == null)
             {

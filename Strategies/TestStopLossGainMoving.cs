@@ -28,7 +28,7 @@ using System.Xml.Linq;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public abstract class TestStopLossGainMoving : BarClosedATMBase<TradeAction>
+	public class TestStopLossGainMoving : BarClosedATMBase<TradeAction>
 	{
         protected override bool IsBuying
 		{ 
@@ -103,13 +103,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
 				var lastCandleIsRed = CandleUtilities.IsRedCandle(Close[0], Open[0]);
 				if (lastCandleIsRed)
-				{
-					LocalPrint("Enter SELL");
+				{					
 					EnterOrder(TradeAction.Sell_Trending);
 				}
 				else
-				{
-                    LocalPrint("Enter BUY");
+				{                    
                     EnterOrder(TradeAction.Buy_Trending);
 				}
 			}			
@@ -137,15 +135,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
     }
 
-
-    public class TestStopLossGainOrigin : Strategy
+    public abstract class TestStopLossGainOrigin : Strategy
     {
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
             {
                 Description = @"Enter the description for your new custom Strategy here.";
-                Name = "TestStopLossGainMoving";
+                Name = "Test Moving Again and Loss - Independent";
                 Calculate = Calculate.OnBarClose;
                 EntriesPerDirection = 1;
                 EntryHandling = EntryHandling.AllEntries;
@@ -172,32 +169,31 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         string atmStrategyId = "";
         string orderId = "";
-        string ATMName = "Phuong";
+        string ATMName = "TestingMoving";
+        const string OrderEntryName = "Entry";
         protected override void OnBarUpdate()
         {
-            //Add your custom strategy logic here.
-            //var orders = Account.Orders.Any(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted); 
+            //Add your custom strategy logic here.           
 
             // Find active order
 
-            var pendingOrders = Account.Orders.Where(c => c.OrderState == OrderState.Accepted || c.OrderState == OrderState.Working);
+            var activeOrders = Account.Orders
+                                .Where(c => c.OrderState == OrderState.Accepted || c.OrderState == OrderState.Working)
+                                .Select(c => new { c.OrderState, c.Name, c.OrderType })
+                                .ToList();
 
-            if (Position.Quantity == 0 && !pendingOrders.Any() && State == State.Realtime)
+            if (Position.Quantity == 0 && !activeOrders.Any() && State == State.Realtime)
             {
-                Print($"NO active position. Enter RANDOM now");
-
-                var num = (new Random()).Next(0, 9);
-
-                var action = Open[1] < Close[1] ? OrderAction.Buy : OrderAction.Sell;
+                currentAction = Open[0] < Close[0] ? OrderAction.Buy : OrderAction.Sell;
 
                 atmStrategyId = GetAtmStrategyUniqueId();
                 orderId = GetAtmStrategyUniqueId();
                 filledPrice = Close[0];
 
                 AtmStrategyCreate(
-                    action,
-                    OrderType.Market,
-                    0,
+                    currentAction,
+                    OrderType.Limit,
+                    filledPrice,
                     0,
                     TimeInForce.Day,
                     orderId,
@@ -207,33 +203,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
                         {
-                            Print($"Enter {action} - strategyID: {atmStrategyId}");
+                            Print($"Enter {currentAction} - strategyID: {atmStrategyId}");
                         }
                     });
             }
-
         }
 
-        protected override void OnOrderUpdate(
-            Order order,
-            double limitPrice,
-            double stopPrice,
-            int quantity,
-            int filled,
-            double averageFillPrice,
-            OrderState orderState,
-            DateTime time,
-            ErrorCode error,
-            string comment)
-        {
-            Print($"Id: {order.Id}, limitPrice: {limitPrice:F2}, stop: {stopPrice:F2} {orderState}");
-        }
 
 
         private OrderAction currentAction = OrderAction.Buy;
         private double filledPrice = -1;
-
-
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
             try
@@ -246,7 +225,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var countTarget = targetOrders.Count();
                 var countStop = stopOrders.Count();
 
-                // Start of countTarget == 1 &&  countStop == 1
                 if (countTarget == 1 && countStop == 1)
                 {
                     var targetOrder = targetOrders.FirstOrDefault();
@@ -308,4 +286,5 @@ namespace NinjaTrader.NinjaScript.Strategies
 		* End of the class. Keep it blank intentionally.
 		*/
     }
+
 }

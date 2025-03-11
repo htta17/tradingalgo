@@ -110,7 +110,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             
             // Cancel lệnh do đợi quá lâu
-            var firstOrder = GetOrderFromPendingList();
+            var firstOrder = GetPendingOrder();
 
             if (firstOrder == null)
             {

@@ -430,17 +430,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
         }
-       
+
+        private DateTime executionTime = DateTime.MinValue;
+
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
             var updatedPrice = marketDataUpdate.Price;
 
-            if (updatedPrice < 100)  // || DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
+            if (updatedPrice < 100 || DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
             {
                 return;
             }
-
-            //executionTime = DateTime.Now;
+            executionTime = DateTime.Now;
 
             if (TradingStatus == TradingStatus.OrderExists)
             {
@@ -493,81 +494,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
         }
-       
-        protected override void EnterOrder(TradeAction tradeAction)
-        {
-            // Set global values
-            CurrentTradeAction = tradeAction;
 
-            EnteredBarIndex_5m = CurrentBarIndex_5m;
-
-            // Chưa cho move stop loss
-            StartMovingStoploss = false;
-
-            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
-
-            double priceToSet = GetSetPrice(tradeAction);
-
-            var profitOrLoss = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
-
-            var isFullSize = profitOrLoss >= -ReduceSizeIfProfit;
-
-            var atmStrategyName = isFullSize ? FullSizeATMName : HalfSizefATMName;
-
-            var atmStrategy = isFullSize ? FullSizeAtmStrategy : HalfSizeAtmStrategy;
-
-            // Get stop loss and target ID based on strategy 
-            FilledPrice = priceToSet;
-
-            var stopLossTick = atmStrategy.Brackets[0].StopLoss;
-            var targetTick = IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target);
-
-            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}, stopLossTick: {stopLossTick}, finalTarget Tick: {targetTick}");
-
-            StopLossPrice = IsBuying ?
-                priceToSet - stopLossTick * TickSize :
-                priceToSet + stopLossTick * TickSize;
-
-            TargetPrice = IsBuying ?
-                priceToSet + targetTick * TickSize :
-                priceToSet - targetTick * TickSize;
-
-            try
-            {
-                EnterOrderPure(priceToSet, 0, 0, atmStrategyName, 0, IsBuying, IsSelling);
-            }
-            catch (Exception ex)
-            {
-                LocalPrint($"[EnterOrder] - ERROR: " + ex.Message);
-            }
-        }
-
-        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double target)
-        {
-            if (Math.Abs(FilledPrice - newPrice) > 0.5)
-            {
-                FilledPrice = newPrice;
-                StopLossPrice = stopLossPrice;
-                TargetPrice = target;
-
-                try
-                {
-                    LocalPrint($"Trying to modify waiting order, new Price: {newPrice:N2}, new stop loss: {stopLossPrice:N2}, new target: {target:N2}");
-
-                    AtmStrategyChangeEntryOrder(newPrice, stopLossPrice, orderId);
-                }
-                catch (Exception ex)
-                {
-                    LocalPrint($"[UpdatePendingOrder] - ERROR: {ex.Message}");
-                }
-            }
-        }
 
         
-
-        protected string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyRooster.txt");
-        private string atmStrategyId = string.Empty;
-        private string orderId = string.Empty;
 
         private void SaveAtmStrategyIdToFile(string strategyId, string orderId)
         {
@@ -694,14 +623,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                         ? setPrice - 5
                         : setPrice - (TickSize * Target1InTicks);
                     break;
-
-                case TradeAction.Buy_Reversal:
-                    price = middleBB_5m;
-                    break;
-
-                case TradeAction.Sell_Reversal:
-                    price = middleBB_5m;
-                    break;
             }
 
             return StrategiesUtilities.RoundPrice(price);
@@ -725,14 +646,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 case TradeAction.Sell_Trending:
                     price = setPrice - TickSize * Target2InTicks;
-                    break;
-
-                case TradeAction.Buy_Reversal:
-                    price = upperBB_5m;
-                    break;
-
-                case TradeAction.Sell_Reversal:
-                    price = lowerBB_5m;
                     break;
             }
 

@@ -396,37 +396,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 AddChartIndicator(bollinger1Indicator_5m);
                 AddChartIndicator(bollinger2Indicator_5m);
-            }
-            else if (State == State.Realtime)
-            {
-                // Load thông tin liên quan đến
-                if (File.Exists(FileName))
-                {
-                    try
-                    {
-                        var text = File.ReadAllText(FileName);
-
-                        var arr = text.Split(',');
-
-                        if (arr.Length == 1)
-                        {
-                            AtmStrategyId = arr[0];
-                        }
-                        else if (arr.Length == 2)
-                        {
-                            AtmStrategyId = arr[0];
-                            OrderId = arr[1];
-
-                            tradingStatus = CheckCurrentStatusBasedOnOrders();
-                            LocalPrint($"Initial status - {tradingStatus}");
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        Print(e.Message);
-                    }
-                }
-            }
+            }            
         }
 
         // <summary>

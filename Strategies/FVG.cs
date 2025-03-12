@@ -14,7 +14,7 @@ using System.Windows.Media;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public abstract class FVG : BarClosedBaseClass<FVGTradeAction>
+    public abstract class FVG : BarClosedBaseClass<FVGTradeAction, FVGTradeDetail>
     {
         // Constants 
         const string Configuration_FVGGroup_Name = "FVG Strategy";
@@ -197,13 +197,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                         var clonedList = ActiveOrders.Values.ToList();
                         var len = clonedList.Count;
 
-                        var newPrice = GetSetPrice(shouldChangeVal);
+                        var newPrice = GetSetPrice(shouldChangeVal, CurrentFVGTradeDetail);
 
-                        var stopLossPrice = GetStopLossPrice(shouldChangeVal, newPrice);
+                        var stopLossPrice = GetStopLossPrice(shouldChangeVal, newPrice, CurrentFVGTradeDetail);
 
-                        var targetPrice_Half = GetTargetPrice_Half(shouldChangeVal, newPrice);
+                        var targetPrice_Half = GetTargetPrice_Half(shouldChangeVal, newPrice, CurrentFVGTradeDetail);
 
-                        var targetPrice_Full = GetTargetPrice_Full(shouldChangeVal, newPrice);
+                        var targetPrice_Full = GetTargetPrice_Full(shouldChangeVal, newPrice, CurrentFVGTradeDetail);
 
                         for (var i = 0; i < len; i++)
                         {
@@ -278,12 +278,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             try
             {
-                double priceToSet = GetSetPrice(action);
+                double priceToSet = GetSetPrice(action, NewFVGTradeDetail);
                 FilledPrice = priceToSet;
 
-                var stopLossPrice = GetStopLossPrice(action, priceToSet);
-                var targetHalf = GetTargetPrice_Half(action, priceToSet);
-                var targetFull = GetTargetPrice_Full(action, priceToSet);
+                var stopLossPrice = GetStopLossPrice(action, priceToSet, NewFVGTradeDetail);
+                var targetHalf = GetTargetPrice_Half(action, priceToSet, NewFVGTradeDetail);
+                var targetFull = GetTargetPrice_Full(action, priceToSet, NewFVGTradeDetail);
 
                 var quantityHalf = GetNumberOfContracts_Half(NewFVGTradeDetail);
                 var quantityFull = GetNumberOfContracts_Full(NewFVGTradeDetail);
@@ -302,7 +302,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override double GetStopLossPrice(FVGTradeAction tradeAction, double setPrice)
+        protected override double GetStopLossPrice(FVGTradeAction tradeAction, double setPrice, FVGTradeDetail fVGTradeDetail)
         {
             var stopLossBaseOnFVG =
                 (CurrentFVGTradeDetail.StopLossDistance < 7) ? 10
@@ -320,7 +320,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 : setPrice + stoploss;
         }
 
-        protected override double GetTargetPrice_Half(FVGTradeAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Half(FVGTradeAction tradeAction, double setPrice, FVGTradeDetail fVGTradeDetail)
         {
             return GetTargetPrice_Half(CurrentFVGTradeDetail, setPrice);
         }
@@ -343,7 +343,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 : setPrice - target;
         }
 
-        protected override double GetTargetPrice_Full(FVGTradeAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Full(FVGTradeAction tradeAction, double setPrice, FVGTradeDetail fVGTradeDetail)
         {
             return GetTargetPrice_Full(CurrentFVGTradeDetail, setPrice); 
         }
@@ -452,7 +452,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private FVGTradeDetail NewFVGTradeDetail { get; set; }
 
-        protected override double GetSetPrice(FVGTradeAction tradeAction)
+        protected override double GetSetPrice(FVGTradeAction tradeAction, FVGTradeDetail fVGTradeDetail)
         {
             return NewFVGTradeDetail.FilledPrice;
         }

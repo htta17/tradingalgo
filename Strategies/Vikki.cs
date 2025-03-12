@@ -27,7 +27,7 @@ using System.Security.Cryptography;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public abstract class Vikki : BarClosedBaseClass<TradeAction>
+	public abstract class Vikki : BarClosedBaseClass<TradeAction, int>
 	{
         public Vikki() : base("VIKKI") 
         {
@@ -126,39 +126,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice)
-        {
-            throw new NotImplementedException();
-        }
+        
 
-        protected override double GetSetPrice(TradeAction tradeAction)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override double GetTargetPrice_Half(TradeAction tradeAction, double setPrice)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override double GetTargetPrice_Full(TradeAction tradeAction, double setPrice)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override TradeAction ShouldTrade()
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override bool IsHalfPriceOrder(Order order)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override bool IsFullPriceOrder(Order order)
-        {
-            throw new NotImplementedException();
-        }
+      
     }
 }

@@ -18,7 +18,7 @@ using System.Windows.Media;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public abstract class Chicken : BarClosedBaseClass<TradeAction>
+    public abstract class Chicken : BarClosedBaseClass<TradeAction, TradeAction>
     {
         public Chicken() : this("CHICKEN")
         {
@@ -342,7 +342,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>        
         /// <param name="tradeAction">NoTrade, Sell_Reversal, Buy_Reversal, Sell_Trending, Buy_Trending</param>
         /// <returns></returns>
-        protected override double GetSetPrice(TradeAction tradeAction)
+        protected override double GetSetPrice(TradeAction tradeAction, TradeAction action)
         {
             var middleEMA = (ema29_1m + ema51_1m) / 2.0;
 
@@ -410,7 +410,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
         /// <returns></returns>
-        protected override double GetTargetPrice_Half(TradeAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Half(TradeAction tradeAction, double setPrice, TradeAction action)
         {
             double price = -1;
 
@@ -449,7 +449,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
         /// <returns></returns>
-        protected override double GetTargetPrice_Full(TradeAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Full(TradeAction tradeAction, double setPrice, TradeAction action)
         {
             double price = -1;
 
@@ -475,7 +475,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             return StrategiesUtilities.RoundPrice(price);
         }
 
-        protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice)
+        protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice, TradeAction action)
         {
             double price = -1;
 
@@ -519,10 +519,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
-            double priceToSet = GetSetPrice(tradeAction);
+            double priceToSet = GetSetPrice(tradeAction, tradeAction);
             FilledPrice = priceToSet;            
 
-            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet);
+            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet, tradeAction);
 
             LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}");
 
@@ -582,7 +582,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             for (var i = 0; i < lenFull; i++)
             {
                 var order = targetFullPriceOrders[i];
-                var newFullPrice = GetTargetPrice_Full(CurrentTradeAction, FilledPrice);
+                var newFullPrice = GetTargetPrice_Full(CurrentTradeAction, FilledPrice, CurrentTradeAction);
 
                 if ((IsBuying && newFullPrice > FilledPrice) || (IsSelling && newFullPrice < FilledPrice))
                 {
@@ -831,13 +831,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             #endregion
 
             #region Begin of move pending order
-            var newPrice = GetSetPrice(CurrentTradeAction);
+            var newPrice = GetSetPrice(CurrentTradeAction, CurrentTradeAction);
 
-            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, newPrice);
+            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, newPrice, CurrentTradeAction);
 
-            var targetPrice_Half = GetTargetPrice_Half(CurrentTradeAction, newPrice);
+            var targetPrice_Half = GetTargetPrice_Half(CurrentTradeAction, newPrice, CurrentTradeAction);
 
-            var targetPrice_Full = GetTargetPrice_Full(CurrentTradeAction, newPrice);
+            var targetPrice_Full = GetTargetPrice_Full(CurrentTradeAction, newPrice, CurrentTradeAction);
 
             if (State == State.Historical)
             {
@@ -853,7 +853,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         }
 
-        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull)
+        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull, double? targetHalf = null)
         {
             if (Math.Abs(FilledPrice - newPrice) > 0.5)
             {

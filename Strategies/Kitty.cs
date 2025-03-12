@@ -191,7 +191,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             return TradeAction.NoTrade;
         }
 
-        protected override double GetSetPrice(TradeAction tradeAction)
+        protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy atmStrategy)
         {   
             // Nếu volume đang yếu hoặc Medium thì 
             var volumeStrength = waeValuesSeries[0].WAE_Strength;
@@ -229,6 +229,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 (IsBuying && reverseRed)        // Đang có lệnh MUA nhưng lại xuất hiện nến ĐỎ
                 || (IsSelling && reverseGreen)  // Đang có lệnh BÁN nhưng lại xuất hiện nến XANH
                 || base.ShouldCancelPendingOrdersByTrendCondition();
+        }
+
+        protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
+        {
+            base.OnMarketData(marketDataUpdate);
         }
     }
 }

@@ -22,7 +22,7 @@ namespace NinjaTrader.Custom.Strategies
      * Based Class cho các Strategies sử dụng tính toán khi đóng cây nến [OnBarClose]. Lưu ý các điểm sau: 
      * 1. Luôn luôn vào 2 order, 1 half size và 1 full size. Dịch stop loss khi break even hiện tại đang dựa khi số lượng order là 1
      */
-    public abstract class BarClosedBaseClass<T1> : NinjaTrader.NinjaScript.Strategies.Strategy
+    public abstract class BarClosedBaseClass<T1, T2> : NinjaTrader.NinjaScript.Strategies.Strategy        
     {
         private string LogPrefix { get; set; }        
         public BarClosedBaseClass(string logPrefix)
@@ -195,29 +195,32 @@ namespace NinjaTrader.Custom.Strategies
 
         protected abstract bool IsFullPriceOrder(Order order);
 
-        protected abstract double GetSetPrice(T1 tradeAction);
+        protected abstract double GetSetPrice(T1 tradeAction, T2 additionalInfo);
 
         /// <summary>
         /// Giải thuật nào sử dụng thì implement hàm này
         /// </summary>
         /// <param name="tradeAction"></param>
         /// <param name="setPrice"></param>
+        /// <param name="additionalInfo"></param>
         /// <returns></returns>
-        protected abstract double GetTargetPrice_Half(T1 tradeAction, double setPrice);
+        protected abstract double GetTargetPrice_Half(T1 tradeAction, double setPrice, T2 additionalInfo);
 
-        protected abstract double GetTargetPrice_Full(T1 tradeAction, double setPrice);
-
-        protected abstract T1 ShouldTrade();
-
-        protected abstract void EnterOrder(T1 action);
+        protected abstract double GetTargetPrice_Full(T1 tradeAction, double setPrice, T2 additionalInfo);
 
         /// <summary>
         /// Giá stop loss
         /// </summary>
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
+        /// <param name="additionalInfo"></param>
         /// <returns></returns>
-        protected abstract double GetStopLossPrice(T1 tradeAction, double setPrice);
+        protected abstract double GetStopLossPrice(T1 tradeAction, double setPrice, T2 additionalInfo);
+
+        protected abstract T1 ShouldTrade();
+
+        protected abstract void EnterOrder(T1 action);
+        
         #endregion
 
         /// <summary>
@@ -290,7 +293,7 @@ namespace NinjaTrader.Custom.Strategies
             CountEntrySignal = 0;
         }
 
-        protected abstract void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull);
+        protected abstract void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull, double? targetHalf = null);
 
         protected bool IsTradingHour()
         {

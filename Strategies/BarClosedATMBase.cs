@@ -30,9 +30,9 @@ namespace NinjaTrader.NinjaScript.Strategies
     /**
      * Based class for ATM orders
      */
-	public abstract class BarClosedATMBase<T1> : BarClosedBaseClass<T1>
+    public abstract class BarClosedATMBase<T1> : BarClosedBaseClass<T1, AtmStrategy>
     {
-		public BarClosedATMBase(string name) : base(name) { }
+        public BarClosedATMBase(string name) : base(name) { }
 
         public BarClosedATMBase() : this("BASED ATM")
         {
@@ -100,7 +100,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         private DateTime executionTime = DateTime.MinValue;
 
         protected double StopLossPrice = -1;
-        protected double TargetPrice = -1;
+        protected double TargetPrice_Full = -1;
+        protected double TargetPrice_Half = -1;
         #endregion
 
         protected override void CloseExistingOrders()
@@ -125,13 +126,18 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Since we cannot use ATM in History, we don't have to do anything here.
         }
 
-        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double target)
+        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double target, double? targetHalf = null)
         {
             if (Math.Abs(FilledPrice - newPrice) > 0.5)
             {
                 FilledPrice = newPrice;
                 StopLossPrice = stopLossPrice;
-                TargetPrice = target;
+                TargetPrice_Full = target;
+
+                if (targetHalf.HasValue)
+                {
+                    TargetPrice_Half = targetHalf.Value;
+                }
 
                 try
                 {
@@ -145,6 +151,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
         }
+
         protected override void SetDefaultProperties()
         {
             base.SetDefaultProperties();
@@ -158,7 +165,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             HalfSizefATMName = "Rooster_Default_2cts";
 
             SetBreakEvenManually = false;
-        }       
+        }
 
         protected override void OnStateChange()
         {
@@ -176,7 +183,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.DataLoaded)
             {
-               
+
             }
             else if (State == State.Realtime)
             {
@@ -272,12 +279,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == AtmStrategyId)
                     {
-                        tradingStatus = TradingStatus.PendingFill;                        
+                        tradingStatus = TradingStatus.PendingFill;
                     }
                 });
         }
 
-        
         protected override void EnterOrder(T1 tradeAction)
         {
             if (State != State.Realtime || DateTime.Now.Subtract(enterOrderTimed).TotalSeconds < 5)
@@ -296,35 +302,30 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
-            double priceToSet = GetSetPrice(tradeAction);
-
-            var profitOrLoss = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
-
-            var isFullSize = profitOrLoss >= -ReduceSizeIfProfit;
-
-            var atmStrategyName = isFullSize ? FullSizeATMName : HalfSizefATMName;
-
-            var atmStrategy = isFullSize ? FullSizeAtmStrategy : HalfSizeAtmStrategy;
-
             // Get stop loss and target ID based on strategy 
+            var atmStrategy = GetAtmStrategyByPnL();
+
+            double priceToSet = GetSetPrice(tradeAction, atmStrategy);
+
+            double stopLoss = GetStopLossPrice(tradeAction, priceToSet, atmStrategy);
+
+            var targetHalf = GetTargetPrice_Half(tradeAction, priceToSet, atmStrategy);
+
+            var targetFull = GetTargetPrice_Half(tradeAction, priceToSet, atmStrategy);
+
             FilledPrice = priceToSet;
 
-            var stopLossTick = atmStrategy.Brackets[0].StopLoss;
-            var targetTick = IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target);            
+            StopLossPrice = stopLoss;
 
-            StopLossPrice = IsBuying ?
-                priceToSet - stopLossTick * TickSize :
-                priceToSet + stopLossTick * TickSize;
+            TargetPrice_Half = targetHalf;
 
-            TargetPrice = IsBuying ?
-                priceToSet + targetTick * TickSize :
-                priceToSet - targetTick * TickSize;
+            TargetPrice_Full = targetFull;
 
-            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}, StopLossPrice: {StopLossPrice:N2}, target: {TargetPrice:N2}, stopLossTick: {stopLossTick}, finalTarget Tick: {targetTick}");
+            LocalPrint($@"Enter {action} at {Time[0]}. Price to set: {priceToSet:N2}, StopLossPrice: {StopLossPrice:N2}, Target 1: {TargetPrice_Half:N2}Target Full: {TargetPrice_Full:N2}");
 
             try
             {
-                EnterOrderPure(priceToSet, 0, 0, atmStrategyName, 0, IsBuying, IsSelling);
+                EnterOrderPure(priceToSet, 0, 0, atmStrategy.Name, 0, IsBuying, IsSelling);
             }
             catch (Exception ex)
             {
@@ -338,7 +339,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             tradingStatus = TradingStatus.Idle;
         }
-        
+
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
             var updatedPrice = marketDataUpdate.Price;
@@ -357,15 +358,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (TradingStatus == TradingStatus.OrderExists)
             {
-                var buyPriceIsOutOfRange = IsBuying && (updatedPrice < StopLossPrice || updatedPrice > TargetPrice);
-                var sellPriceIsOutOfRange = IsSelling && (updatedPrice > StopLossPrice || updatedPrice < TargetPrice);
+                var buyPriceIsOutOfRange = IsBuying && (updatedPrice < StopLossPrice || updatedPrice > TargetPrice_Full);
+                var sellPriceIsOutOfRange = IsSelling && (updatedPrice > StopLossPrice || updatedPrice < TargetPrice_Full);
 
                 // Khi giá đã ở ngoài range (stoploss, target)
                 if (buyPriceIsOutOfRange || sellPriceIsOutOfRange)
                 {
                     tradingStatus = CheckCurrentStatusBasedOnOrders();
 
-                    LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}. TargetPrice: {TargetPrice:N2}, " +
+                    LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}. TargetPrice: {TargetPrice_Full:N2}, " +
                         $"updatedPrice:{updatedPrice:N2}, StopLossPrice: {StopLossPrice:N2}, " +
                         $"buyPriceIsOutOfRange: {buyPriceIsOutOfRange}, :sellPriceIsOutOfRange: {sellPriceIsOutOfRange}. ");
                 }
@@ -375,7 +376,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains(OrderTargetName)).ToList();
 
                     var countStopOrder = stopOrders.Count;
-                    var countTargetOrder = targetOrders.Count;                    
+                    var countTargetOrder = targetOrders.Count;
 
                     if (countStopOrder == 0 || countTargetOrder == 0)
                     {
@@ -389,7 +390,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         if (targetOrder != null)
                         {
-                            TargetPrice = targetOrder.LimitPrice;
+                            TargetPrice_Full = targetOrder.LimitPrice;
                             MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
                         }
 
@@ -437,11 +438,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                         isGainStop ? newPrice : 0,
                         isGainStop ? 0 : newPrice,
                         order.Name,
-                        AtmStrategyId);                
+                        AtmStrategyId);
 
                 if (isGainStop)
                 {
-                    TargetPrice = newPrice;
+                    TargetPrice_Full = newPrice;
                 }
                 else
                 {
@@ -453,5 +454,41 @@ namespace NinjaTrader.NinjaScript.Strategies
                 LocalPrint($"[MoveTargetOrStopOrder] - ERROR: {ex.Message}");
             }
         }
+
+        protected virtual AtmStrategy GetAtmStrategyByPnL()
+        {
+            var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
+
+            var reachHalf = todaysPnL <= -MaximumDailyLoss / 2 || todaysPnL >= DailyTargetProfit / 2;
+
+            return reachHalf ? FullSizeAtmStrategy : HalfSizeAtmStrategy;
+        }
+
+        protected override double GetStopLossPrice(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)
+        {
+            var stopLossTick = atmStrategy.Brackets[0].StopLoss;
+
+            return IsBuying ?
+                setPrice - stopLossTick * TickSize :
+                setPrice + stopLossTick * TickSize;
+        }
+
+        protected override double GetTargetPrice_Half(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)
+        {
+            var targetTick_Half = IsBuying ? atmStrategy.Brackets.Min(c => c.Target) : atmStrategy.Brackets.Max(c => c.Target);
+            return IsBuying ?
+                setPrice + targetTick_Half * TickSize :
+                setPrice - targetTick_Half * TickSize;
+        }
+
+        protected override double GetTargetPrice_Full(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)
+        {
+            var targetTick_Full = IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target);
+
+            return IsBuying ?
+                setPrice + targetTick_Full * TickSize :
+                setPrice - targetTick_Full * TickSize;
+        }
+
     }
 }

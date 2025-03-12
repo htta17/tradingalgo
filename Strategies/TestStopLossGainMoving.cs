@@ -74,10 +74,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			AllowWriteLog = true;
         }
 
-        protected override double GetSetPrice(TradeAction tradeAction)
-        {
-			return Close[0];
-        }
+       
 
         protected override void OnBarUpdate()
 		{
@@ -100,26 +97,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 				}
 			}
 		}
-		
-
-        protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override double GetTargetPrice_Half(TradeAction tradeAction, double setPrice)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override double GetTargetPrice_Full(TradeAction tradeAction, double setPrice)
-        {
-            throw new NotImplementedException();
-        }
 
         protected override TradeAction ShouldTrade()
         {
             throw new NotImplementedException();
+        }
+
+        protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy additionalInfo)
+        {
+            return Close[0];
         }
     }
 

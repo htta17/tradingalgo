@@ -131,13 +131,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             #region Begin of move pending order
-            var newPrice = GetSetPrice(CurrentTradeAction);
+            var atmStrategy = GetAtmStrategyByPnL();
 
-            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, newPrice);
+            var newPrice = GetSetPrice(CurrentTradeAction, atmStrategy);
 
-            var targetPrice_Half = GetTargetPrice_Half(CurrentTradeAction, newPrice);
+            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, newPrice, atmStrategy);
 
-            var targetPrice_Full = GetTargetPrice_Full(CurrentTradeAction, newPrice);
+            var targetPrice_Half = GetTargetPrice_Half(CurrentTradeAction, newPrice, atmStrategy);
+
+            var targetPrice_Full = GetTargetPrice_Full(CurrentTradeAction, newPrice, atmStrategy);
 
             if (State == State.Historical)
             {
@@ -147,7 +149,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.Realtime)
             {
-                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full);
+                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
             }
             #endregion
         }
@@ -407,7 +409,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>        
         /// <param name="tradeAction">NoTrade, Sell_Reversal, Buy_Reversal, Sell_Trending, Buy_Trending</param>
         /// <returns></returns>
-        protected override double GetSetPrice(TradeAction tradeAction)
+        protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy atmStrategy)
         {
             var middleEMA = (ema29_1m + ema51_1m) / 2.0;
            
@@ -454,7 +456,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
         /// <returns></returns>
-        protected override double GetTargetPrice_Half(TradeAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Half(TradeAction tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
             double price = -1;
 
@@ -485,7 +487,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
         /// <returns></returns>
-        protected override double GetTargetPrice_Full(TradeAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Full(TradeAction tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
             double price = -1;
 
@@ -502,12 +504,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             return StrategiesUtilities.RoundPrice(price);
         }
-        protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice)
+        protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
-            var profitOrLoss = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
-
-            var atmStrategy = profitOrLoss >= -ReduceSizeIfProfit ? FullSizeAtmStrategy : HalfSizeAtmStrategy;
-
             // Get stop loss and target ID based on strategy 
             var stopLossTick = atmStrategy.Brackets[0].StopLoss;
             var stopLossPrice = IsBuying ?

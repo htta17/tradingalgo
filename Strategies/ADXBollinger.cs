@@ -209,11 +209,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             if (shouldTrade == CurrentTradeAction)
                             {
-                                var newPrice = GetSetPrice(shouldTrade);
+                                var newPrice = GetSetPrice(shouldTrade, null);
                                 
-                                var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice);
+                                var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice,null);
 
-                                var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice);
+                                var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice, null);
+
+                                var targetPrice_Half = GetTargetPrice_Half(shouldTrade, newPrice, null);
 
                                 LocalPrint($"Update entry price to {newPrice:N2}.");
 
@@ -255,7 +257,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 CurrentBarIndex_5m = CurrentBar;
             }
         }
-        protected override double GetSetPrice(ADXBollingerAction tradeAction)
+        protected override double GetSetPrice(ADXBollingerAction tradeAction, AtmStrategy atmStrategy)
         {
             if (tradeAction == ADXBollingerAction.SetBuyOrder)
             {
@@ -268,7 +270,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             return StrategiesUtilities.RoundPrice(middleBB_5m);
         }
 
-        protected override double GetStopLossPrice(ADXBollingerAction tradeAction, double setPrice)
+        protected override double GetStopLossPrice(ADXBollingerAction tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
             var stopLoss = StopLossInTicks * TickSize;
 
@@ -277,7 +279,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 : setPrice + stopLoss;
         }
 
-        protected override double GetTargetPrice_Half(ADXBollingerAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Half(ADXBollingerAction tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
             var target1 = TickSize * Target1InTicks; 
 
@@ -286,7 +288,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 : setPrice - target1; 
         }
 
-        protected override double GetTargetPrice_Full(ADXBollingerAction tradeAction, double setPrice)
+        protected override double GetTargetPrice_Full(ADXBollingerAction tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
             var target2 = TickSize * Target2InTicks;
 

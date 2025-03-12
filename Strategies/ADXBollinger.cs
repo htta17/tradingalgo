@@ -142,7 +142,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         private DateTime barUpdateExecutionTime = DateTime.MinValue;
         protected override void OnBarUpdate()
 		{
-
             // Cập nhật lại status 
             tradingStatus = CheckCurrentStatusBasedOnOrders();
 
@@ -212,15 +211,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                             {
                                 var newPrice = GetSetPrice(shouldTrade);
 
-                                var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice);
+                                if (Math.Abs(newPrice - FilledPrice) > 0.5)
+                                {
+                                    var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice);
 
-                                var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice);
+                                    var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice);
 
-                                FilledPrice = newPrice;
+                                    FilledPrice = newPrice;
 
-                                LocalPrint($"Update entry price to {newPrice}");
+                                    LocalPrint($"Update entry price to {newPrice}");
 
-                                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full);
+                                    UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full);
+                                }
                             }
                             else
                             {
@@ -251,6 +253,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 upperStd2BB_5m = bollinger2Indicator_5m.Upper[0];
                 lowerStd2BB_5m = bollinger2Indicator_5m.Lower[0];
+
+                LocalPrint($"Update 5 minutes values: adx_5m {adx_5m:N2}, upperStd2BB_5m: {upperStd2BB_5m:N2}, lowerStd2BB_5m: {lowerStd2BB_5m:N2}.");
 
                 CurrentBarIndex_5m = CurrentBar;
             }

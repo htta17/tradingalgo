@@ -349,6 +349,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     $"{(wae.HasBULLVolume ? "--> BULL Volume" : wae.HasBEARVolume ? "--> BEAR Volume" : "")}");
             }
         }
+
         protected override void SetDefaultProperties()
         {
             base.SetDefaultProperties();
@@ -401,7 +402,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }            
         }
 
-        // <summary>
+        /// <summary>
         /// Tìm giá để set dựa theo EMA29/51 hoặc dựa theo Bollinger bands
         /// </summary>        
         /// <param name="tradeAction">NoTrade, Sell_Reversal, Buy_Reversal, Sell_Trending, Buy_Trending</param>
@@ -446,7 +447,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Khó quá cứ lấy EMA29/51
             return StrategiesUtilities.RoundPrice(middleEMA);
         }
-
 
         /// <summary>
         /// Giá cho target 1 (Half)
@@ -516,7 +516,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             return stopLossPrice;
         }
-
+        /*
+         * End of class 
+         */
     }
-
 }

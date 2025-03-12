@@ -35,31 +35,15 @@ namespace NinjaTrader.Custom.Strategies
             
         }
 
-        protected int CurrentBarIndex_5m = 0;
-        protected int EnteredBarIndex_5m = 0;
-
-        protected int CurrentOrderCount { get; set; }
-
-        protected T1 CurrentTradeAction { get; set; }
-
+        #region Configuration 
         /// <summary>
-        /// Biến này dùng để di chuyển stop loss khi giá BẮT ĐẦU gần chạm đến target2 (để room cho chạy).
-        /// </summary>
-        protected bool StartMovingStoploss = false;
-
-        /// <summary>
-        /// If loss is more than [MaximumDayLoss], stop trading for that day
+        /// Cho phép ghi log, disable nếu muốn troubleshoot other strategies issue, default is true.
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Cho phép ghi log",
             Order = 1,
             GroupName = StrategiesUtilities.Configuration_General_Name)]
         public bool AllowWriteLog { get; set; }
-
-        /// <summary>
-        /// If = true: Set break even manually, otherwise, ATM will set breakeven.
-        /// </summary>
-        protected bool SetBreakEvenManually = true;
 
         #region Allow Trade Parameters
 
@@ -131,6 +115,109 @@ namespace NinjaTrader.Custom.Strategies
         /// Giá hiện tại cách stop loss > [PointToMoveLoss] thì di chuyển stop loss.
         /// </summary>
         protected const double PointToMoveLoss = 7.0;
+        #endregion
+        #endregion
+
+        #region Properties
+        protected int CurrentBarIndex_5m = 0;
+        protected int EnteredBarIndex_5m = 0;
+
+        protected T1 CurrentTradeAction { get; set; }
+
+        /// <summary>
+        /// Biến này dùng để di chuyển stop loss khi giá BẮT ĐẦU gần chạm đến target2 (để room cho chạy).
+        /// </summary>
+        protected bool StartMovingStoploss = false;
+
+        /// <summary>
+        /// If = true: Set break even manually, otherwise, ATM will set breakeven.
+        /// </summary>
+        protected bool SetBreakEvenManually = true;
+
+        protected virtual TradingStatus TradingStatus
+        {
+            get
+            {
+                if (CountOrder == 0)
+                {
+                    return TradingStatus.Idle;
+                }
+                else if (CountEntrySignal > 0)
+                {
+                    return TradingStatus.PendingFill;
+                }
+
+                return TradingStatus.OrderExists;
+            }
+        }
+
+        /// <summary>
+        /// Giá fill lệnh ban đầu 
+        /// </summary>
+        protected double FilledPrice = -1;
+
+        protected DateTime FilledTime = DateTime.Now;
+
+        protected HashSet<string> HalfPriceSignals { get; set; }
+
+        /// <summary>
+        /// All signals being used for this strategy, includes Half and Full size 
+        /// </summary>
+        protected HashSet<string> EntrySignals { get; set; }
+
+        /// <summary>
+        /// Realtime: Dùng order.Id làm key, không phải Realtime: Dùng Name làm key
+        /// </summary>
+        protected Dictionary<string, Order> ActiveOrders = new Dictionary<string, Order>();
+
+        protected Dictionary<string, SimpleInfoOrder> SimpleActiveOrders = new Dictionary<string, SimpleInfoOrder>();
+
+        private readonly object lockOjbject = new Object();
+
+        /// <summary>
+        /// Dùng để check xem có lệnh nào không
+        /// </summary>
+        protected int CountOrder { get; set; }
+
+        /// <summary>      
+        /// Dùng để check xem có lệnh chờ (PendingFill order) hay không.
+        /// </summary>
+        protected int CountEntrySignal { get; set; }
+
+        #endregion
+
+        #region Abstracts
+        protected abstract bool IsBuying { get; }
+
+        protected abstract bool IsSelling { get; }
+
+        protected abstract bool IsHalfPriceOrder(Order order);
+
+        protected abstract bool IsFullPriceOrder(Order order);
+
+        protected abstract double GetSetPrice(T1 tradeAction);
+
+        /// <summary>
+        /// Giải thuật nào sử dụng thì implement hàm này
+        /// </summary>
+        /// <param name="tradeAction"></param>
+        /// <param name="setPrice"></param>
+        /// <returns></returns>
+        protected abstract double GetTargetPrice_Half(T1 tradeAction, double setPrice);
+
+        protected abstract double GetTargetPrice_Full(T1 tradeAction, double setPrice);
+
+        protected abstract T1 ShouldTrade();
+
+        protected abstract void EnterOrder(T1 action);
+
+        /// <summary>
+        /// Giá stop loss
+        /// </summary>
+        /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
+        /// <param name="setPrice">Giá đặt lệnh</param>
+        /// <returns></returns>
+        protected abstract double GetStopLossPrice(T1 tradeAction, double setPrice);
         #endregion
 
         /// <summary>
@@ -218,23 +305,6 @@ namespace NinjaTrader.Custom.Strategies
             }
 
             return true;
-        }
-
-        protected virtual TradingStatus TradingStatus
-        {
-            get
-            {
-                if (CountOrder == 0)
-                {
-                    return TradingStatus.Idle;
-                }
-                else if (CountEntrySignal > 0)
-                {
-                    return TradingStatus.PendingFill;
-                }
-
-                return TradingStatus.OrderExists;
-            }
         }
 
         protected override void OnBarUpdate()
@@ -391,25 +461,7 @@ namespace NinjaTrader.Custom.Strategies
 
             return true;
         }
-
-        /// <summary>
-        /// Realtime: Dùng order.Id làm key, không phải Realtime: Dùng Name làm key
-        /// </summary>
-        protected Dictionary<string, Order> ActiveOrders = new Dictionary<string, Order>();
-
-        protected Dictionary<string, SimpleInfoOrder> SimpleActiveOrders = new Dictionary<string, SimpleInfoOrder>();
-
-        private readonly object lockOjbject = new Object();
-
-        /// <summary>
-        /// Dùng để check xem có lệnh nào không
-        /// </summary>
-        protected int CountOrder { get; set; }
-
-        /// <summary>      
-        /// Dùng để check xem có lệnh chờ (PendingFill order) hay không.
-        /// </summary>
-        protected int CountEntrySignal { get; set; }
+        
         protected override void OnOrderUpdate(Order order,
             double limitPrice,
             double stopPrice,
@@ -480,14 +532,6 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
-        /// <summary>
-        /// Giá stop loss
-        /// </summary>
-        /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
-        /// <param name="setPrice">Giá đặt lệnh</param>
-        /// <returns></returns>
-        protected abstract double GetStopLossPrice(T1 tradeAction, double setPrice);
-
         protected void LocalPrint(object val)
         {
             if (!AllowWriteLog)
@@ -504,22 +548,6 @@ namespace NinjaTrader.Custom.Strategies
                 Print(val);
             }            
         }
-
-        protected abstract double GetSetPrice(T1 tradeAction);
-
-        /// <summary>
-        /// Giải thuật nào sử dụng thì implement hàm này
-        /// </summary>
-        /// <param name="tradeAction"></param>
-        /// <param name="setPrice"></param>
-        /// <returns></returns>
-        protected abstract double GetTargetPrice_Half(T1 tradeAction, double setPrice);
-
-        protected abstract double GetTargetPrice_Full(T1 tradeAction, double setPrice);
-
-        protected abstract T1 ShouldTrade();
-
-        protected abstract void EnterOrder(T1 action);
         
         protected void EnterOrderPureUsingPrice(double priceToSet, double target, double stoploss, string signal, int quantity, bool isBuying, bool isSelling)
         {
@@ -548,7 +576,7 @@ namespace NinjaTrader.Custom.Strategies
 
                 LocalPrint($"Enter {text} for {quantity} contracts with signal [{signal}] at {priceToSet:N2}, stop loss: {stoploss:N2}, target: {target:N2}");
             }
-        }        
+        }
 
         protected virtual void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
         {
@@ -692,20 +720,6 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
-        /// <summary>
-        /// Giá fill lệnh ban đầu 
-        /// </summary>
-        protected double FilledPrice = -1;
-
-        protected DateTime FilledTime = DateTime.Now;
-
-        protected HashSet<string> HalfPriceSignals { get; set; }
-
-        /// <summary>
-        /// All signals being used for this strategy, includes Half and Full size 
-        /// </summary>
-        protected HashSet<string> EntrySignals { get; set; }
-
         // Kéo stop loss/gain
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
@@ -721,10 +735,6 @@ namespace NinjaTrader.Custom.Strategies
                 MoveTargetAndStopOrdersWithNewPrice(updatedPrice, HalfPriceSignals);               
             }
         }
-
-        protected abstract bool IsBuying { get; }
-
-        protected abstract bool IsSelling { get; }
 
         private void MoveTargetAndStopOrdersWithNewPrice(double updatedPrice, HashSet<string> halfPriceSignals)
         {
@@ -774,10 +784,6 @@ namespace NinjaTrader.Custom.Strategies
                 LocalPrint($"[OnMarketData] - ERROR: " + e.Message);
             }
         }
-
-        protected abstract bool IsHalfPriceOrder(Order order);
-
-        protected abstract bool IsFullPriceOrder(Order order);
 
         protected virtual Order GetPendingOrder()
         {

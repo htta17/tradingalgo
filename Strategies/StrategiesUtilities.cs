@@ -21,6 +21,8 @@ namespace NinjaTrader.Custom.Strategies
         public const string Configuration_Sizing_Name = "How to set stoploss/gain";
         public const string Configuration_General_Name = "General Setting";
 
+        public const string Configuration_TigerParams_Name = "Based ATM Parameters";
+
         // Ninja Trader default signal 
         public const string StopLoss_SignalName = "Stop loss";
         public const string ProfitTarget_SignalName = "Profit target";

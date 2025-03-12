@@ -39,35 +39,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         }
 
-        protected override void CloseExistingOrders()
-        {
-            LocalPrint($"[CloseExistingOrders]");
-            if (!string.IsNullOrEmpty(AtmStrategyId))
-            {
-                AtmStrategyClose(AtmStrategyId);
-            }
-            tradingStatus = TradingStatus.Idle;
-        }
-
-        protected override Order GetPendingOrder()
-        {
-            var order = Account.Orders.FirstOrDefault(c => c.Name.Contains(OrderEntryName) && (c.OrderState == OrderState.Working || c.OrderState == OrderState.Accepted));
-
-            return order;
-        }
-
-        protected override void TransitionOrdersToLive()
-        {
-            // Since we cannot use ATM in History, we don't have to do anything here.
-        }
-
-        protected const string Configuration_TigerParams_Name = "Based ATM Parameters";
-
+        #region Constants 
         protected const string ATMStrategy_Group = "ATM Information";
         protected const string OrderEntryName = "Entry";
         protected const string OrderStopName = "Stop";
         protected const string OrderTargetName = "Target";
+        #endregion
 
+        #region Configurations
         /// <summary>
         /// ATM name for live trade.
         /// </summary>
@@ -92,8 +71,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// - Nếu đang lỗ > $100 thì vào 1 contract
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Reduce number of contract when profit less than (< 0):", Order = 2, GroupName = Configuration_TigerParams_Name)]
+        [Display(Name = "Reduce number of contract when profit less than (< 0):", Order = 2, GroupName = StrategiesUtilities.Configuration_TigerParams_Name)]
         public int ReduceSizeIfProfit { get; set; }
+        #endregion
+
+        #region Properties
         protected AtmStrategy FullSizeAtmStrategy { get; set; }
 
         protected AtmStrategy HalfSizeAtmStrategy { get; set; }
@@ -110,6 +92,37 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 return tradingStatus;
             }
+        }
+
+        protected string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyATMBase.txt");
+
+        DateTime enterOrderTimed = DateTime.MinValue;
+        private DateTime executionTime = DateTime.MinValue;
+
+        protected double StopLossPrice = -1;
+        protected double TargetPrice = -1;
+        #endregion
+
+        protected override void CloseExistingOrders()
+        {
+            LocalPrint($"[CloseExistingOrders]");
+            if (!string.IsNullOrEmpty(AtmStrategyId))
+            {
+                AtmStrategyClose(AtmStrategyId);
+            }
+            tradingStatus = TradingStatus.Idle;
+        }
+
+        protected override Order GetPendingOrder()
+        {
+            var order = Account.Orders.FirstOrDefault(c => c.Name.Contains(OrderEntryName) && (c.OrderState == OrderState.Working || c.OrderState == OrderState.Accepted));
+
+            return order;
+        }
+
+        protected override void TransitionOrdersToLive()
+        {
+            // Since we cannot use ATM in History, we don't have to do anything here.
         }
 
         protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double target)
@@ -197,9 +210,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyATMBase.txt");
-        
-
         protected void SaveAtmStrategyIdToFile(string strategyId, string orderId)
         {
             try
@@ -267,10 +277,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 });
         }
 
-        DateTime enterOrderTimed = DateTime.MinValue; 
-
-        protected double StopLossPrice = -1;
-        protected double TargetPrice = -1;
+        
         protected override void EnterOrder(T1 tradeAction)
         {
             if (State != State.Realtime || DateTime.Now.Subtract(enterOrderTimed).TotalSeconds < 5)
@@ -331,8 +338,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             tradingStatus = TradingStatus.Idle;
         }
-
-        DateTime executionTime = DateTime.MinValue;
+        
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
             var updatedPrice = marketDataUpdate.Price;

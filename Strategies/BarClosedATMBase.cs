@@ -64,15 +64,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             Description = "Strategy sử dụng khi loss/gain more than a half",
             Order = 2, GroupName = ATMStrategy_Group)]
         [TypeConverter(typeof(ATMStrategyConverter))]
-        public string HalfSizefATMName { get; set; }
-
-        /// <summary>
-        /// - Nếu đang lỗ (&lt; $100) hoặc đang lời thì vào 2 contracts <br/>
-        /// - Nếu đang lỗ > $100 thì vào 1 contract
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Reduce number of contract when profit less than (< 0):", Order = 2, GroupName = StrategiesUtilities.Configuration_TigerParams_Name)]
-        public int ReduceSizeIfProfit { get; set; }
+        public string HalfSizefATMName { get; set; }        
         #endregion
 
         #region Properties
@@ -133,7 +125,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 FilledPrice = newPrice;
                 StopLossPrice = stopLossPrice;
                 TargetPrice_Full = target;
-
                 if (targetHalf.HasValue)
                 {
                     TargetPrice_Half = targetHalf.Value;

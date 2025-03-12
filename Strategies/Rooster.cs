@@ -143,7 +143,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             else if (checkShouldTradeAgain == CurrentTradeAction)
             {
                 #region Begin of move pending order
-                var atmStrategy = GetAtmStrategyByPnL();
+                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
 
                 var newPrice = GetSetPrice(CurrentTradeAction, atmStrategy);
 

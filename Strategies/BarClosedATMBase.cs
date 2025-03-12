@@ -272,6 +272,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         tradingStatus = TradingStatus.PendingFill;
                     }
+                    else if (atmCallbackErrorCode != ErrorCode.NoError)
+                    {
+                        LocalPrint($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
+                    }    
+                    
                 });
         }
 
@@ -294,7 +299,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
             // Get stop loss and target ID based on strategy 
-            var atmStrategy = GetAtmStrategyByPnL();
+            var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
 
             double priceToSet = GetSetPrice(tradeAction, atmStrategy);
 
@@ -316,7 +321,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             try
             {
-                EnterOrderPure(priceToSet, 0, 0, atmStrategy.Name, 0, IsBuying, IsSelling);
+                EnterOrderPure(priceToSet, 0, 0, atmStrategyName, 0, IsBuying, IsSelling);
             }
             catch (Exception ex)
             {
@@ -465,13 +470,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected virtual AtmStrategy GetAtmStrategyByPnL()
+        protected virtual (AtmStrategy, string) GetAtmStrategyByPnL()
         {
             var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
 
             var reachHalf = todaysPnL <= -MaximumDailyLoss / 2 || todaysPnL >= DailyTargetProfit / 2;
 
-            return reachHalf ? FullSizeAtmStrategy : HalfSizeAtmStrategy;
+            return reachHalf ? (FullSizeAtmStrategy, FullSizeATMName) : (HalfSizeAtmStrategy, HalfSizefATMName);
         }
 
         protected override double GetStopLossPrice(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)

@@ -210,19 +210,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                             if (shouldTrade == CurrentTradeAction)
                             {
                                 var newPrice = GetSetPrice(shouldTrade);
+                                
+                                var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice);
 
-                                if (Math.Abs(newPrice - FilledPrice) > 0.5)
-                                {
-                                    var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice);
+                                var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice);
 
-                                    var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice);
+                                LocalPrint($"Update entry price to {newPrice:N2}.");
 
-                                    FilledPrice = newPrice;
-
-                                    LocalPrint($"Update entry price to {newPrice}");
-
-                                    UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full);
-                                }
+                                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full);
+                                
                             }
                             else
                             {
@@ -301,7 +297,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override ADXBollingerAction ShouldTrade()
         {
-            var answer = ADXBollingerAction.NoTrade;            
+            var answer = ADXBollingerAction.NoTrade;
 
             if (adx_5m < ADXToEnterOrder) 
             {

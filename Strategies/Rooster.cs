@@ -261,6 +261,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 currentPrice = Close[0];
 
+                DrawKeyLevels("MiddleEMA", (ema51_1m + ema29_1m) / 2, Brushes.Gold, Brushes.Green); 
+
                 if (State != State.Realtime)
                 {
                     return;

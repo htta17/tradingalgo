@@ -589,25 +589,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     MoveTargetOrStopOrder(newFullPrice, order, true, IsBuying ? "BUY" : "SELL", order.FromEntrySignal);
                 }
             }
-        }       
-
-        /// <summary>
-        /// Hàm này sử dụng cho khung 1 phút
-        /// </summary>
-        private void DrawEMA2951Levels()
-        {
-            // EMA 29/51
-            var middleEMA2951 = (ema29_1m + ema51_1m) / 2;
-            Draw.HorizontalLine(this, "MiddleEMA", middleEMA2951, Brushes.Gold, Gui.DashStyleHelper.Dot, 2);
-            Draw.Text(this, "MiddleEMA_Label", true, $"[{middleEMA2951:N2}]",
-                -3,
-                middleEMA2951,
-                5,
-                Brushes.Green,
-                new SimpleFont("Arial", 10),
-                TextAlignment.Left,
-                Brushes.Transparent,
-                Brushes.Transparent, 0);
         }
 
         protected override void OnBarUpdate()
@@ -632,7 +613,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 currentPrice = Close[0];
 
-                DrawEMA2951Levels();
+                DrawKeyLevels("MiddleEMA",(ema29_1m + ema51_1m) / 2, Brushes.Gold, Brushes.Green);
 
                 if (State != State.Realtime)
                 {

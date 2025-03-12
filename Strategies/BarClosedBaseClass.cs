@@ -10,6 +10,11 @@ using System.Linq;
 using System.Net.Http;
 using System.Windows.Markup;
 using System.Xml.Linq;
+using NinjaTrader.Gui.Tools;
+using NinjaTrader.NinjaScript.DrawingTools;
+using System.Windows.Media;
+using System.Windows;
+using NinjaTrader.Gui;
 
 namespace NinjaTrader.Custom.Strategies
 {
@@ -864,6 +869,18 @@ namespace NinjaTrader.Custom.Strategies
             return false;
         }
 
-
+        protected void DrawKeyLevels(string name, double value, Brush lineColor, Brush textColor, DashStyleHelper dashStyle = DashStyleHelper.Dot)
+        {
+            Draw.HorizontalLine(this, name, value, lineColor, dashStyle, 2);
+            Draw.Text(this,$"{name}_label", true, $"[{value:N2}]",
+                -3,
+                value,
+                5,
+                textColor,
+                new SimpleFont("Arial", 10),
+                TextAlignment.Left,
+                Brushes.Transparent,
+                Brushes.Transparent, 0);
+        }
     }
 }

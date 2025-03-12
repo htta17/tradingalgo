@@ -30,26 +30,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public class TestStopLossGainMoving : BarClosedATMBase<TradeAction>
 	{
-        protected override bool IsBuying
-		{ 
-			get 
-			{
-				return CurrentTradeAction == TradeAction.Buy_Trending;
-			} 
-		}
+        protected override bool IsBuying => CurrentTradeAction == TradeAction.Buy_Trending;
 
-        protected override bool IsSelling
-        {
-            get
-            {
-                return CurrentTradeAction == TradeAction.Sell_Trending;
-            }
-        }
+        protected override bool IsSelling => CurrentTradeAction == TradeAction.Sell_Trending;        
 
         protected override void OnStateChange()
 		{
-			base.OnStateChange();
-
 			if (State == State.SetDefaults)
 			{
 				Description									= @"Enter the description for your new custom Strategy here.";
@@ -101,6 +87,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			if (TradingStatus == TradingStatus.Idle)
 			{
+                StrategiesUtilities.CalculatePnL(this, Account, Print); 
+
 				var lastCandleIsRed = CandleUtilities.IsRedCandle(Close[0], Open[0]);
 				if (lastCandleIsRed)
 				{					
@@ -110,7 +98,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{                    
                     EnterOrder(TradeAction.Buy_Trending);
 				}
-			}			
+			}
 		}
 		
 

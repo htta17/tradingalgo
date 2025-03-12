@@ -123,35 +123,48 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
+            /*
             if (ShouldCancelPendingOrdersByTrendCondition())
             {
                 CancelAllPendingOrder();
                 LocalPrint($"Cancel lệnh do xu hướng hiện tại ngược với lệnh chờ");
                 return;
             }
+            */
 
-            #region Begin of move pending order
-            var atmStrategy = GetAtmStrategyByPnL();
+            var checkShouldTradeAgain = ShouldTrade();
 
-            var newPrice = GetSetPrice(CurrentTradeAction, atmStrategy);
-
-            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, newPrice, atmStrategy);
-
-            var targetPrice_Half = GetTargetPrice_Half(CurrentTradeAction, newPrice, atmStrategy);
-
-            var targetPrice_Full = GetTargetPrice_Full(CurrentTradeAction, newPrice, atmStrategy);
-
-            if (State == State.Historical)
+            if (checkShouldTradeAgain == TradeAction.NoTrade)
             {
+                LocalPrint("Cancel lệnh do không thỏa mãn các điều kiện trade");
                 CancelAllPendingOrder();
-
-                EnterOrder(CurrentTradeAction);
-            }
-            else if (State == State.Realtime)
+                return;
+            }    
+            else if (checkShouldTradeAgain == CurrentTradeAction)
             {
-                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
+                #region Begin of move pending order
+                var atmStrategy = GetAtmStrategyByPnL();
+
+                var newPrice = GetSetPrice(CurrentTradeAction, atmStrategy);
+
+                var stopLossPrice = GetStopLossPrice(CurrentTradeAction, newPrice, atmStrategy);
+
+                var targetPrice_Half = GetTargetPrice_Half(CurrentTradeAction, newPrice, atmStrategy);
+
+                var targetPrice_Full = GetTargetPrice_Full(CurrentTradeAction, newPrice, atmStrategy);
+
+                if (State == State.Historical)
+                {
+                    CancelAllPendingOrder();
+
+                    EnterOrder(CurrentTradeAction);
+                }
+                else if (State == State.Realtime)
+                {
+                    UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
+                }
+                #endregion
             }
-            #endregion
         }
 
         /// <summary>

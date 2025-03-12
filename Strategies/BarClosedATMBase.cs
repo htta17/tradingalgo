@@ -302,7 +302,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var targetHalf = GetTargetPrice_Half(tradeAction, priceToSet, atmStrategy);
 
-            var targetFull = GetTargetPrice_Half(tradeAction, priceToSet, atmStrategy);
+            var targetFull = GetTargetPrice_Full(tradeAction, priceToSet, atmStrategy);
 
             FilledPrice = priceToSet;
 
@@ -330,6 +330,21 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             tradingStatus = TradingStatus.Idle;
         }
+
+        /// <summary>
+        /// Price is already be sure that > 100
+        /// </summary>
+        /// <param name="updatedPrice"></param>
+        protected virtual void OnMarketData_DoForPendingFill(double updatedPrice)
+        { 
+        
+        }
+
+        protected virtual void OnMarketData_DoForOrderExists(double updatedPrice)
+        {
+
+        }
+
 
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
@@ -360,6 +375,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}. TargetPrice: {TargetPrice_Full:N2}, " +
                         $"updatedPrice:{updatedPrice:N2}, StopLossPrice: {StopLossPrice:N2}, " +
                         $"buyPriceIsOutOfRange: {buyPriceIsOutOfRange}, :sellPriceIsOutOfRange: {sellPriceIsOutOfRange}. ");
+
+                    OnMarketData_DoForOrderExists(updatedPrice);
                 }
                 else
                 {
@@ -401,6 +418,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     LocalPrint($"Last TradingStatus: PendingFill, new TradingStatus: {TradingStatus}");
                 }
+
+                OnMarketData_DoForPendingFill(updatedPrice);
             }
         }
 

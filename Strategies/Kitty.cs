@@ -231,9 +231,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 || base.ShouldCancelPendingOrdersByTrendCondition();
         }
 
-        protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
+        protected override void OnMarketData_DoForPendingFill(double updatedPrice)
         {
-            base.OnMarketData(marketDataUpdate);
+            if ((IsBuying && updatedPrice >= TargetPrice_Half) || (IsSelling && updatedPrice <= TargetPrice_Half))
+            {
+                LocalPrint($"Cancel lệnh do hết điều kiện trade");
+                CancelAllPendingOrder(); 
+            }    
         }
     }
 }

@@ -49,11 +49,11 @@ namespace NinjaTrader.Custom.Strategies
             var ans = close < open;
             if (minBody.HasValue)
             {
-                ans = ans && (open - close > minBody.Value);
+                ans = ans && ((open - close) > minBody.Value);
             }
             if (maxBody.HasValue)
             {
-                ans = ans && (open - close < maxBody.Value);
+                ans = ans && ((open - close) < maxBody.Value);
             }
             return ans;
         }
@@ -70,7 +70,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <returns></returns>
         public static bool IsGreenCandle(double close, double open, double? minBody = 5, double? maxBody = 60, double? hi = null, double? low = null)
         {
-            var ans = close > open;
+            var ans = (close > open);
             if (minBody.HasValue)
             {
                 ans = ans && (close - open > minBody.Value); 

@@ -39,9 +39,31 @@ namespace NinjaTrader.NinjaScript.Strategies
         [TypeConverter(typeof(ATMStrategyConverter))]
         public bool AllowCancelWhenPriceMeetTarget1 { get; set; }
 
+
+        /// <summary>
+        /// ATM name for live trade.
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Default ATM Strategy", Description = "Default ATM Strategy", Order = 3,
+            GroupName = ATMStrategy_Group)]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public string RiskyAtmStrategyName { get; set; }
+
+        protected AtmStrategy RiskyAtmStrategy { get; set; }
+
         public Kitty() : base("KITTY")
         {
             FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyKitty.txt");
+        }
+
+        protected override void OnStateChange()
+        {
+            base.OnStateChange();
+
+            if (State == State.Configure)
+            {
+                RiskyAtmStrategy = StrategiesUtilities.ReadStrategyData(RiskyAtmStrategyName, Print).AtmStrategy;
+            }
         }
 
         protected override void SetDefaultProperties()
@@ -52,6 +74,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             Description = "[Kitty] là giải thuật [Rooster], được viết riêng cho my love, Phượng Phan.";
 
             AllowCancelWhenPriceMeetTarget1 = false;
+
+            RiskyAtmStrategyName = "Rooster_Risky";
         }       
         protected override TradeAction ShouldTrade()
         {
@@ -65,6 +89,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var currentWAE = waeValuesSeries[0];
             var previousWAE = waeValuesSeries[1];
+            var previous2WAE = waeValuesSeries[2];
 
             /*
              * Điều kiện vào lệnh (SELL) 
@@ -83,8 +108,13 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 11. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Cây nến ĐỎ và có open > lower bollinger (std=2) và có close < lower bollinger (std=2)
              */
 
-            var bottomToBody = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
-            var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, 5);
+            const int PERCENTAGE_WICK_TO_TRADE = 70;
+            const int RSI_TOO_BOUGHT = 70;
+            const int RSI_TOO_SOLD = 30;
+
+            var bottomToBodyPercent = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m); 
+            var bottomToBody = bottomToBodyPercent < PERCENTAGE_WICK_TO_TRADE;
+            var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m);
             
             var isPreviousGreen = CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m);
             var isPreviousRed = CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m);
@@ -108,25 +138,28 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Điều kiện về ngược trend: Cây nến đã vượt qua BollingerBand 
             var bodyPassBollingerDOWN = openPrice_5m > lowerStd2BB_5m && closePrice_5m < lowerStd2BB_5m;
 
+            var continueRedTrending = previousWAE.DownTrendVal > 0 || (previousWAE.UpTrendVal > 0 && previous2WAE.DownTrendVal > 0);
+
             var conditionForSell = currentWAE.HasBEARVolume && // 1 & 4
                 previousWAE.DownTrendVal > 0 && //2
                                                 //currentWAE.DownTrendVal > previousWAE.DownTrendVal && //3
                 isRedCandle && // 5 
                                //previousBody && // 6
-                rsi_5m > 30 // 7
-                            //bottomToBody && // 8
-                            //!previousIsGreenAndTooStrong_FORSELL && // 9 (Don't forget NOT)
-                            //!previousIsRedAndTooStrong_FORSELL && // 10 (Don't forget NOT)
-                            //!bodyPassBollingerDOWN // 11 (Don't forget NOT)
+                rsi_5m > RSI_TOO_SOLD // 7
+                                      //bottomToBody && // 8
+                                      //!previousIsGreenAndTooStrong_FORSELL && // 9 (Don't forget NOT)
+                                      //!previousIsRedAndTooStrong_FORSELL && // 10 (Don't forget NOT)
+                                      //!bodyPassBollingerDOWN // 11 (Don't forget NOT)
                 ;
 
             LocalPrint($@"
-                Điều kiện vào SELL: 
+                Điều kiện vào SELL (Close: [{closePrice_5m:N2}], Open:[{openPrice_5m:N2}], Body: {Math.Abs(closePrice_5m - openPrice_5m):N2}): 
                 1. Volume ĐỎ & cao hơn DeadZone: [{currentWAE.HasBEARVolume}],
-                2. 2 Volume ĐỎ liền nhau: [{previousWAE.DownTrendVal > 0}],                 
+                2. 2 Volume ĐỎ liền nhau hoặc 3 volume liền nhau thứ tự là ĐỎ - XANH - ĐỎ: [{continueRedTrending}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
                 5. Nến ĐỎ, Thân nến hiện tại > 5 points: [{isRedCandle}]                
-                7. RSI > 30 (Not oversold): [{rsi_5m > 30}],                 
+                7. RSI > {RSI_TOO_SOLD} (Not oversold): [{rsi_5m > RSI_TOO_SOLD}],                 
+                8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {bottomToBodyPercent}%): [{bottomToBody}].
                 FINAL: [{conditionForSell}]");
 
             if (conditionForSell)
@@ -152,8 +185,10 @@ namespace NinjaTrader.NinjaScript.Strategies
              *          (Cây nến trước đã MUA quá mạnh, cây nến vừa rồi lực MUA đã suy giảm nhiều, có khả năng đảo chiều) 
              * 11. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Cây nến XANH và có open < upper bollinger (std=2) và có close > upper bollinger (std=2)
              */
-            var isGreenCandle = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, 5);
-            var topToBody = CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) < 40;
+            var isGreenCandle = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m);
+
+            var topToBodyPercent = CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m);
+            var topToBody = topToBodyPercent < PERCENTAGE_WICK_TO_TRADE;
 
             var previousIsRedAndTooStrong_FORBUY = isPreviousRed && previousReverseAndTooStrong;
 
@@ -162,24 +197,27 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Điều kiện về ngược trend: Cây nến đã vượt qua BollingerBand 
             var bodyPassBollingerUP = openPrice_5m < upperStd2BB_5m && closePrice_5m > upperStd2BB_5m;
 
+            var continueGreenTrending = previousWAE.UpTrendVal > 0 || (previousWAE.DownTrendVal > 0 && previous2WAE.UpTrendVal > 0);
+
             var conditionForBuy = currentWAE.HasBULLVolume && // 1 & 4
                 previousWAE.UpTrendVal > 0 && //2
                                               //currentWAE.UpTrendVal > previousWAE.UpTrendVal && //3
                 isGreenCandle && // 5
                                  //previousBody &&   // 6                
-                rsi_5m < 70;// && // 7
+                rsi_5m < RSI_TOO_BOUGHT;// && // 7
                 //topToBody && //8
                 //!previousIsRedAndTooStrong_FORBUY &&  // 9 (Don't forget NOT)
                 //!previousIsGreenAndTooStrong_FORBUY && // 10 (Don't forget NOT)
                 //!bodyPassBollingerUP; // 11 (Don't forget NOT)
 
             LocalPrint($@"
-                Điều kiện vào BUY: 
+                Điều kiện vào BUY (Close: [{closePrice_5m:N2}], Open:[{openPrice_5m:N2}], Body: {Math.Abs(closePrice_5m - openPrice_5m):N2}): 
                 1. Volume XANH & cao hơn DeadZone: [{currentWAE.HasBULLVolume}],
-                2. 2 Volume XANH liền nhau: [{previousWAE.UpTrendVal > 0}],                 
+                2. 2 Volume XANH liền nhau hoặc 3 volume liền nhau thứ tự là XANH - ĐỎ - XANH: [{continueGreenTrending}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
                 5. Nến XANH, Thân nến hiện tại > 5 points: [{isGreenCandle}]                
-                7. RSI < 70 (Not overbought): [{rsi_5m < 70}],                 
+                7. RSI < {RSI_TOO_BOUGHT} (Not overbought): [{rsi_5m < RSI_TOO_BOUGHT}],
+                8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {topToBodyPercent}%): [{topToBody}].
                 FINAL: [{conditionForBuy}]");
 
             if (conditionForBuy)

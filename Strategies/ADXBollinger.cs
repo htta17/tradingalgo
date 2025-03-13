@@ -63,7 +63,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             FullSizeATMName = "Rooster_Default_4cts";
             HalfSizefATMName = "Rooster_Default_2cts";
 
-            ADXToEnterOrder = 18.5;
+            ADXToEnterOrder = 19.5;
             ADXToCancelOrder = 22;
 
             FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyADX.txt");
@@ -78,21 +78,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         //private DMI directMovement_5m { get; set; }
 
-        protected override bool IsBuying
-        { 
-            get 
-            { 
-                return CurrentTradeAction == ADXBollingerAction.SetBuyOrder; 
-            } 
-        }
+        protected override bool IsBuying => CurrentTradeAction == ADXBollingerAction.SetBuyOrder;
 
-        protected override bool IsSelling
-        {
-            get
-            {
-                return CurrentTradeAction == ADXBollingerAction.SetSellOrder;
-            }
-        }
+        protected override bool IsSelling => CurrentTradeAction == ADXBollingerAction.SetSellOrder;        
 
         protected double lowPrice_5m = -1;
         protected double highPrice_5m = -1;
@@ -114,17 +102,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			base.OnStateChange();
 
-            if (State == State.Configure)
-            {
-                ClearOutputWindow();
-                AddDataSeries(BarsPeriodType.Minute, 5);
-                AddDataSeries(BarsPeriodType.Minute, 1);
-
-                FullSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(FullSizeATMName).AtmStrategy;
-
-                HalfSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(HalfSizefATMName).AtmStrategy;
-            }
-            else if (State == State.DataLoaded)
+            if (State == State.DataLoaded)
             {
                 bollinger1Indicator_5m = Bollinger(1, 20);
                 bollinger1Indicator_5m.Plots[0].Brush = bollinger1Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
@@ -140,9 +118,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 AddChartIndicator(bollinger2Indicator_5m);
 
                 AddChartIndicator(adxIndicator_5m);
-            }
-            else if (State == State.Realtime)
-            {                
             }
         }
 

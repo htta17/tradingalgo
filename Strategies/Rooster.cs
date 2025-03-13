@@ -390,16 +390,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             base.OnStateChange();
 
-            if (State == State.Configure)
-            {
-                AddDataSeries(BarsPeriodType.Minute, 5);
-                AddDataSeries(BarsPeriodType.Minute, 1);
-
-                FullSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(FullSizeATMName).AtmStrategy;
-
-                HalfSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(HalfSizefATMName).AtmStrategy;
-            }
-            else if (State == State.DataLoaded )
+           if (State == State.DataLoaded )
             {
                 bollinger1Indicator_5m = Bollinger(1, 20);
                 bollinger1Indicator_5m.Plots[0].Brush = bollinger1Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;

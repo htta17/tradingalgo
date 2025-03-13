@@ -160,7 +160,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnStateChange()
         {
-            base.OnStateChange();
+            base.OnStateChange();            
 
             if (State == State.Configure)
             {
@@ -168,13 +168,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 AddDataSeries(BarsPeriodType.Minute, 5);
                 AddDataSeries(BarsPeriodType.Minute, 1);
 
-                FullSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(FullSizeATMName).AtmStrategy;
+                FullSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(FullSizeATMName, Print).AtmStrategy;
 
-                HalfSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(HalfSizefATMName).AtmStrategy;
+                HalfSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(HalfSizefATMName, Print).AtmStrategy;
+
+                Print($"FullSizeAtmStrategy: {FullSizeAtmStrategy.Name}, HalfSizeAtmStrategy: {HalfSizeAtmStrategy.Name}");                
             }
             else if (State == State.DataLoaded)
             {
-
+                // Mỗi giải thuật sẽ tự add data
             }
             else if (State == State.Realtime)
             {
@@ -197,15 +199,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                             OrderId = arr[1];
 
                             tradingStatus = CheckCurrentStatusBasedOnOrders();
-                            LocalPrint($"Initial status - {tradingStatus}");
+                            Print($"Initial status - {tradingStatus}");
                         }
                     }
                     catch (Exception e)
                     {
                         Print(e.Message);
                     }
-                }
-            }
+                }                
+            }            
         }
 
         protected void SaveAtmStrategyIdToFile(string strategyId, string orderId)

@@ -324,7 +324,7 @@ namespace NinjaTrader.Custom.Strategies
         }
 
         protected override void OnStateChange()
-        {
+        {   
             if (State == State.SetDefaults)
             {
                 Description = @"Based Class for all Strategies which is triggered to execute with [Calculate] is [OnBarClose].";
@@ -354,7 +354,7 @@ namespace NinjaTrader.Custom.Strategies
             {
                 try
                 {
-                    ClearOutputWindow();
+                    //ClearOutputWindow();
 
                     var newsFromFile = ReadNewsInfoFromFile();
 
@@ -386,7 +386,7 @@ namespace NinjaTrader.Custom.Strategies
                 {
                     LocalPrint("[OnStateChange] - ERROR" + e.Message);
                 }
-            }
+            }         
         }
 
         protected virtual void CancelAllPendingOrder()

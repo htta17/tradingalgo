@@ -211,7 +211,7 @@ namespace NinjaTrader.Custom.Strategies
         }
 
         public static string ATMFolderName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "NinjaTrader 8\\templates\\AtmStrategy");
-        public static NinjaTraderConfig ReadStrategyData(string strategyName)
+        public static NinjaTraderConfig ReadStrategyData(string strategyName, Action<string> action = null)
         {
             var xmlFilePath = $"{ATMFolderName}\\{strategyName}.xml";
 
@@ -225,6 +225,10 @@ namespace NinjaTrader.Custom.Strategies
             }
             catch (Exception ex)
             {
+                if (action != null)
+                {
+                    action(ex.Message);
+                }
             }
             return null;
         }

@@ -319,7 +319,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             TargetPrice_Full = targetFull;
 
-            LocalPrint($@"Enter {action} at {Time[0]}. Price to set: {priceToSet:N2}, StopLossPrice: {StopLossPrice:N2}, Target 1: {TargetPrice_Half:N2}Target Full: {TargetPrice_Full:N2}");
+            LocalPrint($@"Enter {action}. Price to set: {priceToSet:N2}, StopLossPrice: {StopLossPrice:N2}, Target 1: {TargetPrice_Half:N2}, Target Full: {TargetPrice_Full:N2}");
 
             try
             {

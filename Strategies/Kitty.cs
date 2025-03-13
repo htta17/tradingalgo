@@ -230,14 +230,5 @@ namespace NinjaTrader.NinjaScript.Strategies
                 || (IsSelling && reverseGreen)  // Đang có lệnh BÁN nhưng lại xuất hiện nến XANH
                 || base.ShouldCancelPendingOrdersByTrendCondition();
         }
-
-        protected override void OnMarketData_DoForPendingFill(double updatedPrice)
-        {
-            if ((IsBuying && updatedPrice >= TargetPrice_Half) || (IsSelling && updatedPrice <= TargetPrice_Half))
-            {
-                LocalPrint($"Cancel lệnh do hết điều kiện trade");
-                CancelAllPendingOrder(); 
-            }    
-        }
     }
 }

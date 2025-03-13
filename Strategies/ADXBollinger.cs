@@ -80,7 +80,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override bool IsBuying => CurrentTradeAction == ADXBollingerAction.SetBuyOrder;
 
-        protected override bool IsSelling => CurrentTradeAction == ADXBollingerAction.SetSellOrder;        
+        protected override bool IsSelling => CurrentTradeAction == ADXBollingerAction.SetSellOrder;
 
         protected double lowPrice_5m = -1;
         protected double highPrice_5m = -1;
@@ -203,8 +203,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                                 LocalPrint($"Update entry price to {newPrice:N2}.");
 
-                                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full);
-                                
+                                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
                             }
                             else
                             {
@@ -227,7 +226,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 openPrice_5m = Open[0];
                 closePrice_5m = Close[0];
 
-                adx_5m = adxIndicator_5m.Value[0];                
+                adx_5m = adxIndicator_5m.Value[0];
 
                 diPlus_5m = DM(14).DiPlus[0];
                 diMinus_5m = DM(14).DiMinus[0];

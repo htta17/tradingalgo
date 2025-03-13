@@ -48,7 +48,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
             if (State == State.SetDefaults)
             {
-                AddPlot(Brushes.DarkCyan, "ADX");
+                AddPlot(Brushes.Goldenrod, "ADX");
 
                 AddPlot(Brushes.Green, "DI+");
                 AddPlot(Brushes.Red, "DI-");
@@ -93,7 +93,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             Values[1][0] = diPlus;
             Values[2][0] = diMinus;
         }
-	}
+    }
 }
 
 #region NinjaScript generated code. Neither change nor remove.

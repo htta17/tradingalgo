@@ -41,14 +41,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Enter order  ADX < ?:", Order = 2, GroupName = "Trading Parameters")]
-        public int ADXToEnterOrder { get; set; }
+        public double ADXToEnterOrder { get; set; }
 
         /// <summary>
         /// ADX khung 5 phút > [ADXToCancelOrder] thì cancel lệnh LIMIT
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Vào lệnh nếu ADX < ?:", Order = 2, GroupName = "Trading Parameters")]
-        public int ADXToCancelOrder { get; set; }
+        public double ADXToCancelOrder { get; set; }
         #endregion       
 
         protected override void SetDefaultProperties()
@@ -63,15 +63,20 @@ namespace NinjaTrader.NinjaScript.Strategies
             FullSizeATMName = "Rooster_Default_4cts";
             HalfSizefATMName = "Rooster_Default_2cts";
 
-            ADXToEnterOrder = 22;
-            ADXToCancelOrder = 24;
+            ADXToEnterOrder = 18.5;
+            ADXToCancelOrder = 22;
 
             FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyADX.txt");
+
+            MaximumDailyLoss = 260;
+            DailyTargetProfit = 600;
         }
         
         private Bollinger bollinger1Indicator_5m { get; set; }
         private Bollinger bollinger2Indicator_5m { get; set; }
         private ADX adxIndicator_5m { get; set; }
+
+        //private DMI directMovement_5m { get; set; }
 
         protected override bool IsBuying
         { 
@@ -96,6 +101,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double openPrice_5m = -1;
 
         protected double adx_5m = -1;
+        protected double diPlus_5m = -1;
+        protected double diMinus_5m = -1;
 
         protected double upperBB_5m = -1;
         protected double lowerBB_5m = -1;
@@ -127,7 +134,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 bollinger2Indicator_5m.Plots[0].Brush = bollinger2Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
                 bollinger2Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
 
-                adxIndicator_5m = ADX(14);                
+                adxIndicator_5m = ADX(14);
 
                 AddChartIndicator(bollinger1Indicator_5m);
                 AddChartIndicator(bollinger2Indicator_5m);
@@ -135,7 +142,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 AddChartIndicator(adxIndicator_5m);
             }
             else if (State == State.Realtime)
-            {
+            {                
             }
         }
 
@@ -243,7 +250,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 openPrice_5m = Open[0];
                 closePrice_5m = Close[0];
 
-                adx_5m = adxIndicator_5m.Value[0];
+                adx_5m = adxIndicator_5m.Value[0];                
+
+                diPlus_5m = DM(14).DiPlus[0];
+                diMinus_5m = DM(14).DiMinus[0];
 
                 upperBB_5m = bollinger1Indicator_5m.Upper[0];
                 lowerBB_5m = bollinger1Indicator_5m.Lower[0];
@@ -255,6 +265,19 @@ namespace NinjaTrader.NinjaScript.Strategies
                 LocalPrint($"Update 5 minutes values: adx_5m {adx_5m:N2}, upperStd2BB_5m: {upperStd2BB_5m:N2}, lowerStd2BB_5m: {lowerStd2BB_5m:N2}.");
 
                 CurrentBarIndex_5m = CurrentBar;
+
+                /*
+                if (TradingStatus == TradingStatus.OrderExists) 
+                {
+                    if (IsBuying && TargetPrice_Half > upperBB_5m + 2)
+                    {
+
+                    }
+                    else if (IsSelling && TargetPrice_Half < lowerBB_5m - 2)
+                    { 
+                    }
+                }
+                */
             }
         }
         protected override double GetSetPrice(ADXBollingerAction tradeAction, AtmStrategy atmStrategy)
@@ -268,33 +291,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return StrategiesUtilities.RoundPrice(upperStd2BB_5m);
             }
             return StrategiesUtilities.RoundPrice(middleBB_5m);
-        }
-
-        protected override double GetStopLossPrice(ADXBollingerAction tradeAction, double setPrice, AtmStrategy atmStrategy)
-        {
-            var stopLoss = StopLossInTicks * TickSize;
-
-            return tradeAction == ADXBollingerAction.SetBuyOrder
-                ? setPrice - stopLoss
-                : setPrice + stopLoss;
-        }
-
-        protected override double GetTargetPrice_Half(ADXBollingerAction tradeAction, double setPrice, AtmStrategy atmStrategy)
-        {
-            var target1 = TickSize * Target1InTicks; 
-
-            return tradeAction == ADXBollingerAction.SetBuyOrder
-                ? setPrice + target1
-                : setPrice - target1; 
-        }
-
-        protected override double GetTargetPrice_Full(ADXBollingerAction tradeAction, double setPrice, AtmStrategy atmStrategy)
-        {
-            var target2 = TickSize * Target2InTicks;
-
-            return tradeAction == ADXBollingerAction.SetBuyOrder
-                ? setPrice + target2
-                : setPrice - target2;
         }
 
         protected override ADXBollingerAction ShouldTrade()

@@ -83,12 +83,15 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double waeExplosion_5m = -1;
         protected double waeUptrend_5m = -1;
         protected double waeDowntrend_5m = -1;
-
-        protected Series<double> deadZoneSeries;
+        
         protected Series<WAE_ValueSet> waeValuesSeries;
 
-        private Bollinger bollinger1Indicator_5m { get; set; }
-        private Bollinger bollinger2Indicator_5m { get; set; }
+        #region Indicators
+        private Bollinger Bollinger1Indicator_5m { get; set; }
+        private Bollinger Bollinger2Indicator_5m { get; set; }
+        private WaddahAttarExplosion WAEIndicator_5m { get; set; } 
+        private RSI RSIIndicator_5m { get; set; }
+        #endregion
         #endregion
 
         protected virtual bool ShouldCancelPendingOrdersByTrendCondition()
@@ -173,51 +176,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <returns></returns>
         private WAE_ValueSet FindWaddahAttarExplosion()
         {
-            int sensitivity = 150;
-            int fastLength = 20;
-            int slowLength = 40;
-            int channelLength = 20;
-            double mult = 2.0;
-
-            // WAE
-            // Calculate Typical Price
-            double typicalPrice = (High[0] + Low[0] + Close[0]) / 3.0;
-
-            // Calculate True Range and store it in a Series
-            double trueRange = Math.Max(High[0] - Low[0], Math.Max(Math.Abs(High[0] - Close[1]), Math.Abs(Low[0] - Close[1])));
-            deadZoneSeries[0] = trueRange; // Initialize the first value
-
-            // Calculate smoothed ATR using EMA of the True Range Series
-            double smoothedATR = EMA(deadZoneSeries, 100)[0];
-
-            // Dead Zone
-            double deadZone = smoothedATR * 3.7;
-
-            // MACD Difference Calculation
-            double fastEMA = EMA(Close, fastLength)[0];
-            double slowEMA = EMA(Close, slowLength)[0];
-            double prevFastEMA = EMA(Close, fastLength)[1];
-            double prevSlowEMA = EMA(Close, slowLength)[1];
-
-            double macd = fastEMA - slowEMA;
-            double prevMacd = prevFastEMA - prevSlowEMA;
-            double trendCalculation = (macd - prevMacd) * sensitivity;
-
-            // Bollinger Bands Calculation
-            double bbBasis = SMA(Close, channelLength)[0];
-            double bbDev = mult * StdDev(Close, channelLength)[0];
-            double bbUpperVal = bbBasis + bbDev;
-            double bbLowerVal = bbBasis - bbDev;
-
-            // Explosion Line
-            double explosionValue = bbUpperVal - bbLowerVal;
-
             return new WAE_ValueSet
             {
-                DeadZoneVal = deadZone,
-                DownTrendVal = trendCalculation < 0 ? -trendCalculation : 0,
-                ExplosionVal = explosionValue,
-                UpTrendVal = trendCalculation >= 0 ? trendCalculation : 0
+                DeadZoneVal = WAEIndicator_5m.Values[3][0],
+                DownTrendVal = WAEIndicator_5m.Values[1][0],
+                ExplosionVal = WAEIndicator_5m.Values[2][0],
+                UpTrendVal = WAEIndicator_5m.Values[0][0]
             };
         }
 
@@ -312,7 +276,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var bollinger = Bollinger(1, 20);
                 var bollingerStd2 = Bollinger(2, 20);
 
-                rsi_5m = RSI(14, 3)[0];
+                rsi_5m = RSIIndicator_5m[0];
 
                 volume_5m = Volume[0];
                 avgEMAVolume_5m = EMA(Volume, FiveMinutes_Period)[0];
@@ -392,19 +356,25 @@ namespace NinjaTrader.NinjaScript.Strategies
 
            if (State == State.DataLoaded )
             {
-                bollinger1Indicator_5m = Bollinger(1, 20);
-                bollinger1Indicator_5m.Plots[0].Brush = bollinger1Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
-                bollinger1Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
+                Bollinger1Indicator_5m = Bollinger(1, 20);
+                Bollinger1Indicator_5m.Plots[0].Brush = Bollinger1Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
+                Bollinger1Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
 
-                bollinger2Indicator_5m = Bollinger(2, 20);
-                bollinger2Indicator_5m.Plots[0].Brush = bollinger2Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
-                bollinger2Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
+                Bollinger2Indicator_5m = Bollinger(2, 20);
+                Bollinger2Indicator_5m.Plots[0].Brush = Bollinger2Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
+                Bollinger2Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
 
-                deadZoneSeries = new Series<double>(this);
                 waeValuesSeries = new Series<WAE_ValueSet>(this);
 
-                AddChartIndicator(bollinger1Indicator_5m);
-                AddChartIndicator(bollinger2Indicator_5m);
+                WAEIndicator_5m = WaddahAttarExplosion();
+
+                RSIIndicator_5m = RSI(14, 3);
+
+                AddChartIndicator(Bollinger1Indicator_5m);
+                AddChartIndicator(Bollinger2Indicator_5m);
+                
+                AddChartIndicator(WAEIndicator_5m);
+                AddChartIndicator(RSIIndicator_5m);
             }            
         }
 

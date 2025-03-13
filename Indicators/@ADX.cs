@@ -52,8 +52,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Period						= 14;
 
 				AddPlot(Brushes.DarkCyan,		NinjaTrader.Custom.Resource.NinjaScriptIndicatorNameADX);
-				AddLine(Brushes.SlateBlue,	19.5,	NinjaTrader.Custom.Resource.NinjaScriptIndicatorLower);
-				AddLine(Brushes.Goldenrod,	22,	NinjaTrader.Custom.Resource.NinjaScriptIndicatorUpper);
+				AddLine(Brushes.SlateBlue,	25,	NinjaTrader.Custom.Resource.NinjaScriptIndicatorLower);
+				AddLine(Brushes.Goldenrod,	75,	NinjaTrader.Custom.Resource.NinjaScriptIndicatorUpper);
 			}
 			else if (State == State.DataLoaded)
 			{

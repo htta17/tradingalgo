@@ -29,6 +29,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public class Kitty : Rooster
 	{
+        /// <summary>
+        /// ATM name for live trade.
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Cancel lệnh chờ nếu giá chạm Target 1",
+            Description = "Cancel lệnh chờ nếu giá chạm Target 1",
+            Order = 2, GroupName = ATMStrategy_Group)]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public bool AllowCancelWhenPriceMeetTarget1 { get; set; }
+
         public Kitty() : base("KITTY")
         {
             FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyKitty.txt");
@@ -39,7 +49,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
 
             Name = "Kitty";
-            Description = "[Kitty] là giải thuật [Rooster], được viết riêng cho my love Phượng Phan.";
+            Description = "[Kitty] là giải thuật [Rooster], được viết riêng cho my love, Phượng Phan.";
+
+            AllowCancelWhenPriceMeetTarget1 = false;
         }       
         protected override TradeAction ShouldTrade()
         {
@@ -230,5 +242,24 @@ namespace NinjaTrader.NinjaScript.Strategies
                 || (IsSelling && reverseGreen)  // Đang có lệnh BÁN nhưng lại xuất hiện nến XANH
                 || base.ShouldCancelPendingOrdersByTrendCondition();
         }
+        protected override void OnMarketData_DoForPendingFill(double updatedPrice)
+        {
+            if (!AllowCancelWhenPriceMeetTarget1)
+            {
+                return;
+            }
+
+            if ((IsBuying && updatedPrice > TargetPrice_Half))
+            {
+                LocalPrint($"Cancel lệnh BUY do giá đã chạm target 1. Giá hiện tại: {updatedPrice:N2}, TargetPrice_Half: {TargetPrice_Half:N2}");
+                CancelAllPendingOrder(); 
+            }
+            else if (IsSelling && updatedPrice < TargetPrice_Half)
+            {
+                LocalPrint($"Cancel lệnh SELL do giá đã chạm target 1. Giá hiện tại: {updatedPrice:N2}, TargetPrice_Half: {TargetPrice_Half:N2}");
+                CancelAllPendingOrder();
+            }
+        }
     }
+
 }

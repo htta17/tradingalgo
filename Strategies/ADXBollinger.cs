@@ -74,9 +74,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         
         private Bollinger bollinger1Indicator_5m { get; set; }
         private Bollinger bollinger2Indicator_5m { get; set; }
-        private ADX adxIndicator_5m { get; set; }
+        //private ADX adxIndicator_5m { get; set; }
 
-        //private DMI directMovement_5m { get; set; }
+        private ADXandDI ADXandDIIndicator_5m { get; set; }        
 
         protected override bool IsBuying => CurrentTradeAction == ADXBollingerAction.SetBuyOrder;
 
@@ -112,12 +112,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 bollinger2Indicator_5m.Plots[0].Brush = bollinger2Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
                 bollinger2Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
 
-                adxIndicator_5m = ADX(14);
+                //adxIndicator_5m = ADX(14);
+                ADXandDIIndicator_5m = ADXandDI(14, ADXToEnterOrder, ADXToCancelOrder);
 
                 AddChartIndicator(bollinger1Indicator_5m);
                 AddChartIndicator(bollinger2Indicator_5m);
 
-                AddChartIndicator(adxIndicator_5m);
+                //AddChartIndicator(adxIndicator_5m);
+                AddChartIndicator(ADXandDIIndicator_5m);
             }
         }
 
@@ -226,7 +228,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 openPrice_5m = Open[0];
                 closePrice_5m = Close[0];
 
-                adx_5m = adxIndicator_5m.Value[0];
+                adx_5m = ADXandDIIndicator_5m.Value[0];
 
                 diPlus_5m = DM(14).DiPlus[0];
                 diMinus_5m = DM(14).DiMinus[0];

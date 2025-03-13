@@ -110,28 +110,23 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var conditionForSell = currentWAE.HasBEARVolume && // 1 & 4
                 previousWAE.DownTrendVal > 0 && //2
-                currentWAE.DownTrendVal > previousWAE.DownTrendVal && //3
+                                                //currentWAE.DownTrendVal > previousWAE.DownTrendVal && //3
                 isRedCandle && // 5 
-                //previousBody && // 6
-                rsi_5m > 30 && // 7
-                bottomToBody && // 8
-                !previousIsGreenAndTooStrong_FORSELL && // 9 (Don't forget NOT)
-                !previousIsRedAndTooStrong_FORSELL && // 10 (Don't forget NOT)
-                !bodyPassBollingerDOWN; // 11 (Don't forget NOT)
+                               //previousBody && // 6
+                rsi_5m > 30 // 7
+                            //bottomToBody && // 8
+                            //!previousIsGreenAndTooStrong_FORSELL && // 9 (Don't forget NOT)
+                            //!previousIsRedAndTooStrong_FORSELL && // 10 (Don't forget NOT)
+                            //!bodyPassBollingerDOWN // 11 (Don't forget NOT)
+                ;
 
             LocalPrint($@"
                 Điều kiện vào SELL: 
                 1. Volume ĐỎ & cao hơn DeadZone: [{currentWAE.HasBEARVolume}],
-                2. 2 Volume ĐỎ liền nhau: [{previousWAE.DownTrendVal > 0}], 
-                3. Volume sau cao hơn volume trước: [{currentWAE.DownTrendVal > previousWAE.DownTrendVal}], 
+                2. 2 Volume ĐỎ liền nhau: [{previousWAE.DownTrendVal > 0}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến ĐỎ, Thân nến hiện tại > 5 points: [{isRedCandle}]
-                6. (NOT IN USE)  Thân cây nến trước không quá 60pts
-                7. RSI > 30 (Not oversold): [{rsi_5m > 30}], 
-                8. Râu nến phía DƯỚI không quá 40% toàn cây nến: [{bottomToBody}].
-                9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH và có body > 50% cây nến gần nhất.[{!previousIsGreenAndTooStrong_FORSELL}] {additionalText}
-                10. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ, body của cây nến gần nhất < 30% cây nến trước. [{!previousIsRedAndTooStrong_FORSELL}]
-                11. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Cây nến ĐỎ và có open > lower bollinger (std=2) và có close < lower bollinger (std=2): [{!bodyPassBollingerDOWN}]
+                5. Nến ĐỎ, Thân nến hiện tại > 5 points: [{isRedCandle}]                
+                7. RSI > 30 (Not oversold): [{rsi_5m > 30}],                 
                 FINAL: [{conditionForSell}]");
 
             if (conditionForSell)
@@ -169,28 +164,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var conditionForBuy = currentWAE.HasBULLVolume && // 1 & 4
                 previousWAE.UpTrendVal > 0 && //2
-                currentWAE.UpTrendVal > previousWAE.UpTrendVal && //3
+                                              //currentWAE.UpTrendVal > previousWAE.UpTrendVal && //3
                 isGreenCandle && // 5
-                //previousBody &&   // 6                
-                rsi_5m < 70 && // 7
-                topToBody && //8
-                !previousIsRedAndTooStrong_FORBUY &&  // 9 (Don't forget NOT)
-                !previousIsGreenAndTooStrong_FORBUY && // 10 (Don't forget NOT)
-                !bodyPassBollingerUP; // 11 (Don't forget NOT)
+                                 //previousBody &&   // 6                
+                rsi_5m < 70;// && // 7
+                //topToBody && //8
+                //!previousIsRedAndTooStrong_FORBUY &&  // 9 (Don't forget NOT)
+                //!previousIsGreenAndTooStrong_FORBUY && // 10 (Don't forget NOT)
+                //!bodyPassBollingerUP; // 11 (Don't forget NOT)
 
             LocalPrint($@"
                 Điều kiện vào BUY: 
                 1. Volume XANH & cao hơn DeadZone: [{currentWAE.HasBULLVolume}],
-                2. 2 Volume XANH liền nhau: [{previousWAE.UpTrendVal > 0}], 
-                3. Volume sau cao hơn volume trước: [{currentWAE.UpTrendVal > previousWAE.UpTrendVal}], 
+                2. 2 Volume XANH liền nhau: [{previousWAE.UpTrendVal > 0}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến XANH, Thân nến hiện tại > 5 points: [{isGreenCandle}]
-                6. (NOT IN USE) Thân cây nến trước không quá 60pts.
-                7. RSI < 70 (Not overbought): [{rsi_5m < 70}], 
-                8. Râu nến phía TRÊN không quá 40% toàn cây nến: [{topToBody}].
-                9. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ và có body > 50% cây nến gần nhất. [{!previousIsRedAndTooStrong_FORBUY}] {additionalText}, 
-                10. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH, body của cây nến gần nhất < 30% cây nến trước. [{!previousIsGreenAndTooStrong_FORBUY}]
-                11. KHÔNG ĐƯỢC THỎA MÃN điều kiện: Cây nến XANH và có open < upper bollinger (std=2) và có close > upper bollinger (std=2): [{!bodyPassBollingerUP}]
+                5. Nến XANH, Thân nến hiện tại > 5 points: [{isGreenCandle}]                
+                7. RSI < 70 (Not overbought): [{rsi_5m < 70}],                 
                 FINAL: [{conditionForBuy}]");
 
             if (conditionForBuy)

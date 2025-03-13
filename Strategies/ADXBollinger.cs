@@ -230,8 +230,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 adx_5m = ADXandDIIndicator_5m.Value[0];
 
-                diPlus_5m = DM(14).DiPlus[0];
-                diMinus_5m = DM(14).DiMinus[0];
+                diPlus_5m = ADXandDIIndicator_5m.Values[1][0];
+                diMinus_5m = ADXandDIIndicator_5m.Values[2][0];
 
                 upperBB_5m = bollinger1Indicator_5m.Upper[0];
                 lowerBB_5m = bollinger1Indicator_5m.Lower[0];

@@ -459,6 +459,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
+        /// <param name="atmStrategy">Giá đặt lệnh</param>
         /// <returns></returns>
         protected override double GetTargetPrice_Half(TradeAction tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
@@ -490,6 +491,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         /// <param name="tradeAction">Cách trade: Mua hay bán, Trending hay Reverse</param>
         /// <param name="setPrice">Giá đặt lệnh</param>
+        /// <param name="atmStrategy">Giá đặt lệnh</param>
         /// <returns></returns>
         protected override double GetTargetPrice_Full(TradeAction tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
@@ -508,6 +510,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             return StrategiesUtilities.RoundPrice(price);
         }
+
+        /// <summary>
+        /// Get Stop Loss Price
+        /// </summary>
+        /// <param name="tradeAction"></param>
+        /// <param name="setPrice"></param>
+        /// <param name="atmStrategy"></param>
+        /// <returns></returns>
         protected override double GetStopLossPrice(TradeAction tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
             // Get stop loss and target ID based on strategy 

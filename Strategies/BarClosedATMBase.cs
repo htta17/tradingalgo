@@ -172,7 +172,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 HalfSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(HalfSizefATMName, Print).AtmStrategy;
 
-                Print($"FullSizeAtmStrategy: {FullSizeAtmStrategy.Name}, HalfSizeAtmStrategy: {HalfSizeAtmStrategy.Name}");                
+                Print($"FullSizeAtmStrategy: [{FullSizeAtmStrategy.DisplayName}], HalfSizeAtmStrategy: [{HalfSizeAtmStrategy.DisplayName}]");
             }
             else if (State == State.DataLoaded)
             {
@@ -476,9 +476,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
 
-            var reachHalf = todaysPnL <= -MaximumDailyLoss / 2 || todaysPnL >= DailyTargetProfit / 2;
+            var reachHalf = 
+                (todaysPnL <= (-MaximumDailyLoss / 2)) || (todaysPnL >= (DailyTargetProfit / 2));
 
-            return reachHalf ? (FullSizeAtmStrategy, FullSizeATMName) : (HalfSizeAtmStrategy, HalfSizefATMName);
+            return reachHalf ? (HalfSizeAtmStrategy, HalfSizefATMName) : (FullSizeAtmStrategy, FullSizeATMName);
         }
 
         protected override double GetStopLossPrice(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)
@@ -493,6 +494,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override double GetTargetPrice_Half(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
             var targetTick_Half = IsBuying ? atmStrategy.Brackets.Min(c => c.Target) : atmStrategy.Brackets.Max(c => c.Target);
+
             return IsBuying ?
                 setPrice + targetTick_Half * TickSize :
                 setPrice - targetTick_Half * TickSize;

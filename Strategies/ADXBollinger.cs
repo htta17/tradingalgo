@@ -60,8 +60,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             tradingStatus = TradingStatus.Idle;
 
-            FullSizeATMName = "Rooster_Default_4cts";
-            HalfSizefATMName = "Rooster_Default_2cts";
+            FullSizeATMName = "Tiger_Default_4cts";
+            HalfSizefATMName = "Tiger_Default_2cts";
 
             ADXToEnterOrder = 19.5;
             ADXToCancelOrder = 22;
@@ -191,13 +191,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             if (shouldTrade == CurrentTradeAction)
                             {
-                                var newPrice = GetSetPrice(shouldTrade, null);
+                                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
+
+                                var newPrice = GetSetPrice(shouldTrade, atmStrategy);
                                 
-                                var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice,null);
+                                var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice, atmStrategy);
 
-                                var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice, null);
+                                var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice, atmStrategy);
 
-                                var targetPrice_Half = GetTargetPrice_Half(shouldTrade, newPrice, null);
+                                var targetPrice_Half = GetTargetPrice_Half(shouldTrade, newPrice, atmStrategy);
 
                                 LocalPrint($"Update entry price to {newPrice:N2}.");
 

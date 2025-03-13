@@ -354,8 +354,6 @@ namespace NinjaTrader.Custom.Strategies
             {
                 try
                 {
-                    //ClearOutputWindow();
-
                     var newsFromFile = ReadNewsInfoFromFile();
 
                     if (newsFromFile != string.Empty)

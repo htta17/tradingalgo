@@ -230,6 +230,20 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 adx_5m = ADXandDIIndicator_5m.Value[0];
 
+                var color = adx_5m < ADXToEnterOrder ? Brushes.Green : adx_5m > ADXToCancelOrder ? Brushes.Red : Brushes.DarkGoldenrod;
+
+                Draw.TextFixed(
+                    this,
+                    "ADX Val",
+                    $"ADX: {adx_5m:N2}",
+                    TextPosition.TopRight,
+                    color,            // Text color
+                    new SimpleFont("Arial", 12), // Font and size
+                    Brushes.DarkBlue,      // Background color
+                    Brushes.Transparent,      // Outline color
+                    0                         // Opacity (0 is fully transparent)
+                );
+
                 diPlus_5m = ADXandDIIndicator_5m.Values[1][0];
                 diMinus_5m = ADXandDIIndicator_5m.Values[2][0];
 

@@ -42,13 +42,13 @@ namespace NinjaTrader.NinjaScript.Indicators
         public double ThresholdUpper { get; set; } = 22;
 
         [Range(1, int.MaxValue), NinjaScriptProperty]
-        public double ThresholdLower { get; set; } = 19.5;
+        public double ThresholdLower { get; set; } = 18.5;
 
         protected override void OnStateChange()
 		{
             if (State == State.SetDefaults)
             {
-                AddPlot(Brushes.Goldenrod, "ADX");
+                AddPlot(new Stroke(Brushes.Red, DashStyleHelper.Dash, 1), PlotStyle.Dot, "ADX");
 
                 AddPlot(Brushes.Green, "DI+");
                 AddPlot(Brushes.Red, "DI-");

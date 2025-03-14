@@ -288,6 +288,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override ADXBollingerAction ShouldTrade()
         {
             var answer = ADXBollingerAction.NoTrade;
+            var description = ""; 
 
             if (adx_5m < ADXToEnterOrder) 
             {
@@ -299,9 +300,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     answer = ADXBollingerAction.SetBuyOrder;
                 }
+                else 
+                {
+                    description = " do toàn bộ cây nến có chạm đường Middle của Bollinger";
+                }
             }
 
-            LocalPrint($"[ShouldTrade]: adx_5m: {adx_5m:N2}, ADXToEnterOrder: {ADXToEnterOrder}, lowPrice_5m: {lowPrice_5m:N2}, middleBB_5m: {middleBB_5m:N2}, highPrice_5m: {highPrice_5m}, ans: {answer}. ");
+            LocalPrint($"Adx_5m: {adx_5m:N2}, ADXToEnterOrder: {ADXToEnterOrder}, lowPrice_5m: {lowPrice_5m:N2}, middleBB_5m: {middleBB_5m:N2}, highPrice_5m: {highPrice_5m}, should trade?: [{answer}] {description}. ");
 
             return answer; 
         }

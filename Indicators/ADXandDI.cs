@@ -48,13 +48,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
             if (State == State.SetDefaults)
             {
-                AddPlot(new Stroke(Brushes.Red, DashStyleHelper.Dash, 1), PlotStyle.Dot, "ADX");
+                AddPlot(new Stroke(Brushes.Goldenrod, DashStyleHelper.Dash, 2), PlotStyle.Line, "ADX");
 
                 AddPlot(Brushes.Green, "DI+");
                 AddPlot(Brushes.Red, "DI-");
                 
-                AddLine(Brushes.Green, ThresholdLower, "Enter");
-                AddLine(new Stroke(Brushes.Red, DashStyleHelper.Dash, 1), ThresholdUpper, "Cancel");
+                AddLine(new Stroke(Brushes.Green, DashStyleHelper.Dash, 1.5f), ThresholdLower, "Enter");
+                AddLine(new Stroke(Brushes.Red, DashStyleHelper.Dash, 1.5f), ThresholdUpper, "Cancel");
             }
             else if (State == State.DataLoaded)
             {

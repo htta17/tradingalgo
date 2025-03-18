@@ -292,11 +292,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (adx_5m < ADXToEnterOrder) 
             {
-                if (lowPrice_5m > middleBB_5m)
+                //if (lowPrice_5m > middleBB_5m)
+                if (closePrice_5m > middleBB_5m)
                 {
                     answer = ADXBollingerAction.SetSellOrder;
                 }
-                else if (highPrice_5m < middleBB_5m)
+                //else if (highPrice_5m < middleBB_5m)
+                else if (closePrice_5m < middleBB_5m)
                 {
                     answer = ADXBollingerAction.SetBuyOrder;
                 }

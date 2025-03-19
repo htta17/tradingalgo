@@ -39,12 +39,21 @@ namespace NinjaTrader.NinjaScript.Strategies
         [TypeConverter(typeof(ATMStrategyConverter))]
         public bool AllowCancelWhenPriceMeetTarget1 { get; set; }
 
+        /// <summary>
+        /// ATM name for live trade.
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Sử dụng thông tin RSI",
+            Description = "Nếu TRUE: Sử dụng điều kiện RSI overbought hoặc oversold kết hợp với các điều kiện hiện tại để vào lệnh",
+            Order = 2, GroupName = ATMStrategy_Group)]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public bool AllowUseRSIIndicator { get; set; }
 
         /// <summary>
         /// ATM name for live trade.
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Default ATM Strategy", Description = "Default ATM Strategy", Order = 3,
+        [Display(Name = "Ricky ATM Strategy", Description = "Ricky ATM Strategy", Order = 2,
             GroupName = ATMStrategy_Group)]
         [TypeConverter(typeof(ATMStrategyConverter))]
         public string RiskyAtmStrategyName { get; set; }
@@ -76,6 +85,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             AllowCancelWhenPriceMeetTarget1 = false;
 
             RiskyAtmStrategyName = "Rooster_Risky";
+            AllowUseRSIIndicator = false;
         }       
         protected override TradeAction ShouldTrade()
         {
@@ -128,7 +138,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var previousIsGreenAndTooStrong_FORSELL = isPreviousGreen && previousReverseAndTooStrong;
 
-            var previousIsRedAndTooStrong_FORSELL = isPreviousRed && previousContinueAndTooStrong; 
+            var previousIsRedAndTooStrong_FORSELL = isPreviousRed && previousContinueAndTooStrong;
+
+            var rsiTooSold = !AllowUseRSIIndicator || rsi_5m > RSI_TOO_SOLD; // Không dùng điều kiện RSI oversold hoặc nếu dùng thì phải thỏa mãn
+            var rsiTooSoldText = !AllowUseRSIIndicator ? "" : $"7. RSI > {RSI_TOO_SOLD} (Not oversold): [{rsi_5m > RSI_TOO_SOLD}],";
 
             var additionalText = @$"
                         prev: (close: {prev_closePrice_5m:N2}, open: {prev_openPrice_5m:N2}, body: {previousBodyLength:N2}), 
@@ -145,11 +158,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                                                 //currentWAE.DownTrendVal > previousWAE.DownTrendVal && //3
                 isRedCandle && // 5 
                                //previousBody && // 6
-                rsi_5m > RSI_TOO_SOLD // 7
-                                      //bottomToBody && // 8
-                                      //!previousIsGreenAndTooStrong_FORSELL && // 9 (Don't forget NOT)
-                                      //!previousIsRedAndTooStrong_FORSELL && // 10 (Don't forget NOT)
-                                      //!bodyPassBollingerDOWN // 11 (Don't forget NOT)
+                rsiTooSold // 7
+                           //bottomToBody && // 8
+                           //!previousIsGreenAndTooStrong_FORSELL && // 9 (Don't forget NOT)
+                           //!previousIsRedAndTooStrong_FORSELL && // 10 (Don't forget NOT)
+                           //!bodyPassBollingerDOWN // 11 (Don't forget NOT)
                 ;
 
             LocalPrint($@"
@@ -158,7 +171,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 2. 2 Volume ĐỎ liền nhau hoặc 3 volume liền nhau thứ tự là ĐỎ - XANH - ĐỎ: [{continueRedTrending}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
                 5. Nến ĐỎ, Thân nến hiện tại > 5 points: [{isRedCandle}]                
-                7. RSI > {RSI_TOO_SOLD} (Not oversold): [{rsi_5m > RSI_TOO_SOLD}],                 
+                {rsiTooSoldText}
                 8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {bottomToBodyPercent}%): [{bottomToBody}].
                 FINAL: [{conditionForSell}]");
 
@@ -199,12 +212,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var continueGreenTrending = previousWAE.UpTrendVal > 0 || (previousWAE.DownTrendVal > 0 && previous2WAE.UpTrendVal > 0);
 
+            var rsiTooBought = !AllowUseRSIIndicator || rsi_5m < RSI_TOO_BOUGHT; // Không dùng điều kiện RSI oversold hoặc nếu dùng thì phải thỏa mãn
+
+            var rsiTooBoughtText = !AllowUseRSIIndicator ? "" : $"7. RSI < {RSI_TOO_BOUGHT} (Not overbought): [{rsi_5m < RSI_TOO_BOUGHT}],"; // Không dùng điều kiện RSI oversold hoặc nếu dùng thì phải thỏa mãn
+
             var conditionForBuy = currentWAE.HasBULLVolume && // 1 & 4
                 previousWAE.UpTrendVal > 0 && //2
                                               //currentWAE.UpTrendVal > previousWAE.UpTrendVal && //3
                 isGreenCandle && // 5
                                  //previousBody &&   // 6                
-                rsi_5m < RSI_TOO_BOUGHT;// && // 7
+                rsiTooBought;// && // 7
                 //topToBody && //8
                 //!previousIsRedAndTooStrong_FORBUY &&  // 9 (Don't forget NOT)
                 //!previousIsGreenAndTooStrong_FORBUY && // 10 (Don't forget NOT)
@@ -216,7 +233,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 2. 2 Volume XANH liền nhau hoặc 3 volume liền nhau thứ tự là XANH - ĐỎ - XANH: [{continueGreenTrending}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
                 5. Nến XANH, Thân nến hiện tại > 5 points: [{isGreenCandle}]                
-                7. RSI < {RSI_TOO_BOUGHT} (Not overbought): [{rsi_5m < RSI_TOO_BOUGHT}],
+                {rsiTooBoughtText}
                 8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {topToBodyPercent}%): [{topToBody}].
                 FINAL: [{conditionForBuy}]");
 

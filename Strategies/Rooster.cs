@@ -32,10 +32,9 @@ namespace NinjaTrader.NinjaScript.Strategies
     {
         public Rooster(string name) : base(name) { }
 
-        public Rooster() : this("ROOSTER_ATM") { }
+        public Rooster() : this("ROOSTER") { }
 
         private const int DEMA_Period = 9;
-        private const int FiveMinutes_Period = 14;
 
         #region 1 minute values
         protected double ema21_1m = -1;
@@ -71,7 +70,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         // Volume 
         protected double volume_5m = -1;
-        protected double avgEMAVolume_5m = -1;
         protected double volumeBuy_5m = -1;
         protected double volumeSell_5m = -1;
 
@@ -91,6 +89,15 @@ namespace NinjaTrader.NinjaScript.Strategies
         private Bollinger Bollinger2Indicator_5m { get; set; }
         private WaddahAttarExplosion WAEIndicator_5m { get; set; } 
         private RSI RSIIndicator_5m { get; set; }
+
+        private MACD MACD_5m { get; set; }
+
+        private EMA EMA46_5m { get; set; }
+        private EMA EMA51_5m { get; set; }
+
+        // KeyLevels
+        protected List<double> KeyLevels = new List<double>();        
+
         #endregion
         #endregion
 
@@ -187,30 +194,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override TradeAction ShouldTrade()
         {
-            var currentWAE = waeValuesSeries[0];
-            var previousWAE = waeValuesSeries[1];
-
-            // Có 2 cây nến kề nhau có cùng volume
-            if (waeValuesSeries[0].HasBEARVolume && waeValuesSeries[1].DownTrendVal > 0)
-            {
-                FilledTime = Time[0];
-
-                // Volume tăng dần: Mua theo 1/2, 1/3 hoặc 1/4 cây nến trước. 
-
-                // Volume giảm dần: Mua theo Bollinger band, ema29/51
-
-                return TradeAction.Sell_Trending;
-            }
-            else if (waeValuesSeries[0].HasBULLVolume && waeValuesSeries[1].DownTrendVal > 0)
-            {
-                FilledTime = Time[0];
-
-                // Volume tăng dần: Mua theo 1/2, 1/3 hoặc 1/4 cây nến trước. 
-
-                // Volume giảm dần: Mua theo Bollinger band, ema29/51
-
-                return TradeAction.Buy_Trending;
-            }
+            
 
             return TradeAction.NoTrade;
         }
@@ -279,7 +263,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 rsi_5m = RSIIndicator_5m[0];
 
                 volume_5m = Volume[0];
-                avgEMAVolume_5m = EMA(Volume, FiveMinutes_Period)[0];
 
                 /*
                 adx_5m = ADX(FiveMinutes_Period).Value[0];
@@ -370,11 +353,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 RSIIndicator_5m = RSI(14, 3);
 
+                MACD_5m = MACD(12, 26, 9);
+
+                EMA46_5m = EMA(46);
+                EMA46_5m.Plots[0].Brush = Brushes.Red;
+
+                EMA51_5m = EMA(51);
+                EMA51_5m.Plots[0].Brush = Brushes.Orange;
+                EMA51_5m.Plots[0].DashStyleHelper = DashStyleHelper.Dash;
+
                 AddChartIndicator(Bollinger1Indicator_5m);
                 AddChartIndicator(Bollinger2Indicator_5m);
                 
                 AddChartIndicator(WAEIndicator_5m);
-                AddChartIndicator(RSIIndicator_5m);
+                AddChartIndicator(MACD_5m);
+                AddChartIndicator(EMA46_5m);
+                AddChartIndicator(EMA51_5m);
             }            
         }
 

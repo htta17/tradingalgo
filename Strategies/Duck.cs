@@ -468,15 +468,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 asianLow = double.MaxValue;
             }
 
-            // Define pre-market time range (12:00 AM to 8:30 AM CST)
-            if (ToTime(Time[0]) >= 0 && ToTime(Time[0]) < 83000)
+            // Define pre-market time range (2:00AM to 8:30 AM CST)
+            if (ToTime(Time[0]) >= 02_00_00 && ToTime(Time[0]) < 08_30_00)
             {
                 preMarketHigh = Math.Max(preMarketHigh, High[0]);
                 preMarketLow = Math.Min(preMarketLow, Low[0]);
                 preMarketMiddle = (preMarketLow + preMarketHigh) / 2;
             }
-            // Define Asian session time range (6:00 PM to 3:00 AM CST)
-            if (ToTime(Time[0]) >= 180000 || ToTime(Time[0]) < 30000)
+            // Define Asian session time range (9:00 PM to 7:00 AM CST)
+            if (ToTime(Time[0]) >= 21_00_00 || ToTime(Time[0]) < 07_00_00)
             {
                 asianHigh = Math.Max(asianHigh, High[0]);
                 asianLow = Math.Min(asianLow, Low[0]);
@@ -489,13 +489,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Draw.HorizontalLine(this, "PreMarketHigh", preMarketHigh, Brushes.Orange, DashStyleHelper.Solid, 1);
                 Draw.HorizontalLine(this, "PreMarketLow", preMarketLow, Brushes.Orange, DashStyleHelper.Solid, 1);
                 Draw.HorizontalLine(this, "PreMarketMiddle", preMarketMiddle, Brushes.Orange, DashStyleHelper.Dash, 1);
-            }
-            else if (ToTime(Time[0]) == 30000)
-            {
+
                 Draw.HorizontalLine(this, "AsianHigh", asianHigh, Brushes.Green, DashStyleHelper.Solid, 1);
                 Draw.HorizontalLine(this, "AsianLow", asianLow, Brushes.Green, DashStyleHelper.Solid, 1);
                 Draw.HorizontalLine(this, "AsianMiddle", asianMiddle, Brushes.Green, DashStyleHelper.Dash, 1);
-            }
+            }            
 
             lock (lockOjbject)
             {

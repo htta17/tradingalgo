@@ -174,6 +174,18 @@ namespace NinjaTrader.Custom.Strategies
 
         private readonly object lockOjbject = new Object();
 
+        protected double KeyLevel_AsianHigh = double.MinValue;
+        protected double KeyLevel_AsianLow = double.MaxValue;
+        protected double KeyLevel_AsianMiddle = double.MaxValue;
+
+        protected double KeyLevel_PreMarketHigh = double.MinValue;
+        protected double KeyLevel_PreMarketLow = double.MaxValue;
+        protected double KeyLevel_PreMarketMiddle = double.MaxValue;
+
+        protected double KeyLevel_YesterdayHigh = double.MinValue;
+        protected double KeyLevel_YesterdayLow = double.MaxValue;
+        protected double KeyLevel_YesterdayMiddle = double.MaxValue;
+
         /// <summary>
         /// Dùng để check xem có lệnh nào không
         /// </summary>
@@ -312,14 +324,77 @@ namespace NinjaTrader.Custom.Strategies
 
         protected override void OnBarUpdate()
         {
-            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1 && TradingStatus == TradingStatus.OrderExists) //1 minute
+            #region Add yesterday high/low, Asian high/low and Pre market high/low 
+            if (Bars.IsFirstBarOfSession)
             {
-                // Close all current orders nếu sau 3:50pm
-                var currentTime = ToTime(DateTime.Now);
-                if (currentTime >= 155000 && currentTime < 160000)
+                KeyLevel_YesterdayHigh = PriorDayOHLC().PriorHigh[0];
+                KeyLevel_YesterdayLow = PriorDayOHLC().PriorLow[0];
+                KeyLevel_YesterdayMiddle = (KeyLevel_YesterdayHigh + KeyLevel_YesterdayLow) / 2;
+                
+                /*
+                Draw.HorizontalLine(this, "YesterdayHigh", KeyLevel_YesterdayHigh, Brushes.Blue, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "YesterdayLow", KeyLevel_YesterdayLow, Brushes.Blue, DashStyleHelper.Solid, 1);
+                Draw.HorizontalLine(this, "YesterdayMiddle", KeyLevel_YesterdayMiddle, Brushes.Blue, DashStyleHelper.Dash, 1);
+                */
+            }
+            #endregion
+
+            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
+            {
+                #region Getting and draw some key levels
+                var time = ToTime(Time[0]); 
+
+                // Define Asian session time range (9:00 PM to 7:00 AM CST)
+                if (time >= 21_00_00 || time < 07_00_00 )
                 {
-                    CloseExistingOrders();
+                    // Reset at 21:00:00
+                    if (time == 21_00_00)
+                    {
+                        KeyLevel_AsianHigh = High[0];
+                        KeyLevel_AsianLow = Low[0];
+                    }
+                    KeyLevel_AsianHigh = Math.Max(KeyLevel_AsianHigh, High[0]);
+                    KeyLevel_AsianLow = Math.Min(KeyLevel_AsianLow, Low[0]);
+                    KeyLevel_AsianMiddle = (KeyLevel_AsianHigh + KeyLevel_AsianLow) / 2;
                 }
+
+                // Define pre-market time range (2:00AM to 8:30 AM CST)
+                if (time >= 02_00_00 && time < 08_30_00)
+                {
+                    // Reset at 21:00:00
+                    if (time == 21_00_00)
+                    {
+                        KeyLevel_PreMarketHigh = High[0];
+                        KeyLevel_PreMarketLow = Low[0];                        
+                    }
+                    KeyLevel_PreMarketHigh = Math.Max(KeyLevel_PreMarketHigh, High[0]);
+                    KeyLevel_PreMarketLow = Math.Min(KeyLevel_PreMarketLow, Low[0]);
+                    KeyLevel_PreMarketMiddle = (KeyLevel_PreMarketLow + KeyLevel_PreMarketHigh) / 2;
+                }
+
+                /*
+                if (time == 08_00_00)
+                {
+                    Draw.HorizontalLine(this, "PreMarketHigh", KeyLevel_PreMarketHigh, Brushes.Orange, DashStyleHelper.Solid, 1);
+                    Draw.HorizontalLine(this, "PreMarketLow", KeyLevel_PreMarketLow, Brushes.Orange, DashStyleHelper.Solid, 1);
+                    Draw.HorizontalLine(this, "PreMarketMiddle", KeyLevel_PreMarketMiddle, Brushes.Orange, DashStyleHelper.Dash, 1);
+
+                    Draw.HorizontalLine(this, "AsianHigh", KeyLevel_AsianHigh, Brushes.Green, DashStyleHelper.Solid, 1);
+                    Draw.HorizontalLine(this, "AsianLow", KeyLevel_AsianLow, Brushes.Green, DashStyleHelper.Solid, 1);
+                    Draw.HorizontalLine(this, "AsianMiddle", KeyLevel_AsianMiddle, Brushes.Green, DashStyleHelper.Dash, 1);
+                }
+                */
+                #endregion
+
+                if (TradingStatus == TradingStatus.OrderExists)
+                {
+                    // Close all current orders nếu sau 3:50pm
+                    var currentTime = ToTime(DateTime.Now);
+                    if (currentTime >= 155000 && currentTime < 160000)
+                    {
+                        CloseExistingOrders();
+                    }
+                }                
             }
         }
 

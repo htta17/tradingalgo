@@ -81,7 +81,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double waeExplosion_5m = -1;
         protected double waeUptrend_5m = -1;
         protected double waeDowntrend_5m = -1;
-        
+
+        // Fish trend value 
+        protected double middleEma4651_5m = -1;
+        protected double ema46_5m = -1;
+        protected double ema51_5m = -1;
+
         protected Series<WAE_ValueSet> waeValuesSeries;
 
         #region Indicators
@@ -94,6 +99,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private EMA EMA46_5m { get; set; }
         private EMA EMA51_5m { get; set; }
+
+        protected DateTime TouchEMA4651Time { get; set; } = DateTime.MinValue;
 
         // KeyLevels
         protected List<double> KeyLevels = new List<double>();        
@@ -269,6 +276,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 plusDI_5m = DM(FiveMinutes_Period).DiPlus[0];
                 minusDI_5m = DM(FiveMinutes_Period).DiMinus[0];
                 */
+                ema46_5m = EMA46_5m.Value[0];
+                ema46_5m = EMA46_5m.Value[0];
+                middleEma4651_5m = (EMA46_5m.Value[0] + EMA51_5m.Value[0]) / 2.0; 
 
                 upperBB_5m = bollinger.Upper[0];
                 lowerBB_5m = bollinger.Lower[0];
@@ -284,6 +294,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 highPrice_5m = High[0];
                 closePrice_5m = Close[0];
                 openPrice_5m = Open[0];
+
+                if ((lowPrice_5m < ema46_5m && highPrice_5m > ema46_5m) || (lowPrice_5m < ema51_5m && highPrice_5m > ema51_5m))
+                {
+                    TouchEMA4651Time = Time[0];
+                    LocalPrint($"Touch EMA46/51 at {TouchEMA4651Time}");
+                }    
 
                 prev_lowPrice_5m = Low[1];
                 prev_highPrice_5m = High[1];
@@ -359,7 +375,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 EMA46_5m.Plots[0].Brush = Brushes.Red;
 
                 EMA51_5m = EMA(51);
-                EMA51_5m.Plots[0].Brush = Brushes.Orange;
+                EMA51_5m.Plots[0].Brush = Brushes.DeepSkyBlue;
                 EMA51_5m.Plots[0].DashStyleHelper = DashStyleHelper.Dash;
 
                 AddChartIndicator(Bollinger1Indicator_5m);

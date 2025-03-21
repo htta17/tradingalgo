@@ -253,7 +253,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
                 double priceToSet = GetSetPrice(TradeAction.Buy_Trending, atmStrategy);
-                var target1 = atmStrategy.Brackets[0].Target * TickSize;                
+                var target1 = priceToSet + atmStrategy.Brackets[0].Target * TickSize;                
 
                 /*Cả [priceToSet] và [target1] phải ở cùng bên của  [middleEma4651_5m] thì mới trade*/
                 if ((target1 > middleEma4651_5m && priceToSet > middleEma4651_5m) || (target1 < middleEma4651_5m && priceToSet < middleEma4651_5m))

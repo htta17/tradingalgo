@@ -372,7 +372,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 MACD_5m = MACD(12, 26, 9);
 
                 EMA46_5m = EMA(46);
-                EMA46_5m.Plots[0].Brush = Brushes.Red;
+                EMA46_5m.Plots[0].Brush = Brushes.DarkOrange;
 
                 EMA51_5m = EMA(51);
                 EMA51_5m.Plots[0].Brush = Brushes.DeepSkyBlue;

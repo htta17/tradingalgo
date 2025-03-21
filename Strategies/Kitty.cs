@@ -328,6 +328,50 @@ namespace NinjaTrader.NinjaScript.Strategies
                 CancelAllPendingOrder();
             }
         }
+
+        protected override void MoveStopOrder(Order stopOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)
+        {
+            double newPrice = -1;
+            var allowMoving = false;
+            var stopOrderPrice = stopOrder.StopPrice;
+
+            // Dịch stop loss lên break even 
+            if (isBuying)
+            {
+                // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
+                if (StartMovingStoploss && stopOrderPrice > filledPrice && stopOrderPrice + PointToMoveLoss < updatedPrice)
+                {
+                    newPrice = updatedPrice - PointToMoveLoss;
+                    allowMoving = true;
+                }
+                else if (filledPrice <= stopOrderPrice && stopOrderPrice <= TargetPrice_Half && TargetPrice_Half + 7 < updatedPrice)
+                {
+                    newPrice = TargetPrice_Half; 
+                    allowMoving = true;
+                }                
+            }
+            else if (isSelling)
+            {
+                // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
+                if (StartMovingStoploss && stopOrderPrice < filledPrice && stopOrderPrice - PointToMoveLoss > updatedPrice)
+                {
+                    newPrice = updatedPrice + PointToMoveLoss;
+                    allowMoving = true;
+                }
+                else if (filledPrice >= stopOrderPrice && stopOrderPrice >= TargetPrice_Half && TargetPrice_Half - 7 > updatedPrice)
+                {
+                    newPrice = TargetPrice_Half;
+                    allowMoving = true;
+                }
+            }
+
+            if (allowMoving)
+            {
+                LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
+
+                MoveTargetOrStopOrder(newPrice, stopOrder, false, IsBuying ? "BUY" : "SELL", stopOrder.FromEntrySignal);
+            }
+        }
     }
 
 }

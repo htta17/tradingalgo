@@ -341,12 +341,27 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override bool IsBuying
         {
-            get { return CurrentTradeAction == TradeAction.Buy_Trending; }
+            get { return CurrentTradeAction == TradeAction.Buy_Trending || CurrentTradeAction == TradeAction.Buy_Reversal; }
         }
 
         protected override bool IsSelling
         {
-            get { return CurrentTradeAction == TradeAction.Sell_Trending; }
+            get { return CurrentTradeAction == TradeAction.Sell_Trending || CurrentTradeAction == TradeAction.Sell_Reversal; }
+        }
+
+        protected bool IsReverseTrade
+        {
+            get
+            {
+                return CurrentTradeAction == TradeAction.Sell_Reversal || CurrentTradeAction == TradeAction.Buy_Reversal;
+            }
+        }
+        protected bool IsTrendingTrade
+        {
+            get
+            {
+                return CurrentTradeAction == TradeAction.Buy_Trending || CurrentTradeAction == TradeAction.Sell_Trending;
+            }
         }
 
         protected override void OnStateChange()

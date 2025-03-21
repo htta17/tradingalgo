@@ -86,7 +86,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             RiskyAtmStrategyName = "Rooster_Risky";
             AllowUseRSIIndicator = false;
-        }       
+        }
         protected override TradeAction ShouldTrade()
         {
             var time = ToTime(Time[0]);
@@ -101,6 +101,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var previousWAE = waeValuesSeries[1];
             var previous2WAE = waeValuesSeries[2];
 
+            #region Trend SELL 
             /*
              * Điều kiện vào lệnh (SELL) 
              * 1. Volume ĐỎ, 
@@ -122,19 +123,19 @@ namespace NinjaTrader.NinjaScript.Strategies
             const int RSI_TOO_BOUGHT = 70;
             const int RSI_TOO_SOLD = 30;
 
-            var bottomToBodyPercent = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m); 
+            var bottomToBodyPercent = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m);
             var bottomToBody = bottomToBodyPercent < PERCENTAGE_WICK_TO_TRADE;
             var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m);
-            
+
             var isPreviousGreen = CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m);
             var isPreviousRed = CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m);
 
             var previousBodyLength = Math.Abs(prev_openPrice_5m - prev_closePrice_5m);
-            var currentBodyLength = Math.Abs(closePrice_5m - openPrice_5m); 
+            var currentBodyLength = Math.Abs(closePrice_5m - openPrice_5m);
 
             var previousReverseAndTooStrong = previousBodyLength >= (0.5 * currentBodyLength);
 
-            var previousContinueAndTooStrong = (previousBodyLength * 0.3) >= currentBodyLength; 
+            var previousContinueAndTooStrong = (previousBodyLength * 0.3) >= currentBodyLength;
 
             var previousIsGreenAndTooStrong_FORSELL = isPreviousGreen && previousReverseAndTooStrong;
 
@@ -146,7 +147,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var additionalText = @$"
                         prev: (close: {prev_closePrice_5m:N2}, open: {prev_openPrice_5m:N2}, body: {previousBodyLength:N2}), 
                         current: (close: {closePrice_5m:N2}, open: {openPrice_5m:N2}, body: {currentBodyLength:N2}),  
-                        Previous red: {isPreviousRed}, Previous green: {isPreviousGreen}" ;
+                        Previous red: {isPreviousRed}, Previous green: {isPreviousGreen}";
 
             // Điều kiện về ngược trend: Cây nến đã vượt qua BollingerBand 
             var bodyPassBollingerDOWN = openPrice_5m > lowerStd2BB_5m && closePrice_5m < lowerStd2BB_5m;
@@ -177,7 +178,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (conditionForSell)
             {
-                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();                
+                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
                 double priceToSet = GetSetPrice(TradeAction.Sell_Trending, atmStrategy);
                 var target1 = priceToSet - atmStrategy.Brackets[0].Target * TickSize;
 
@@ -188,12 +189,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     return TradeAction.Sell_Trending;
                 }
-                else 
+                else
                 {
                     LocalPrint($"Có điều kiện để vào SELL nhưng gần với đường EMA46/51 --> No Trade for SELL");
-                }                     
+                }
             }
+            #endregion
 
+            #region Trend BUY
             /*
              * Điều kiện vào lệnh (BUY) 
              * 1. Volume XANH, 
@@ -234,10 +237,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 isGreenCandle && // 5
                                  //previousBody &&   // 6                
                 rsiTooBought;// && // 7
-                //topToBody && //8
-                //!previousIsRedAndTooStrong_FORBUY &&  // 9 (Don't forget NOT)
-                //!previousIsGreenAndTooStrong_FORBUY && // 10 (Don't forget NOT)
-                //!bodyPassBollingerUP; // 11 (Don't forget NOT)
+                             //topToBody && //8
+                             //!previousIsRedAndTooStrong_FORBUY &&  // 9 (Don't forget NOT)
+                             //!previousIsGreenAndTooStrong_FORBUY && // 10 (Don't forget NOT)
+                             //!bodyPassBollingerUP; // 11 (Don't forget NOT)
 
             LocalPrint($@"
                 Điều kiện vào BUY (Close: [{closePrice_5m:N2}], Open:[{openPrice_5m:N2}], Body: {Math.Abs(closePrice_5m - openPrice_5m):N2}): 
@@ -253,7 +256,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
                 double priceToSet = GetSetPrice(TradeAction.Buy_Trending, atmStrategy);
-                var target1 = priceToSet + atmStrategy.Brackets[0].Target * TickSize;                
+                var target1 = priceToSet + atmStrategy.Brackets[0].Target * TickSize;
 
                 /*Cả [priceToSet] và [target1] phải ở cùng bên của  [middleEma4651_5m] thì mới trade*/
                 if ((target1 > middleEma4651_5m && priceToSet > middleEma4651_5m) || (target1 < middleEma4651_5m && priceToSet < middleEma4651_5m))
@@ -266,34 +269,71 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     LocalPrint($"Có điều kiện để vào BUY nhưng gần với đường EMA46/51 --> No Trade for BUY");
                 }
+            }
+            #endregion
+
+            #region Reversval 
+
+            var totalMinutes = Time[0].Subtract(TouchEMA4651Time).TotalMinutes;
+            var distanceToEMA = Math.Abs(middleEma4651_5m - currentPrice);
+
+            if (totalMinutes > 60 && distanceToEMA < 20) // Nếu đã chạm EMA46/51 lâu rồi 
+            {
+                var logText = @$"
+                    Last touch EMA46/51: {TouchEMA4651Time:HH:mm}, 
+                    Total minutes until now:  {totalMinutes}, 
+                    Distance to middle of EMA46/51: {distanceToEMA:N2}.";
+
+                if (closePrice_5m > middleEma4651_5m && openPrice_5m > middleEma4651_5m)
+                {
+                    LocalPrint($"Đủ điều kiện cho BUY REVERSAL: {logText}");
+                    return TradeAction.Buy_Reversal;
+                }
+                else if (closePrice_5m < middleEma4651_5m && openPrice_5m < middleEma4651_5m)
+                {
+                    LocalPrint($"Đủ điều kiện cho SELL REVERSAL: {logText}");
+                    return TradeAction.Sell_Reversal;
+                }
             }            
+            #endregion
 
             return TradeAction.NoTrade;
         }
 
         protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy atmStrategy)
         {
-            var volumeStrength = waeValuesSeries[0].WAE_Strength;
-            LocalPrint($"Volume Strength: SUM: {(waeValuesSeries[0].DownTrendVal + waeValuesSeries[0].UpTrendVal):N2}, [{volumeStrength.ToString()}]");
-
-            // Tìm điểm vào lệnh thích hợp. 
-            // Nếu cây nến hiện tại cùng chiều market (Red khi bearish, hoặc Green khi bullish) 
-            var wholeBody = Math.Abs(closePrice_5m - openPrice_5m);
-
-            // Hệ số (so với cây nến trước): Lấy 1/2 nếu Strong, 1/3 nếu Super Strong
-            var coeff =
-                volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium || volumeStrength == WAE_Strength.Strong ? 2.0
-                : volumeStrength == WAE_Strength.SuperStrong ? 3.0 : 4.0;
-
-            if (tradeAction == TradeAction.Buy_Trending)
+            if (IsTrendingTrade)
             {
-                // Đặt lệnh BUY với 1/3 cây nến trước đó 
-                return StrategiesUtilities.RoundPrice(closePrice_5m - (wholeBody / coeff));
+                var volumeStrength = waeValuesSeries[0].WAE_Strength;
+                LocalPrint($"Volume Strength: SUM: {(waeValuesSeries[0].DownTrendVal + waeValuesSeries[0].UpTrendVal):N2}, [{volumeStrength.ToString()}]");
+
+                // Tìm điểm vào lệnh thích hợp. 
+                // Nếu cây nến hiện tại cùng chiều market (Red khi bearish, hoặc Green khi bullish) 
+                var wholeBody = Math.Abs(closePrice_5m - openPrice_5m);
+
+                // Hệ số (so với cây nến trước): Lấy 1/2 nếu Strong, 1/3 nếu Super Strong
+                var coeff =
+                    volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium || volumeStrength == WAE_Strength.Strong ? 2.0
+                    : volumeStrength == WAE_Strength.SuperStrong ? 3.0 : 4.0;
+
+                if (tradeAction == TradeAction.Buy_Trending)
+                {
+                    // Đặt lệnh BUY với 1/3 cây nến trước đó 
+                    return StrategiesUtilities.RoundPrice(closePrice_5m - (wholeBody / coeff));
+                }
+                else // SELL 
+                {
+                    // Đặt lệnh SELL với 1/3 cây nến trước đó 
+                    return StrategiesUtilities.RoundPrice(closePrice_5m + (wholeBody / coeff));
+                }
             }
-            else // SELL 
+            else // Reveral trade 
             {
-                // Đặt lệnh SELL với 1/3 cây nến trước đó 
-                return StrategiesUtilities.RoundPrice(closePrice_5m + (wholeBody / coeff));
+                var setPrice = tradeAction == TradeAction.Buy_Trending ?
+                            Math.Min(currentPrice, middleEma4651_5m)
+                            : Math.Max(currentPrice, middleEma4651_5m); 
+
+                return StrategiesUtilities.RoundPrice(setPrice);
             }
         }
 

@@ -276,14 +276,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var totalMinutes = Time[0].Subtract(TouchEMA4651Time).TotalMinutes;
             var distanceToEMA = Math.Abs(middleEma4651_5m - currentPrice);
+            var tradeReversal = totalMinutes > 60 && distanceToEMA < 20;
 
-            if (totalMinutes > 60 && distanceToEMA < 20) // Nếu đã chạm EMA46/51 lâu rồi 
-            {
-                var logText = @$"
+            var logText = @$"
                     Last touch EMA46/51: {TouchEMA4651Time:HH:mm}, 
                     Total minutes until now:  {totalMinutes}, 
-                    Distance to middle of EMA46/51: {distanceToEMA:N2}.";
+                    Distance to middle of EMA46/51: {distanceToEMA:N2}.
+                    --> Trade REVERSAL: {tradeReversal}";
 
+            LocalPrint(logText);
+
+            if (tradeReversal) // Nếu đã chạm EMA46/51 lâu rồi 
+            {
                 if (closePrice_5m > middleEma4651_5m && openPrice_5m > middleEma4651_5m)
                 {
                     LocalPrint($"Đủ điều kiện cho BUY REVERSAL: {logText}");

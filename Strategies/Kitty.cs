@@ -152,7 +152,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Điều kiện về ngược trend: Cây nến đã vượt qua BollingerBand 
             var bodyPassBollingerDOWN = openPrice_5m > lowerStd2BB_5m && closePrice_5m < lowerStd2BB_5m;
 
-            var continueRedTrending = previousWAE.DownTrendVal > 0 || (previousWAE.UpTrendVal > 0 && previous2WAE.DownTrendVal > 0);
+            var continueRedTrending = currentWAE.DownTrendVal > 0 && (previousWAE.DownTrendVal > 0 || (previousWAE.UpTrendVal > 0 && previous2WAE.DownTrendVal > 0));
 
             var conditionForSell = currentWAE.HasBEARVolume && // 1 & 4
                 previousWAE.DownTrendVal > 0 && //2
@@ -191,7 +191,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else
                 {
-                    LocalPrint($"Có điều kiện để vào SELL nhưng gần với đường EMA46/51 --> No Trade for SELL");
+                    LocalPrint($"Target: {target1:N2}, Set Price: {priceToSet:N2}, EMA46/51: {middleEma4651_5m:N2}, có điều kiện để vào SELL nhưng gần với đường EMA46/51 --> No Trade for SELL");
                 }
             }
             #endregion
@@ -225,7 +225,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Điều kiện về ngược trend: Cây nến đã vượt qua BollingerBand 
             var bodyPassBollingerUP = openPrice_5m < upperStd2BB_5m && closePrice_5m > upperStd2BB_5m;
 
-            var continueGreenTrending = previousWAE.UpTrendVal > 0 || (previousWAE.DownTrendVal > 0 && previous2WAE.UpTrendVal > 0);
+            var continueGreenTrending = currentWAE.UpTrendVal > 0 && (previousWAE.UpTrendVal > 0 || (previousWAE.DownTrendVal > 0 && previous2WAE.UpTrendVal > 0));
 
             var rsiTooBought = !AllowUseRSIIndicator || rsi_5m < RSI_TOO_BOUGHT; // Không dùng điều kiện RSI oversold hoặc nếu dùng thì phải thỏa mãn
 
@@ -267,7 +267,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else
                 {
-                    LocalPrint($"Có điều kiện để vào BUY nhưng gần với đường EMA46/51 --> No Trade for BUY");
+                    LocalPrint($"Target: {target1:N2}, Set Price: {priceToSet:N2}, EMA46/51: {middleEma4651_5m:N2}, có điều kiện để vào BUY nhưng gần với đường EMA46/51 --> No Trade for BUY");
                 }
             }
             #endregion

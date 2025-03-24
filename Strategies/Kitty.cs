@@ -282,7 +282,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Last touch EMA46/51: {TouchEMA4651Time:HH:mm}, 
                     Total minutes until now:  {totalMinutes}, 
                     Distance to middle of EMA46/51: {distanceToEMA:N2}.
-                    --> Trade REVERSAL: {tradeReversal}";
+                    --> Trade REVERSAL (totalMinutes > 60 && distanceToEMA < 20): {tradeReversal}";
 
             LocalPrint(logText);
 

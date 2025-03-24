@@ -153,10 +153,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (checkShouldTradeAgain == TradeAction.NoTrade)
             {
-                LocalPrint("Cancel lệnh do không thỏa mãn các điều kiện trade");
+                LocalPrint($"Check lại các điều kiện với [ShouldTrade], new answer: [{checkShouldTradeAgain}] --> Cancel lệnh do không thỏa mãn các điều kiện trade");
                 CancelAllPendingOrder();
                 return;
-            }    
+            }
             else if (checkShouldTradeAgain == CurrentTradeAction)
             {
                 #region Begin of move pending order
@@ -182,6 +182,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 #endregion
             }
+            else
+            {
+                LocalPrint($"[ShouldTrade], current: {CurrentTradeAction}, new: {checkShouldTradeAgain}, right now DO NOTHING.");
+            }
         }
 
         /// <summary>
@@ -201,8 +205,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override TradeAction ShouldTrade()
         {
-            
-
             return TradeAction.NoTrade;
         }
 

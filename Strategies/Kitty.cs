@@ -343,16 +343,30 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override bool ShouldCancelPendingOrdersByTrendCondition()
         {
-            // Nến gần nhất là ĐỎ hoặc nến rút râu phía trên
-            var reverseRed = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m) || CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) > 50;
+            if (IsTrendingTrade)
+            {
+                // Nến gần nhất là ĐỎ hoặc nến rút râu phía trên
+                var reverseRed = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m) || CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) > 50;
 
-            // Nến gần nhất là ĐỎ hoặc nến rút râu phía trên
-            var reverseGreen = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m) || CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) > 50;
+                // Nến gần nhất là ĐỎ hoặc nến rút râu phía dưới
+                var reverseGreen = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m) || CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m) > 50;
 
-            return  
-                (IsBuying && reverseRed)        // Đang có lệnh MUA nhưng lại xuất hiện nến ĐỎ
-                || (IsSelling && reverseGreen)  // Đang có lệnh BÁN nhưng lại xuất hiện nến XANH
-                || base.ShouldCancelPendingOrdersByTrendCondition();
+                if (IsBuying && reverseRed)
+                {
+                    LocalPrint($"Đang có lệnh MUA nhưng lại xuất hiện nến ĐỎ hoặc hoặc nến rút râu phía trên (>50%)");
+                    return true;
+                }
+
+                if (IsSelling && reverseGreen)
+                {
+                    LocalPrint($"Đang có lệnh BÁN nhưng lại xuất hiện nến XANH hoặc nến rút râu phía dưới (>50%)");
+                    return true;
+                }
+
+                return base.ShouldCancelPendingOrdersByTrendCondition();
+            }
+
+            return false;
         }
         protected override void OnMarketData_DoForPendingFill(double updatedPrice)
         {

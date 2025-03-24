@@ -173,7 +173,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 4. Volume sau cao hơn DeadZone: (See 1)
                 5. Nến ĐỎ, Thân nến hiện tại > 5 points: [{isRedCandle}]
                 {rsiTooSoldText}
-                8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {bottomToBodyPercent}%): [{bottomToBody}].
+                8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {bottomToBodyPercent:N2}%): [{bottomToBody}].
                 FINAL: [{conditionForSell}]");
 
             if (conditionForSell)
@@ -249,7 +249,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 4. Volume sau cao hơn DeadZone: (See 1)
                 5. Nến XANH, Thân nến hiện tại > 5 points: [{isGreenCandle}]                
                 {rsiTooBoughtText}
-                8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {topToBodyPercent}%): [{topToBody}].
+                8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {topToBodyPercent:N2}%): [{topToBody}].
                 FINAL: [{conditionForBuy}]");
 
             if (conditionForBuy)

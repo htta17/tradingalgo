@@ -302,7 +302,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy atmStrategy)
         {
-            if (IsTrendingTrade)
+            if (tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Sell_Trending)
             {
                 var volumeStrength = waeValuesSeries[0].WAE_Strength;
                 LocalPrint($"Volume Strength: SUM: {(waeValuesSeries[0].DownTrendVal + waeValuesSeries[0].UpTrendVal):N2}, [{volumeStrength.ToString()}]");
@@ -329,7 +329,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else // Reveral trade 
             {
-                var setPrice = tradeAction == TradeAction.Buy_Trending ?
+                var setPrice = tradeAction == TradeAction.Buy_Reversal ?
                             Math.Min(currentPrice, middleEma4651_5m)
                             : Math.Max(currentPrice, middleEma4651_5m); 
 

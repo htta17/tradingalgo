@@ -157,35 +157,40 @@ namespace NinjaTrader.NinjaScript.Strategies
                 CancelAllPendingOrder();
                 return;
             }
-            else if (checkShouldTradeAgain == CurrentTradeAction)
+            else 
             {
-                #region Begin of move pending order
+               
                 var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
 
-                var newPrice = GetSetPrice(CurrentTradeAction, atmStrategy);
+                var newPrice = GetSetPrice(checkShouldTradeAgain, atmStrategy);
 
-                var stopLossPrice = GetStopLossPrice(CurrentTradeAction, newPrice, atmStrategy);
+                var stopLossPrice = GetStopLossPrice(checkShouldTradeAgain, newPrice, atmStrategy);
 
-                var targetPrice_Half = GetTargetPrice_Half(CurrentTradeAction, newPrice, atmStrategy);
+                var targetPrice_Half = GetTargetPrice_Half(checkShouldTradeAgain, newPrice, atmStrategy);
 
-                var targetPrice_Full = GetTargetPrice_Full(CurrentTradeAction, newPrice, atmStrategy);
+                var targetPrice_Full = GetTargetPrice_Full(checkShouldTradeAgain, newPrice, atmStrategy);
 
-                if (State == State.Historical)
+                // Nếu ngược trend hoặc backtest thì vào cancel lệnh cũ và vào lệnh mới
+                if (State == State.Historical || (CurrentTradeAction != checkShouldTradeAgain))
                 {
+                    #region Cancel current order and enter new one
                     CancelAllPendingOrder();
 
-                    EnterOrder(CurrentTradeAction);
+                    EnterOrder(checkShouldTradeAgain);
+                    #endregion
                 }
+                // Ngược lại thì update điểm vào lệnh
                 else if (State == State.Realtime)
                 {
+                    #region Begin of move pending order
                     UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
+                    #endregion
                 }
-                #endregion
             }
-            else
-            {
-                LocalPrint($"[ShouldTrade], current: {CurrentTradeAction}, new: {checkShouldTradeAgain}, right now DO NOTHING.");
-            }
+            //else
+            //{
+            //    LocalPrint($"[ShouldTrade], current: {CurrentTradeAction}, new: {checkShouldTradeAgain}, right now DO NOTHING.");
+            //}
         }
 
         /// <summary>

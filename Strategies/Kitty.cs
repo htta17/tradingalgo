@@ -311,102 +311,31 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var volumeStrength = waeValuesSeries[0].WAE_Strength;
                 LocalPrint($"Volume Strength: SUM: {(waeValuesSeries[0].DownTrendVal + waeValuesSeries[0].UpTrendVal):N2}, [{volumeStrength.ToString()}]");
 
-                // Nếu volume tăng
-                var currentWAE = waeValuesSeries[0];
-                var previousWAE = waeValuesSeries[1];
-                var previous2WAE = waeValuesSeries[2];
+                // Tìm điểm vào lệnh thích hợp. 
+                // Nếu cây nến hiện tại cùng chiều market (Red khi bearish, hoặc Green khi bullish) 
+                var wholeBody = Math.Abs(closePrice_5m - openPrice_5m);
 
-                var descreaseBULLVolume = tradeAction == TradeAction.Buy_Trending && 
-                    (currentWAE.UpTrendVal < previousWAE.UpTrendVal || (previousWAE.UpTrendVal < previous2WAE.UpTrendVal && previous2WAE.UpTrendVal > 0));
-                var descreaseBEARVolume = tradeAction == TradeAction.Sell_Trending && 
-                    (currentWAE.DownTrendVal < previousWAE.DownTrendVal || (previousWAE.DownTrendVal < previous2WAE.DownTrendVal && previous2WAE.DownTrendVal > 0));
+                // Hệ số (so với cây nến trước): Lấy 1/2 nếu Strong, 1/3 nếu Super Strong
+                var coeff =
+                    volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium || volumeStrength == WAE_Strength.Strong ? 2.0
+                    : volumeStrength == WAE_Strength.SuperStrong ? 3.0 : 4.0;
 
-                var middleEMA2951 = (ema29_1m + ema51_1m) / 2.0;
-
-                // Volume giảm, tìm điểm less risky để vào lệnh
-                if (descreaseBULLVolume)
+                if (tradeAction == TradeAction.Buy_Trending)
                 {
-                    if (currentPrice >= upperBB_5m)
-                    {
-                        LocalPrint($"Volume BUY giảm - Vào lệnh BUY theo Bollinger Upper: {upperBB_5m:N2}");
-                        return StrategiesUtilities.RoundPrice(upperBB_5m);
-                    }
-                    else if (currentPrice > ema21_1m)
-                    {
-                        LocalPrint($"Volume BUY giảm - Vào lệnh BUY theo EMA21 khung 1 phút: {ema21_1m:N2}");
-                        return StrategiesUtilities.RoundPrice(ema21_1m);
-                    }
-                    else if (currentPrice > middleEMA2951)
-                    {
-                        LocalPrint($"Volume BUY giảm - Vào lệnh BUY theo EMA29/51 khung 1 phút: {middleEMA2951:N2}");
-                        return StrategiesUtilities.RoundPrice(middleEMA2951);
-                    }
-                    else if (currentPrice > lowerBB_5m)
-                    {
-                        LocalPrint($"Volume BUY giảm - Vào lệnh BUY theo Bollinger Lower: {lowerBB_5m:N2}");
-                        return StrategiesUtilities.RoundPrice(lowerBB_5m);
-                    }
-                    else
-                    {
-                        LocalPrint($"Volume BUY giảm - Vào lệnh BUY theo Bollinger Lower (Std=2): {lowerStd2BB_5m:N2}");
-                        return StrategiesUtilities.RoundPrice(lowerStd2BB_5m);
-                    }
+                    // Đặt lệnh BUY với 1/3 cây nến trước đó 
+                    return StrategiesUtilities.RoundPrice(closePrice_5m - (wholeBody / coeff));
                 }
-                else if (descreaseBEARVolume)
+                else // SELL 
                 {
-                    if (currentPrice <= lowerBB_5m)
-                    {
-                        LocalPrint($"Volume SELL giảm - Vào lệnh SELL theo Bollinger Lower: {lowerBB_5m:N2}");
-                        return StrategiesUtilities.RoundPrice(lowerBB_5m);
-                    }
-                    else if (currentPrice < ema21_1m)
-                    {
-                        LocalPrint($"Volume SELL giảm - Vào lệnh SELL theo EMA21 khung 1 phút: {ema21_1m:N2}");
-                        return StrategiesUtilities.RoundPrice(ema21_1m);
-                    }
-                    else if (currentPrice < middleEMA2951)
-                    {
-                        LocalPrint($"Volume SELL giảm - Vào lệnh SELL theo EMA29/51 khung 1 phút: {middleEMA2951:N2}");
-                        return StrategiesUtilities.RoundPrice(middleEMA2951);
-                    }
-                    else if (currentPrice < upperBB_5m)
-                    {
-                        LocalPrint($"Volume SELL giảm - Vào lệnh SELL theo  Bollinger Upper: {upperBB_5m:N2}");
-                        return StrategiesUtilities.RoundPrice(upperBB_5m);
-                    }
-                    else
-                    {
-                        LocalPrint($"Volume BUY giảm - Vào lệnh SELL theo Bollinger Upper (Std=2): {upperStd2BB_5m:N2}");
-                        return StrategiesUtilities.RoundPrice(upperStd2BB_5m);
-                    }
-                }
-                else // volume tăng
-                {
-                    // Nếu cây nến hiện tại cùng chiều market (Red khi bearish, hoặc Green khi bullish) 
-                    var wholeBody = Math.Abs(closePrice_5m - openPrice_5m);
-
-                    // Hệ số (so với cây nến trước): Lấy 1/2 nếu Strong, 1/3 nếu Super Strong
-                    var coeff =
-                        volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium || volumeStrength == WAE_Strength.Strong ? 2.0
-                        : volumeStrength == WAE_Strength.SuperStrong ? 3.0 : 4.0;
-
-                    if (tradeAction == TradeAction.Buy_Trending)
-                    {
-                        // Đặt lệnh BUY với 1/3 cây nến trước đó 
-                        return StrategiesUtilities.RoundPrice(closePrice_5m - (wholeBody / coeff));
-                    }
-                    else // SELL 
-                    {
-                        // Đặt lệnh SELL với 1/3 cây nến trước đó 
-                        return StrategiesUtilities.RoundPrice(closePrice_5m + (wholeBody / coeff));
-                    }
+                    // Đặt lệnh SELL với 1/3 cây nến trước đó 
+                    return StrategiesUtilities.RoundPrice(closePrice_5m + (wholeBody / coeff));
                 }
             }
             else // Reveral trade 
             {
                 var setPrice = tradeAction == TradeAction.Buy_Reversal ?
                             Math.Min(currentPrice, middleEma4651_5m)
-                            : Math.Max(currentPrice, middleEma4651_5m); 
+                            : Math.Max(currentPrice, middleEma4651_5m);
 
                 return StrategiesUtilities.RoundPrice(setPrice);
             }

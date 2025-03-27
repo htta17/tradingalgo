@@ -193,7 +193,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {
                             if (shouldTrade == CurrentTradeAction)
                             {
-                                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
+                                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(shouldTrade);
 
                                 var newPrice = GetSetPrice(shouldTrade, atmStrategy);
                                 

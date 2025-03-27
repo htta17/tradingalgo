@@ -160,7 +160,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             else 
             {
                
-                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
+                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(checkShouldTradeAgain);
 
                 var newPrice = GetSetPrice(checkShouldTradeAgain, atmStrategy);
 
@@ -440,9 +440,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 AddChartIndicator(Bollinger2Indicator_5m);
                 
                 AddChartIndicator(WAEIndicator_5m);
-                AddChartIndicator(MACD_5m);
+                //AddChartIndicator(MACD_5m);
                 AddChartIndicator(EMA46_5m);
                 AddChartIndicator(EMA51_5m);
+                AddChartIndicator(RSIIndicator_5m);
             }            
         }
 

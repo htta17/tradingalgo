@@ -319,7 +319,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
             // Get stop loss and target ID based on strategy 
-            var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
+            var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(tradeAction);
 
             double priceToSet = GetSetPrice(tradeAction, atmStrategy);
 
@@ -490,7 +490,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected virtual (AtmStrategy, string) GetAtmStrategyByPnL()
+        protected virtual (AtmStrategy, string) GetAtmStrategyByPnL(T1 tradeAction)
         {
             var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
 

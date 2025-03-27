@@ -116,12 +116,12 @@ namespace NinjaTrader.NinjaScript.Strategies
              *          (Cây nến trước XANH chứng tỏ pull back, nếu pull back nhiều quá sẽ có thể đảo chiều)
              * 10. (NOT IN USE) KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ, body của cây nến gần nhất < 30% cây nến trước. 
              *          (Cây nến trước đã BÁN quá mạnh, cây nến vừa rồi lực BÁN đã suy giảm nhiều, có khả năng đảo chiều) 
-             * 11. (NOT IN USE) KHÔNG ĐƯỢC THỎA MÃN điều kiện: Cây nến ĐỎ và có open > lower bollinger (std=2) và có close < lower bollinger (std=2)
+             * 11. (NOT IN USE) KHÔNG ĐƯỢC THỎA MÃN điều kiện: Cây nến ĐỎ và có open > lower bollinger (std=2) và có close < lower bollinger (std=2)             
              */
 
             const int PERCENTAGE_WICK_TO_TRADE = 70;
             const int RSI_TOO_BOUGHT = 70;
-            const int RSI_TOO_SOLD = 30;
+            const int RSI_TOO_SOLD = 30;            
 
             var bottomToBodyPercent = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m);
             var bottomToBody = bottomToBodyPercent < PERCENTAGE_WICK_TO_TRADE;
@@ -178,7 +178,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (conditionForSell)
             {
-                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
+                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(TradeAction.Sell_Trending);
                 double priceToSet = GetSetPrice(TradeAction.Sell_Trending, atmStrategy);
                 var target1 = priceToSet - atmStrategy.Brackets[0].Target * TickSize;
 
@@ -254,7 +254,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (conditionForBuy)
             {
-                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL();
+                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(TradeAction.Buy_Trending);
                 double priceToSet = GetSetPrice(TradeAction.Buy_Trending, atmStrategy);
                 var target1 = priceToSet + atmStrategy.Brackets[0].Target * TickSize;
 
@@ -272,8 +272,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             #endregion
 
+            /*
             #region Reversval (Same as Rooster)
-
             var totalMinutes = Time[0].Subtract(TouchEMA4651Time).TotalMinutes;
             var distanceToEMA = Math.Abs(middleEma4651_5m - currentPrice);
             var tradeReversal = totalMinutes > 60 && distanceToEMA < 20;
@@ -300,14 +300,65 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
             }
             #endregion
+            */
 
             return TradeAction.NoTrade;
+        }
+
+        protected override (AtmStrategy, string) GetAtmStrategyByPnL(TradeAction tradeAction)
+        {
+            var currentBodyLength = Math.Abs(closePrice_5m - openPrice_5m);
+            var bodyIsSmallerThanOthers = currentBodyLength < (highPrice_5m - Math.Max(closePrice_5m, openPrice_5m))
+                && currentBodyLength < (Math.Min(closePrice_5m, openPrice_5m) - lowPrice_5m);
+
+            /*
+            var currentWAE = waeValuesSeries[0];
+            var previousWAE = waeValuesSeries[1];
+            var previous2WAE = waeValuesSeries[2];
+
+            var descreaseBULLVolume = tradeAction == TradeAction.Buy_Trending &&
+                (currentWAE.UpTrendVal < previousWAE.UpTrendVal || (previousWAE.UpTrendVal < previous2WAE.UpTrendVal && previous2WAE.UpTrendVal > 0));
+            var descreaseBEARVolume = tradeAction == TradeAction.Sell_Trending &&
+                (currentWAE.DownTrendVal < previousWAE.DownTrendVal || (previousWAE.DownTrendVal < previous2WAE.DownTrendVal && previous2WAE.DownTrendVal > 0));
+            */
+
+            if (bodyIsSmallerThanOthers)
+            {
+                return (RiskyAtmStrategy, RiskyAtmStrategyName); 
+            }
+
+            var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
+
+            var reachHalf =
+                (todaysPnL <= (-MaximumDailyLoss / 2)) || (todaysPnL >= (DailyTargetProfit / 2));
+
+            return reachHalf ? (HalfSizeAtmStrategy, HalfSizefATMName) : (FullSizeAtmStrategy, FullSizeATMName);
         }
 
         protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy atmStrategy)
         {
             if (tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Sell_Trending)
             {
+                // High risk 
+                var currentBodyLength = Math.Abs(closePrice_5m - openPrice_5m);
+                var bodyIsSmallerThanOthers = currentBodyLength < (highPrice_5m - Math.Max(closePrice_5m, openPrice_5m))
+                    && currentBodyLength < (Math.Min(closePrice_5m, openPrice_5m) - lowPrice_5m);
+
+                if (bodyIsSmallerThanOthers)
+                {
+                    if (tradeAction == TradeAction.Buy_Trending)
+                    {
+                        // Đặt lệnh BUY với 1/3 cây nến trước đó 
+                        return StrategiesUtilities.RoundPrice(lowPrice_5m);
+                    }
+                    else // SELL 
+                    {
+                        // Đặt lệnh SELL với 1/3 cây nến trước đó 
+                        return StrategiesUtilities.RoundPrice(highPrice_5m);
+                    }
+                }
+
+                // Low risk 
                 var volumeStrength = waeValuesSeries[0].WAE_Strength;
                 LocalPrint($"Volume Strength: SUM: {(waeValuesSeries[0].DownTrendVal + waeValuesSeries[0].UpTrendVal):N2}, [{volumeStrength.ToString()}]");
 

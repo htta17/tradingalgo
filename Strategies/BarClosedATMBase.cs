@@ -115,7 +115,25 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void TransitionOrdersToLive()
         {
-            // Since we cannot use ATM in History, we don't have to do anything here.
+            if (TradingStatus == TradingStatus.OrderExists)
+            {
+                LocalPrint($"Transition to live, close all existing orders");
+
+                CloseExistingOrders();
+            }
+            else if (TradingStatus == TradingStatus.PendingFill)
+            {
+                LocalPrint($"Transition to live, convert all pending fill orders to realtime.");
+                var activeOrders = Account.Orders.Where(c => c.OrderState == OrderState.Working || c.OrderState == OrderState.Accepted).ToList();
+                var len = activeOrders.Count;
+                for (var i = 0; i < len; i++)
+                {
+                    var order = activeOrders[i];
+                    var newOrder = GetRealtimeOrder(order);
+
+                    CancelOrder(newOrder);
+                }
+            }
         }
 
         protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double target, double? targetHalf = null)

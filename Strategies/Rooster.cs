@@ -191,7 +191,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             //{
             //    LocalPrint($"[ShouldTrade], current: {CurrentTradeAction}, new: {checkShouldTradeAgain}, right now DO NOTHING.");
             //}
-        }
+        }        
 
         /// <summary>
         /// Tìm các giá trị của Waddah Attar Explosion ở khung 5 phút
@@ -210,6 +210,41 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override TradeAction ShouldTrade()
         {
+            var time = ToTime(Time[0]);
+
+            // Trước 9:10am hoặc sau 2:00pm thì không nên trade 
+            if (time < 091000 && time < 140000)
+            {
+                LocalPrint($"Rooster chỉ sử dụng từ 9:10a-2:00pm --> No Trade.");
+                return TradeAction.NoTrade;
+            }
+
+            var totalMinutes = Time[0].Subtract(TouchEMA4651Time).TotalMinutes;
+            var distanceToEMA = Math.Abs(middleEma4651_5m - currentPrice);
+            var tradeReversal = totalMinutes > 60 && distanceToEMA < 20;
+
+            var logText = @$"
+                    Last touch EMA46/51: {TouchEMA4651Time:HH:mm}, 
+                    Total minutes until now:  {totalMinutes}, 
+                    Distance to middle of EMA46/51: {distanceToEMA:N2}.
+                    --> Trade REVERSAL (totalMinutes > 60 && distanceToEMA < 20): {tradeReversal}";
+
+            LocalPrint(logText);
+
+            if (tradeReversal) // Nếu đã chạm EMA46/51 lâu rồi 
+            {
+                if (closePrice_5m > middleEma4651_5m && openPrice_5m > middleEma4651_5m)
+                {
+                    LocalPrint($"Đủ điều kiện cho BUY REVERSAL: {logText}");
+                    return TradeAction.Buy_Reversal;
+                }
+                else if (closePrice_5m < middleEma4651_5m && openPrice_5m < middleEma4651_5m)
+                {
+                    LocalPrint($"Đủ điều kiện cho SELL REVERSAL: {logText}");
+                    return TradeAction.Sell_Reversal;
+                }
+            }
+
             return TradeAction.NoTrade;
         }
 
@@ -339,8 +374,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             base.SetDefaultProperties();
 
-            Name = "Rooster (Trending with Volume)";
-            Description = "[Rooster] là giải thuật trade theo Trending, dùng ATM Strategy để vào lệnh";
+            Name = "Rooster (EMA46/51 ONLY)";
+            Description = "[Rooster] là giải thuật trade ngược trend, dùng EMA46/51 only.";
 
             FullSizeATMName = "Rooster_Default_4cts";
             HalfSizefATMName = "Rooster_Default_2cts";
@@ -363,6 +398,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return CurrentTradeAction == TradeAction.Sell_Reversal || CurrentTradeAction == TradeAction.Buy_Reversal;
             }
         }
+
         protected bool IsTrendingTrade
         {
             get
@@ -417,43 +453,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <returns></returns>
         protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy atmStrategy)
         {
-            var middleEMA = (ema29_1m + ema51_1m) / 2.0;
-           
-            // Nếu volume đang yếu hoặc Medium thì 
-            var volumeStrength = waeValuesSeries[0].WAE_Strength;
-            LocalPrint($"Volume Strength: SUM: {(waeValuesSeries[0].DownTrendVal + waeValuesSeries[0].UpTrendVal):N2}, [{volumeStrength.ToString()}]");
-            if (volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium)
-            {
-                return StrategiesUtilities.RoundPrice(middleEMA);
-            }
-            else if (volumeStrength == WAE_Strength.Strong || volumeStrength == WAE_Strength.SuperStrong)
-            {
-                var currentCandleIs_RED = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m);
-
-                var currentCandleIs_GREEN = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m);
-
-                LocalPrint($"Current Red: {currentCandleIs_RED}, Current GREEN: {currentCandleIs_GREEN}, tradeAction: {tradeAction}");
-
-                // Tìm điểm vào lệnh thích hợp. 
-                // Nếu cây nến hiện tại cùng chiều market (Red khi bearish, hoặc Green khi bullish) 
-                var wholeBody = Math.Abs(closePrice_5m - openPrice_5m);
-                // Hệ số (so với cây nến trước): Lấy 1/2 nếu Strong, 1/3 nếu Super Strong
-                var coeff = volumeStrength == WAE_Strength.Strong ? 2.0 : 3.0;
-
-                if (tradeAction == TradeAction.Buy_Trending && currentCandleIs_GREEN)
-                {
-                    // Đặt lệnh BUY với 1/3 cây nến trước đó 
-                    return StrategiesUtilities.RoundPrice(closePrice_5m - (wholeBody / coeff));
-                }
-                else if (tradeAction == TradeAction.Sell_Trending && currentCandleIs_RED)
-                {
-                    // Đặt lệnh SELL với 1/3 cây nến trước đó 
-                    return StrategiesUtilities.RoundPrice(closePrice_5m + (wholeBody / coeff));
-                }
-            }      
-
-            // Khó quá cứ lấy EMA29/51
-            return StrategiesUtilities.RoundPrice(middleEMA);
+            return StrategiesUtilities.RoundPrice(middleEma4651_5m);            
         }
         /*
          * End of class 

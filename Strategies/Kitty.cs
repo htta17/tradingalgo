@@ -272,7 +272,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             #endregion
 
-            #region Reversval 
+            #region Reversval (Same as Rooster)
 
             var totalMinutes = Time[0].Subtract(TouchEMA4651Time).TotalMinutes;
             var distanceToEMA = Math.Abs(middleEma4651_5m - currentPrice);
@@ -298,7 +298,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Đủ điều kiện cho SELL REVERSAL: {logText}");
                     return TradeAction.Sell_Reversal;
                 }
-            }            
+            }
             #endregion
 
             return TradeAction.NoTrade;

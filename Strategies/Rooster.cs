@@ -358,7 +358,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Check trading condition, result: {shouldTrade}");
 
                     // Điều kiện [barIndex_5m != enteredbarIndex_5m] để tránh việc trade 1 bar 5 phút nhiều lần
-                    if (shouldTrade != TradeAction.NoTrade && CurrentBarIndex_5m != EnteredBarIndex_5m)
+                    if (shouldTrade != TradeAction.NoTrade)// && CurrentBarIndex_5m != EnteredBarIndex_5m)
                     {
                         EnterOrder(shouldTrade);
                     }

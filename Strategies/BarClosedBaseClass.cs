@@ -125,7 +125,7 @@ namespace NinjaTrader.Custom.Strategies
         public TimeSpan StartDayTradeTime { get; set; }
 
         /// <summary>
-        /// Giờ bắt đầu trade theo giải thuật này
+        /// Giờ dừng trade theo giải thuật này
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "End Trade Time", Order = 2, GroupName = StrategiesUtilities.Configuration_General_TradingTime, Description = "End Trade Time")]

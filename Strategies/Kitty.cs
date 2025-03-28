@@ -87,8 +87,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             RiskyAtmStrategyName = "Rooster_Risky";
             AllowUseRSIIndicator = false;
 
-            StartDayTradeTime = new TimeSpan(9, 10, 0);
-            EndDayTradeTime = new TimeSpan(14, 0, 0);
+            StartDayTradeTime = new TimeSpan(9, 10, 0); // 9:10:00 am 
+            EndDayTradeTime = new TimeSpan(14, 0, 0); // 2:00:00 pm
         }
         protected override TradeAction ShouldTrade()
         {

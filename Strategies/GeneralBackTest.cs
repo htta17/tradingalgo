@@ -226,8 +226,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                     TouchEMA4651Time = Time[0];
                     LocalPrint($"Touch EMA46/51 at {TouchEMA4651Time}");
                 }
-
-                
             }
         }
 

@@ -116,6 +116,20 @@ namespace NinjaTrader.Custom.Strategies
         /// </summary>
         protected const double PointToMoveLoss = 7.0;
         #endregion
+
+        /// <summary>
+        /// Giờ bắt đầu trade theo giải thuật này
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Start Trade Time", Order = 1, GroupName = StrategiesUtilities.Configuration_General_TradingTime, Description = "Start Trade Time")]
+        public TimeSpan StartDayTradeTime { get; set; }
+
+        /// <summary>
+        /// Giờ bắt đầu trade theo giải thuật này
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "End Trade Time", Order = 2, GroupName = StrategiesUtilities.Configuration_General_TradingTime, Description = "End Trade Time")]
+        public TimeSpan EndDayTradeTime { get; set; }
         #endregion
 
         #region Properties

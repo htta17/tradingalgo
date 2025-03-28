@@ -87,15 +87,20 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double ema46_5m = -1;
         protected double ema51_5m = -1;
 
-        protected Series<WAE_ValueSet> waeValuesSeries;
+        protected Series<WAE_ValueSet> waeValuesSeries_5m;        
 
         #region Indicators
         private Bollinger Bollinger1Indicator_5m { get; set; }
         private Bollinger Bollinger2Indicator_5m { get; set; }
-        private WaddahAttarExplosion WAEIndicator_5m { get; set; } 
+        private WaddahAttarExplosion WAEIndicator_5m { get; set; }
+        
         private RSI RSIIndicator_5m { get; set; }
 
-        private MACD MACD_5m { get; set; }
+        private WaddahAttarExplosion WAEIndicator_15m { get; set; }
+
+        protected WAE_ValueSet wAE_ValueSet_15m { get; set; }
+
+        //private MACD MACD_5m { get; set; }
 
         private EMA EMA46_5m { get; set; }
         private EMA EMA51_5m { get; set; }
@@ -112,11 +117,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             return
                 // Trend suy yếu, 
-                waeValuesSeries[0].IsInDeadZone ||
+                waeValuesSeries_5m[0].IsInDeadZone ||
                 // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
-                (IsBuying && waeValuesSeries[0].HasBEARVolume) ||
+                (IsBuying && waeValuesSeries_5m[0].HasBEARVolume) ||
                 // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
-                (IsSelling && waeValuesSeries[0].HasBULLVolume);
+                (IsSelling && waeValuesSeries_5m[0].HasBULLVolume);
         }
 
         protected override void UpdatePendingOrder()
@@ -205,6 +210,21 @@ namespace NinjaTrader.NinjaScript.Strategies
                 DownTrendVal = WAEIndicator_5m.Values[1][0],
                 ExplosionVal = WAEIndicator_5m.Values[2][0],
                 UpTrendVal = WAEIndicator_5m.Values[0][0]
+            };
+        }
+
+        /// <summary>
+        /// Tìm các giá trị của Waddah Attar Explosion ở khung 5 phút
+        /// </summary>
+        /// <returns></returns>
+        private WAE_ValueSet FindWaddahAttarExplosion_15m()
+        {
+            return new WAE_ValueSet
+            {
+                DeadZoneVal = WAEIndicator_15m.Values[3][0],
+                DownTrendVal = WAEIndicator_15m.Values[1][0],
+                ExplosionVal = WAEIndicator_15m.Values[2][0],
+                UpTrendVal = WAEIndicator_15m.Values[0][0]
             };
         }
 
@@ -333,7 +353,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 var wae = FindWaddahAttarExplosion();
 
-                waeValuesSeries[0] = wae;
+                waeValuesSeries_5m[0] = wae;
 
                 waeDeadVal_5m = wae.DeadZoneVal;
                 waeDowntrend_5m = wae.DownTrendVal;
@@ -369,6 +389,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 #endregion
             }
+            else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 15)
+            {
+                wAE_ValueSet_15m = FindWaddahAttarExplosion_15m();
+            }    
         }
 
         protected override void SetDefaultProperties()
@@ -412,7 +436,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             base.OnStateChange();
 
-           if (State == State.DataLoaded )
+            if (State == State.Configure)
+            {
+                AddDataSeries(BarsPeriodType.Minute, 15);
+            }    
+            else if (State == State.DataLoaded )
             {
                 Bollinger1Indicator_5m = Bollinger(1, 20);
                 Bollinger1Indicator_5m.Plots[0].Brush = Bollinger1Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
@@ -422,13 +450,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Bollinger2Indicator_5m.Plots[0].Brush = Bollinger2Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
                 Bollinger2Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
 
-                waeValuesSeries = new Series<WAE_ValueSet>(this);
+                waeValuesSeries_5m = new Series<WAE_ValueSet>(this);
 
-                WAEIndicator_5m = WaddahAttarExplosion();
+                /* 
+                 * Bars Array orders: 
+                 * 0: Current view
+                 * 1: 5 minutes (Check BarClosedATMBase [OnStateChange]) 
+                 * 2: 1 minutes (Check BarClosedATMBase [OnStateChange]) 
+                 * 3: 15 minutes
+                 */
+
+                WAEIndicator_5m = WaddahAttarExplosion(BarsArray[1]);
+                WAEIndicator_15m = WaddahAttarExplosion(BarsArray[3]);
 
                 RSIIndicator_5m = RSI(14, 3);
 
-                MACD_5m = MACD(12, 26, 9);
+                //MACD_5m = MACD(12, 26, 9);
 
                 EMA46_5m = EMA(46);
                 EMA46_5m.Plots[0].Brush = Brushes.DarkOrange;

@@ -21,6 +21,10 @@ namespace NinjaTrader.Custom.Strategies
         public const string Configuration_Sizing_Name = "How to set stoploss/gain";
         public const string Configuration_General_Name = "General Setting";
 
+        // Some default news time, being used for many places.
+        public const string Configuration_General_TradingTime = "Trading Time";
+
+
         public const string Configuration_TigerParams_Name = "Based ATM Parameters";
 
         // Ninja Trader default signal 
@@ -52,6 +56,7 @@ namespace NinjaTrader.Custom.Strategies
         // Some default news time, being used for many places.
         public const string DefaultNewsTime = "0830,1500,1700";
 
+       
 
         public static double RoundPrice(double price)
         {

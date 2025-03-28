@@ -23,6 +23,7 @@ using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
+using System.Windows.Controls.Primitives;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -32,26 +33,29 @@ namespace NinjaTrader.NinjaScript.Strategies
     {
         public GeneralBackTest() 
         {
-#if TEST_ROOSTER
-            HalfPriceSignals = new HashSet<string> { StrategiesUtilities.SignalEntry_GeneralHalf };
+
+            HalfPriceSignals = new HashSet<string> { SignalHalf };
 
             EntrySignals = new HashSet<string>
             {
-                StrategiesUtilities.SignalEntry_GeneralHalf,
-                StrategiesUtilities.SignalEntry_GeneralFull
+                SignalHalf,
+                SignalFull
             };
-#endif
+
         }
         protected override bool IsSelling => CurrentTradeAction == GeneralTradeAction.Sell;       
 
         protected override bool IsBuying => CurrentTradeAction == GeneralTradeAction.Buy;
 
+        #if TEST_ROOSTER
+        private string SignalHalf = StrategiesUtilities.SignalEntry_GeneralHalf;
+        private string SignalFull = StrategiesUtilities.SignalEntry_GeneralFull;
+        #endif
+
         private EMA EMA46_5m { get; set; }
         private EMA EMA51_5m { get; set; }
 
-        protected DateTime TouchEMA4651Time { get; set; } = DateTime.MinValue;
-
-
+        protected DateTime TouchEMA4651Time { get; set; } = DateTime.MinValue;        
 
         protected double currentPrice = -1;
 
@@ -64,44 +68,21 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double closePrice_5m = -1;
         protected double openPrice_5m = -1;
 
+        DateTime FilledDate = DateTime.MinValue;
+
         protected override void SetDefaultProperties()
         {
             base.SetDefaultProperties();
 
-            MaximumDailyLoss = 260;
-            DailyTargetProfit = 500;
-
-            StopLossInTicks = 120;
             Target1InTicks = 120;
-            Target2InTicks = 160;
+            StartDayTradeTime = new TimeSpan(9, 0, 0); ;
+            EndDayTradeTime = new TimeSpan(13, 0, 0); ;
         }
-
         protected override void OnStateChange()
 		{
-			if (State == State.SetDefaults)
-			{
-				Description									= @"For general back test.";
-				Name										= "GeneralBackTest";
-				Calculate									= Calculate.OnBarClose;
-				EntriesPerDirection							= 1;
-				EntryHandling								= EntryHandling.AllEntries;
-				IsExitOnSessionCloseStrategy				= true;
-				ExitOnSessionCloseSeconds					= 30;
-				IsFillLimitOnTouch							= false;
-				MaximumBarsLookBack							= MaximumBarsLookBack.TwoHundredFiftySix;
-				OrderFillResolution							= OrderFillResolution.Standard;
-				Slippage									= 0;
-				StartBehavior								= StartBehavior.WaitUntilFlat;
-				TimeInForce									= TimeInForce.Gtc;
-				TraceOrders									= false;
-				RealtimeErrorHandling						= RealtimeErrorHandling.StopCancelClose;
-				StopTargetHandling							= StopTargetHandling.PerEntryExecution;
-				BarsRequiredToTrade							= 20;
-				// Disable this property for performance gains in Strategy Analyzer optimizations
-				// See the Help Guide for additional information
-				IsInstantiatedOnEachOptimizationIteration	= true;
-			}
-			else if (State == State.Configure)
+            base.OnStateChange();
+
+            if (State == State.Configure)
 			{
                 // Add data for trading
                 AddDataSeries(BarsPeriodType.Minute, 5);
@@ -126,14 +107,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 		protected override void OnBarUpdate()
 		{
             StrategiesUtilities.CalculatePnL(this, Account, Print);
-
-            LocalPrint(1);
+            
             var passTradeCondition = CheckingTradeCondition();
             if (!passTradeCondition)
             {
                 return;
-            }
-            LocalPrint(2);
+            }            
 
             base.OnBarUpdate();
 
@@ -168,6 +147,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Nếu có vùng giá mới thì cập nhật
                     if (shouldChangeVal == GeneralTradeAction.NoTrade)
                     {
+                        //CancelAllPendingOrder();
+
                         return;
                     }
 
@@ -252,12 +233,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override bool IsHalfPriceOrder(Order order)
         {
-            return order.Name == StrategiesUtilities.SignalEntry_FVGHalf;
+            return order.Name == SignalHalf;
         }
 
         protected override bool IsFullPriceOrder(Order order)
         {
-            return order.Name == StrategiesUtilities.SignalEntry_FVGFull;
+            return order.Name == SignalFull;
         }
 
         protected override double GetSetPrice(GeneralTradeAction tradeAction, GeneralTradeAction additionalInfo)
@@ -287,10 +268,16 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             var time = ToTime(Time[0]);
 
-            // Trước 9:10am hoặc sau 2:00pm thì không nên trade 
-            if (time < 091000 && time < 140000)
+            if (Time[0].Date == FilledDate)
             {
-                LocalPrint($"Rooster chỉ sử dụng từ 9:10a-2:00pm --> No Trade.");
+                LocalPrint($"Đã có lệnh ngày hôm nay");
+                return GeneralTradeAction.NoTrade;
+            }
+
+            // Trước 9:10am hoặc sau 2:00pm thì không nên trade 
+            if (Time[0].TimeOfDay < StartDayTradeTime || Time[0].TimeOfDay > EndDayTradeTime)
+            {
+                LocalPrint($"Rooster chỉ sử dụng từ {StartDayTradeTime:HH:mm} to {EndDayTradeTime:HH:mm} --> No Trade.");
                 return GeneralTradeAction.NoTrade;
             }
 
@@ -338,17 +325,21 @@ namespace NinjaTrader.NinjaScript.Strategies
                 double priceToSet = GetSetPrice(action, action);
                 FilledPrice = priceToSet;
 
+                FilledDate = Time[0].Date;
+
                 var stopLossPrice = GetStopLossPrice(action, priceToSet, action);
                 var targetHalf = GetTargetPrice_Half(action, priceToSet, action);
                 var targetFull = GetTargetPrice_Full(action, priceToSet, action);                
 
                 EnterOrderPureUsingPrice(priceToSet, targetHalf, stopLossPrice,
-                    StrategiesUtilities.SignalEntry_FVGHalf, 2,
+                    SignalHalf, 2,
                     IsBuying, IsSelling);
 
+                /*
                 EnterOrderPureUsingPrice(priceToSet, targetFull, stopLossPrice,
-                    StrategiesUtilities.SignalEntry_FVGFull, 2,
+                    SignalFull, 2,
                     IsBuying, IsSelling);
+                */
             }
             catch (Exception ex)
             {

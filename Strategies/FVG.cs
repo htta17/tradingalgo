@@ -14,7 +14,7 @@ using System.Windows.Media;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public abstract class FVG : BarClosedBaseClass<FVGTradeAction, FVGTradeDetail>
+    public abstract class FVG : BarClosedBaseClass<GeneralTradeAction, FVGTradeDetail>
     {
         // Constants 
         const string Configuration_FVGGroup_Name = "FVG Strategy";
@@ -72,7 +72,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return CurrentTradeAction == FVGTradeAction.Sell;
+                return CurrentTradeAction == GeneralTradeAction.Sell;
             }
         }
 
@@ -80,7 +80,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return CurrentTradeAction == FVGTradeAction.Buy;
+                return CurrentTradeAction == GeneralTradeAction.Buy;
             }
         }
 
@@ -114,7 +114,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Add data for trading
                 AddDataSeries(BarsPeriodType.Minute, 5);
 
-                CurrentTradeAction = FVGTradeAction.NoTrade;
+                CurrentTradeAction = GeneralTradeAction.NoTrade;
             }
             else if (State == State.DataLoaded)
             {
@@ -153,8 +153,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     LocalPrint($"Check trading condition, result: {shouldTrade}");
 
-                    if ((shouldTrade == FVGTradeAction.Buy)
-                        || (shouldTrade == FVGTradeAction.Sell))
+                    if ((shouldTrade == GeneralTradeAction.Buy)
+                        || (shouldTrade == GeneralTradeAction.Sell))
                     {
                         EnterOrder(shouldTrade);
                     }
@@ -187,7 +187,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var shouldChangeVal = ShouldTrade();
 
                     // Nếu có vùng giá mới thì cập nhật
-                    if (shouldChangeVal == FVGTradeAction.NoTrade)
+                    if (shouldChangeVal == GeneralTradeAction.NoTrade)
                     {
                         return;
                     }
@@ -265,7 +265,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 30);
         }
 
-        protected override void EnterOrder(FVGTradeAction action)
+        protected override void EnterOrder(GeneralTradeAction action)
         {
             // Set global values
             CurrentTradeAction = action;
@@ -274,7 +274,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Chưa cho move stop loss
             StartMovingStoploss = false;
 
-            var orderAction = action == FVGTradeAction.Buy ? OrderAction.Buy : OrderAction.Sell;
+            var orderAction = action == GeneralTradeAction.Buy ? OrderAction.Buy : OrderAction.Sell;
 
             try
             {
@@ -302,7 +302,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override double GetStopLossPrice(FVGTradeAction tradeAction, double setPrice, FVGTradeDetail fVGTradeDetail)
+        protected override double GetStopLossPrice(GeneralTradeAction tradeAction, double setPrice, FVGTradeDetail fVGTradeDetail)
         {
             var stopLossBaseOnFVG =
                 (CurrentFVGTradeDetail.StopLossDistance < 7) ? 10
@@ -315,12 +315,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ? (StopLossInTicks * TickSize)
                 : stopLossBaseOnFVG;
 
-            return CurrentFVGTradeDetail.FVGTradeAction == FVGTradeAction.Buy
+            return CurrentFVGTradeDetail.FVGTradeAction == GeneralTradeAction.Buy
                 ? setPrice - stoploss
                 : setPrice + stoploss;
         }
 
-        protected override double GetTargetPrice_Half(FVGTradeAction tradeAction, double setPrice, FVGTradeDetail fVGTradeDetail)
+        protected override double GetTargetPrice_Half(GeneralTradeAction tradeAction, double setPrice, FVGTradeDetail fVGTradeDetail)
         {
             return GetTargetPrice_Half(CurrentFVGTradeDetail, setPrice);
         }
@@ -338,12 +338,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ? (Target1InTicks * TickSize)
                 : targetBasedOnFVG;
 
-            return CurrentTradeAction == FVGTradeAction.Buy
+            return CurrentTradeAction == GeneralTradeAction.Buy
                 ? setPrice + target
                 : setPrice - target;
         }
 
-        protected override double GetTargetPrice_Full(FVGTradeAction tradeAction, double setPrice, FVGTradeDetail fVGTradeDetail)
+        protected override double GetTargetPrice_Full(GeneralTradeAction tradeAction, double setPrice, FVGTradeDetail fVGTradeDetail)
         {
             return GetTargetPrice_Full(CurrentFVGTradeDetail, setPrice); 
         }
@@ -361,7 +361,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ? (Target2InTicks * TickSize)
                 : targetBasedOnFVG;
 
-            return tradeDetail.FVGTradeAction == FVGTradeAction.Buy
+            return tradeDetail.FVGTradeAction == GeneralTradeAction.Buy
                 ? setPrice + target
                 : setPrice - target;
         }
@@ -394,7 +394,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 : quantity;
         }
 
-        protected override FVGTradeAction ShouldTrade()
+        protected override GeneralTradeAction ShouldTrade()
         {
             if (High[2] < Low[0] && Low[0] - High[2] > MinDistanceToDetectFVG)
             {
@@ -408,12 +408,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                     NewFVGTradeDetail = new FVGTradeDetail
                     {
                         FilledPrice = High[2],
-                        FVGTradeAction = FVGTradeAction.Buy,
+                        FVGTradeAction = GeneralTradeAction.Buy,
                         StopLossPrice = Low[2],
                         TargetProfitPrice = High[0],
                         BarIndex = CurrentBar
                     };
-                    return FVGTradeAction.Buy;
+                    return GeneralTradeAction.Buy;
                 }
             }
             else if (Low[2] > High[0] && Low[2] - High[0] > MinDistanceToDetectFVG)
@@ -428,31 +428,31 @@ namespace NinjaTrader.NinjaScript.Strategies
                     NewFVGTradeDetail = new FVGTradeDetail
                     {
                         FilledPrice = Low[2],
-                        FVGTradeAction = FVGTradeAction.Sell,
+                        FVGTradeAction = GeneralTradeAction.Sell,
                         StopLossPrice = High[2],
                         TargetProfitPrice = Low[0],
                         BarIndex = CurrentBar
                     };
-                    return FVGTradeAction.Sell;
+                    return GeneralTradeAction.Sell;
                 }
             }
 
             NewFVGTradeDetail = new FVGTradeDetail
             {
                 FilledPrice = -1,
-                FVGTradeAction = FVGTradeAction.NoTrade,
+                FVGTradeAction = GeneralTradeAction.NoTrade,
                 StopLossPrice = -1,
                 TargetProfitPrice = -1,
                 BarIndex = -1
             };
-            return FVGTradeAction.NoTrade;
+            return GeneralTradeAction.NoTrade;
         }
 
         private FVGTradeDetail CurrentFVGTradeDetail { get; set; }
 
         private FVGTradeDetail NewFVGTradeDetail { get; set; }
 
-        protected override double GetSetPrice(FVGTradeAction tradeAction, FVGTradeDetail fVGTradeDetail)
+        protected override double GetSetPrice(GeneralTradeAction tradeAction, FVGTradeDetail fVGTradeDetail)
         {
             return NewFVGTradeDetail.FilledPrice;
         }

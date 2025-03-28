@@ -228,7 +228,7 @@ namespace NinjaTrader.Custom.Strategies
 
     #region Monkey (FVG) enums 
 
-    public enum FVGTradeAction
+    public enum GeneralTradeAction
     {
         NoTrade =0,
 

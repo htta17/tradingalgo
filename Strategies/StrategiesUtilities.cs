@@ -45,6 +45,10 @@ namespace NinjaTrader.Custom.Strategies
         public const string SignalEntry_RSIBollingerHalf = "Entry-BH";
         public const string SignalEntry_RSIBollingerFull = "Entry-BF";
 
+        // General
+        public const string SignalEntry_GeneralHalf = "Entry-GH";
+        public const string SignalEntry_GeneralFull = "Entry-GF";
+
         // Some default news time, being used for many places.
         public const string DefaultNewsTime = "0830,1500,1700";
 
@@ -184,7 +188,10 @@ namespace NinjaTrader.Custom.Strategies
 
             //RSI-Bollinger 
             SignalEntry_RSIBollingerHalf,
-            SignalEntry_RSIBollingerFull
+            SignalEntry_RSIBollingerFull, 
+
+            SignalEntry_GeneralHalf,
+            SignalEntry_GeneralFull,
         };
 
         public static string GenerateKey(Order order)
@@ -260,7 +267,7 @@ namespace NinjaTrader.Custom.Strategies
 
     public class FVGTradeDetail
     {
-        public FVGTradeAction FVGTradeAction { get; set; }
+        public GeneralTradeAction FVGTradeAction { get; set; }
 
         public double FilledPrice { get; set; }
 

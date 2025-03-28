@@ -274,29 +274,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 currentPrice = Close[0];
 
                 DrawKeyLevels("MiddleEMA", (ema51_1m + ema29_1m) / 2, Brushes.Gold, Brushes.Green); 
-
-                if (State != State.Realtime)
-                {
-                    return;
-                }
-
-                if (TradingStatus == TradingStatus.Idle)
-                {
-                    var shouldTrade = ShouldTrade();
-
-                    LocalPrint($"Check trading condition, result: {shouldTrade}");
-
-                    // Điều kiện [barIndex_5m != enteredbarIndex_5m] để tránh việc trade 1 bar 5 phút nhiều lần
-                    if (shouldTrade != TradeAction.NoTrade && CurrentBarIndex_5m != EnteredBarIndex_5m)
-                    {
-                        EnterOrder(shouldTrade);
-                    }
-                }
-                else if (TradingStatus == TradingStatus.PendingFill)
-                {
-                    UpdatePendingOrder();
-                }
-
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
@@ -367,6 +344,30 @@ namespace NinjaTrader.NinjaScript.Strategies
                     $"DowntrendVal: {wae.DownTrendVal:N2}, " +
                     $"UptrendVal: {wae.UpTrendVal:N2}." +
                     $"{(wae.HasBULLVolume ? "--> BULL Volume" : wae.HasBEARVolume ? "--> BEAR Volume" : "")}");
+
+                #region Enter order
+                if (State != State.Realtime)
+                {
+                    return;
+                }
+
+                if (TradingStatus == TradingStatus.Idle)
+                {
+                    var shouldTrade = ShouldTrade();
+
+                    LocalPrint($"Check trading condition, result: {shouldTrade}");
+
+                    // Điều kiện [barIndex_5m != enteredbarIndex_5m] để tránh việc trade 1 bar 5 phút nhiều lần
+                    if (shouldTrade != TradeAction.NoTrade && CurrentBarIndex_5m != EnteredBarIndex_5m)
+                    {
+                        EnterOrder(shouldTrade);
+                    }
+                }
+                else if (TradingStatus == TradingStatus.PendingFill)
+                {
+                    UpdatePendingOrder();
+                }
+                #endregion
             }
         }
 

@@ -348,18 +348,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (bodyIsSmallerThanOthers)
             {
                 return (RiskyAtmStrategy, RiskyAtmStrategyName);
-            }
-
-            /*
-            var currentWAE = waeValuesSeries[0];
-            var previousWAE = waeValuesSeries[1];
-            var previous2WAE = waeValuesSeries[2];
-
-            var descreaseBULLVolume = tradeAction == TradeAction.Buy_Trending &&
-                (currentWAE.UpTrendVal < previousWAE.UpTrendVal || (previousWAE.UpTrendVal < previous2WAE.UpTrendVal && previous2WAE.UpTrendVal > 0));
-            var descreaseBEARVolume = tradeAction == TradeAction.Sell_Trending &&
-                (currentWAE.DownTrendVal < previousWAE.DownTrendVal || (previousWAE.DownTrendVal < previous2WAE.DownTrendVal && previous2WAE.DownTrendVal > 0));
-            */
+            }            
 
             // Trường hợp 2: Giá vào lệnh và target băng qua đường EMA46/51. 
             // Đây là 1 key quan trọng nên rất dễ bị reverse. 
@@ -375,6 +364,18 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 return (RiskyAtmStrategy, RiskyAtmStrategyName);
             }
+
+            // Trường hợp 3: Volume giảm dần (NOT IN USE)
+            /*
+            var currentWAE = waeValuesSeries[0];
+            var previousWAE = waeValuesSeries[1];
+            var previous2WAE = waeValuesSeries[2];
+
+            var descreaseBULLVolume = tradeAction == TradeAction.Buy_Trending &&
+                (currentWAE.UpTrendVal < previousWAE.UpTrendVal || (previousWAE.UpTrendVal < previous2WAE.UpTrendVal && previous2WAE.UpTrendVal > 0));
+            var descreaseBEARVolume = tradeAction == TradeAction.Sell_Trending &&
+                (currentWAE.DownTrendVal < previousWAE.DownTrendVal || (previousWAE.DownTrendVal < previous2WAE.DownTrendVal && previous2WAE.DownTrendVal > 0));
+            */
 
             var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
 

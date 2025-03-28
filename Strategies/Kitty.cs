@@ -492,8 +492,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             double newPrice = -1;
             var allowMoving = false;
             var stopOrderPrice = stopOrder.StopPrice;
-
-            // Dịch stop loss lên break even 
+            
             if (isBuying)
             {
                 // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
@@ -502,11 +501,18 @@ namespace NinjaTrader.NinjaScript.Strategies
                     newPrice = updatedPrice - PointToMoveLoss;
                     allowMoving = true;
                 }
-                else if (filledPrice <= stopOrderPrice && stopOrderPrice <= TargetPrice_Half && TargetPrice_Half + 7 < updatedPrice)
+                else
                 {
-                    newPrice = TargetPrice_Half; 
-                    allowMoving = true;
-                }                
+                    allowMoving = allowMoving || (filledPrice <= stopOrderPrice && stopOrderPrice < TargetPrice_Half && TargetPrice_Half + 7 < updatedPrice);
+
+                    LocalPrint($"Điều kiện để chuyển stop lên target 1 - filledPrice: {filledPrice:N2} <= stopOrderPrice: {stopOrderPrice:N2} <= TargetPrice_Half {TargetPrice_Half:N2} --> Allow move: {allowMoving}");
+
+                    // Giá lên 37 điểm thì di chuyển stop loss lên 30 điểm
+                    if (allowMoving)
+                    {
+                        newPrice = TargetPrice_Half;                        
+                    }
+                }               
             }
             else if (isSelling)
             {
@@ -516,10 +522,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                     newPrice = updatedPrice + PointToMoveLoss;
                     allowMoving = true;
                 }
-                else if (filledPrice >= stopOrderPrice && stopOrderPrice >= TargetPrice_Half && TargetPrice_Half - 7 > updatedPrice)
+                else
                 {
-                    newPrice = TargetPrice_Half;
-                    allowMoving = true;
+                    allowMoving = allowMoving || (filledPrice >= stopOrderPrice && stopOrderPrice > TargetPrice_Half && TargetPrice_Half - 7 > updatedPrice);
+
+                    LocalPrint($"Điều kiện để chuyển stop lên target 1  - filledPrice: {filledPrice:N2} >= stopOrderPrice: {stopOrderPrice:N2} > TargetPrice_Half {TargetPrice_Half:N2} --> Allow move: {allowMoving}");
+
+                    if (allowMoving)
+                    {
+                        newPrice = TargetPrice_Half;
+                    }
                 }
             }
 

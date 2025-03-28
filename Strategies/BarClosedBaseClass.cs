@@ -319,7 +319,7 @@ namespace NinjaTrader.Custom.Strategies
             CountEntrySignal = 0;
         }
 
-        protected abstract void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull, double? targetHalf = null);
+        protected abstract void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull, double targetHalf);
 
         protected bool IsTradingHour()
         {

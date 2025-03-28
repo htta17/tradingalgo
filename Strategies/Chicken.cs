@@ -847,13 +847,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.Realtime)
             {
-                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full);
+                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
             }
             #endregion
 
         }
 
-        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull, double? targetHalf = null)
+        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull, double targetHalf)
         {
             if (Math.Abs(FilledPrice - newPrice) > 0.5)
             {

@@ -347,7 +347,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull, double? targetHalf = null)
+        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull, double targetHalf)
         {
             throw new NotImplementedException();
         }

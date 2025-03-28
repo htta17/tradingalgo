@@ -136,17 +136,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double target, double? targetHalf = null)
+        protected override void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double target, double targetHalf)
         {
             if (Math.Abs(FilledPrice - newPrice) > 0.5)
             {
                 FilledPrice = newPrice;
                 StopLossPrice = stopLossPrice;
                 TargetPrice_Full = target;
-                if (targetHalf.HasValue)
-                {
-                    TargetPrice_Half = targetHalf.Value;
-                }
+                TargetPrice_Half = targetHalf;
 
                 try
                 {
@@ -369,7 +366,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
 
         }
-
 
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {

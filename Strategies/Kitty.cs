@@ -76,13 +76,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             AllowUseRSIIndicator = false;
 
             StartDayTradeTime = new TimeSpan(9, 10, 0); // 9:10:00 am 
-            EndDayTradeTime = new TimeSpan(14, 0, 0); // 2:00:00 pm
+            EndDayTradeTime = new TimeSpan(15, 0, 0); // 2:00:00 pm
+
+            Print($"Thời gian trade được thiết lập từ {StartDayTradeTime} to {EndDayTradeTime}");
         }
         protected override TradeAction ShouldTrade()
         {
             if (Time[0].TimeOfDay < StartDayTradeTime || Time[0].TimeOfDay > EndDayTradeTime)
             {
-                LocalPrint($"Thời gian trade được thiết lập từ {StartDayTradeTime:hh:mm} to {EndDayTradeTime:hh:mm} --> No Trade.");
+                LocalPrint($"Thời gian trade được thiết lập từ {StartDayTradeTime} to {EndDayTradeTime} --> No Trade.");
                 return TradeAction.NoTrade;
             }
 

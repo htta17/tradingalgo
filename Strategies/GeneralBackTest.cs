@@ -75,8 +75,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
 
             Target1InTicks = 120;
-            StartDayTradeTime = new TimeSpan(9, 0, 0); ;
-            EndDayTradeTime = new TimeSpan(13, 0, 0); ;
+            StartDayTradeTime = new TimeSpan(9, 0, 0); 
+            EndDayTradeTime = new TimeSpan(13, 0, 0);
         }
         protected override void OnStateChange()
 		{
@@ -275,7 +275,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Trước 9:10am hoặc sau 2:00pm thì không nên trade 
             if (Time[0].TimeOfDay < StartDayTradeTime || Time[0].TimeOfDay > EndDayTradeTime)
             {
-                LocalPrint($"Rooster chỉ sử dụng từ {StartDayTradeTime:HH:mm} to {EndDayTradeTime:HH:mm} --> No Trade.");
+                LocalPrint($"Rooster chỉ sử dụng từ {StartDayTradeTime} to {EndDayTradeTime} --> No Trade.");
                 return GeneralTradeAction.NoTrade;
             }
 

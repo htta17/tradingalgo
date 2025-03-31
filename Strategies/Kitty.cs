@@ -33,16 +33,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// ATM name for live trade.
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Cancel lệnh chờ nếu giá chạm Target 1",
-            Description = "Cancel lệnh chờ nếu giá chạm Target 1",
-            Order = 2, GroupName = ATMStrategy_Group)]
-        [TypeConverter(typeof(ATMStrategyConverter))]
-        public bool AllowCancelWhenPriceMeetTarget1 { get; set; }
-
-        /// <summary>
-        /// ATM name for live trade.
-        /// </summary>
-        [NinjaScriptProperty]
         [Display(Name = "Sử dụng thông tin RSI",
             Description = "Nếu TRUE: Sử dụng điều kiện RSI overbought hoặc oversold kết hợp với các điều kiện hiện tại để vào lệnh",
             Order = 2, GroupName = ATMStrategy_Group)]
@@ -80,9 +70,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
 
             Name = "Kitty";
-            Description = "[Kitty] là giải thuật [Rooster], được viết riêng cho my love, Phượng Phan.";
-
-            AllowCancelWhenPriceMeetTarget1 = false;
+            Description = "[Kitty] là giải thuật [Rooster], được viết riêng cho my love, Phượng Phan.";            
 
             RiskyAtmStrategyName = "Rooster_Risky";
             AllowUseRSIIndicator = false;
@@ -470,22 +458,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             return false;
         }
         protected override void OnMarketData_DoForPendingFill(double updatedPrice)
-        {
-            if (!AllowCancelWhenPriceMeetTarget1)
-            {
-                return;
-            }
-
-            if ((IsBuying && updatedPrice > TargetPrice_Half))
-            {
-                LocalPrint($"Cancel lệnh BUY do giá đã chạm target 1. Giá hiện tại: {updatedPrice:N2}, TargetPrice_Half: {TargetPrice_Half:N2}");
-                CancelAllPendingOrder(); 
-            }
-            else if (IsSelling && updatedPrice < TargetPrice_Half)
-            {
-                LocalPrint($"Cancel lệnh SELL do giá đã chạm target 1. Giá hiện tại: {updatedPrice:N2}, TargetPrice_Half: {TargetPrice_Half:N2}");
-                CancelAllPendingOrder();
-            }
+        {            
+            return;
         }
 
         protected override void MoveStopOrder(Order stopOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)

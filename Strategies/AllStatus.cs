@@ -12,7 +12,7 @@ namespace NinjaTrader.Custom.Strategies
     /// Lựa chọn điểm vào lệnh (Theo EMA29/51 hay theo Bollinger bands)
     /// </summary>
     public enum ReversePlaceToSetOrder
-    {       
+    {
         EMA2951,
         BollingerBand
     }
@@ -32,9 +32,9 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Điểm giữa của cây nến trước
         /// </summary>
-        MiddleOfLastCandle, 
+        MiddleOfLastCandle,
 
-        BollingerBandHigh, 
+        BollingerBandHigh,
 
         BollingerBandLow
     }
@@ -92,14 +92,12 @@ namespace NinjaTrader.Custom.Strategies
 
     public enum WAE_Strength
     {
-        Weak, 
-        Medium, 
-        Strong, 
+        Weak,
+        Medium,
+        Strong,
         SuperStrong,
         ExtremelySuperStrong,
     }
-
-    
 
     /// <summary>
     /// Waddah Attar Explosion
@@ -189,7 +187,7 @@ namespace NinjaTrader.Custom.Strategies
             get
             {
                 if (wAE_Strength == null)
-                { 
+                {
                     var sum = DownTrendVal + UpTrendVal;
 
                     if (sum <= WeakRange)
@@ -230,10 +228,10 @@ namespace NinjaTrader.Custom.Strategies
 
     public enum GeneralTradeAction
     {
-        NoTrade =0,
+        NoTrade = 0,
 
         // Start from 5, do [TradeAction] đã có từ 1-4
-        Buy = 5, 
+        Buy = 5,
 
         Sell = 6,
     }
@@ -246,7 +244,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Stop loss/gain dựa trên số lượng [Target 1/2 Profit (Ticks)] và [Số lượng contract cho target 1/2]
         /// </summary>
-        FixedNumberOfTicks, 
+        FixedNumberOfTicks,
 
         /// <summary>
         /// Chương trình sẽ tính toán và quyết định stop loss/gain dựa trên FVG gap
@@ -261,9 +259,9 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Không làm gì 
         /// </summary>
-        NoTrade,       
+        NoTrade,
 
-        SetBuyOrder, 
+        SetBuyOrder,
 
         SetSellOrder
     }
@@ -271,7 +269,7 @@ namespace NinjaTrader.Custom.Strategies
     [Flags]
     public enum ValidateType
     {
-        TradingHour = 1, 
+        TradingHour = 1,
         MaxDayGainLoss = 2,
     }
 
@@ -287,4 +285,11 @@ namespace NinjaTrader.Custom.Strategies
         // No-work on Sabbath day, praise Jehovah.
     }
     #endregion
+
+    public enum TimeFrameToTrade
+    { 
+        OneMinute, 
+        ThreeMinutes, 
+        FiveMinutes
+    }
 }

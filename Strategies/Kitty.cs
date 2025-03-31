@@ -53,6 +53,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         public Kitty() : base("KITTY")
         {
             FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyKitty.txt");
+            Configured_TimeFrameToTrade = TimeFrameToTrade.FiveMinutes;
         }
 
         protected override void OnStateChange()
@@ -70,9 +71,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
 
             Name = "Kitty";
-            Description = "[Kitty] là giải thuật [Rooster], được viết riêng cho my love, Phượng Phan.";            
+            Description = "[Kitty] là giải thuật [Rooster], được viết riêng cho my love, Phượng Phan.";
 
-            RiskyAtmStrategyName = "Rooster_Risky";
+            FullSizeATMName = "Kitty_Default_4cts";
+            HalfSizefATMName = "Kitty_Default_2cts";
+            RiskyAtmStrategyName = "Kitty_Risky";
+
             AllowUseRSIIndicator = false;
 
             StartDayTradeTime = new TimeSpan(9, 10, 0); // 9:10:00 am 

@@ -32,9 +32,14 @@ namespace NinjaTrader.NinjaScript.Strategies
     {
         public Rooster(string name) : base(name) { }
 
-        public Rooster() : this("ROOSTER") { }
+        public Rooster() : this("ROOSTER") 
+        {
+            Configured_TimeFrameToTrade = TimeFrameToTrade.OneMinute; 
+        }
 
         private const int DEMA_Period = 9;
+
+        protected TimeFrameToTrade Configured_TimeFrameToTrade { get; set; }
 
         #region 1 minute values
         protected double ema21_1m = -1;
@@ -232,10 +237,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             var time = ToTime(Time[0]);
 
-            // Trước 9:10am hoặc sau 2:00pm thì không nên trade 
-            if (time < 091000 && time < 140000)
+            if (Time[0].TimeOfDay < StartDayTradeTime || Time[0].TimeOfDay > EndDayTradeTime)
             {
-                LocalPrint($"Rooster chỉ sử dụng từ 9:10a-2:00pm --> No Trade.");
+                LocalPrint($"Thời gian trade được thiết lập từ {StartDayTradeTime} to {EndDayTradeTime} --> No Trade.");
                 return TradeAction.NoTrade;
             }
 
@@ -267,6 +271,31 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             return TradeAction.NoTrade;
         }
+        
+        protected void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
+        {
+            // Make sure each stratergy have each own time frame to trade
+            if (timeFrameToTrade != Configured_TimeFrameToTrade)
+            {
+                return; 
+            }    
+            if (TradingStatus == TradingStatus.Idle)
+            {
+                var shouldTrade = ShouldTrade();
+
+                LocalPrint($"Check trading condition, result: {shouldTrade}");
+
+                // Điều kiện [barIndex_5m != enteredbarIndex_5m] để tránh việc trade 1 bar 5 phút nhiều lần
+                if (shouldTrade != TradeAction.NoTrade)// && CurrentBarIndex_5m != EnteredBarIndex_5m)
+                {
+                    EnterOrder(shouldTrade);
+                }
+            }
+            else if (TradingStatus == TradingStatus.PendingFill)
+            {
+                UpdatePendingOrder();
+            }
+        }
 
         protected override void OnBarUpdate()
         {
@@ -293,7 +322,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 currentPrice = Close[0];
 
-                DrawKeyLevels("MiddleEMA", (ema51_1m + ema29_1m) / 2, Brushes.Gold, Brushes.Green); 
+                DrawKeyLevels("MiddleEMA", (ema51_1m + ema29_1m) / 2, Brushes.Gold, Brushes.Green);
+
+                BasicActionForTrading(TimeFrameToTrade.OneMinute); 
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
@@ -371,22 +402,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     return;
                 }
 
-                if (TradingStatus == TradingStatus.Idle)
-                {
-                    var shouldTrade = ShouldTrade();
-
-                    LocalPrint($"Check trading condition, result: {shouldTrade}");
-
-                    // Điều kiện [barIndex_5m != enteredbarIndex_5m] để tránh việc trade 1 bar 5 phút nhiều lần
-                    if (shouldTrade != TradeAction.NoTrade)// && CurrentBarIndex_5m != EnteredBarIndex_5m)
-                    {
-                        EnterOrder(shouldTrade);
-                    }
-                }
-                else if (TradingStatus == TradingStatus.PendingFill)
-                {
-                    UpdatePendingOrder();
-                }
+                BasicActionForTrading(TimeFrameToTrade.FiveMinutes);
                 #endregion
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 15)
@@ -404,6 +420,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             FullSizeATMName = "Rooster_Default_4cts";
             HalfSizefATMName = "Rooster_Default_2cts";
+
+            StartDayTradeTime = new TimeSpan(9, 10, 0); // 9:10:00 am 
+            EndDayTradeTime = new TimeSpan(15, 0, 0); // 2:00:00 pm
         }
 
         protected override bool IsBuying

@@ -107,6 +107,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             return Close[0];
         }
+
+        protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public abstract class TestStopLossGainOrigin : Strategy

@@ -158,6 +158,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        protected abstract void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade);        
+
         protected override void SetDefaultProperties()
         {
             base.SetDefaultProperties();
@@ -292,8 +294,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     else if (atmCallbackErrorCode != ErrorCode.NoError)
                     {
                         LocalPrint($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
-                    }    
-                    
+                    }
                 });
         }
 

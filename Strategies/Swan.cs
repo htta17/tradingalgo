@@ -21,20 +21,20 @@ using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
-using System.IO;
-using Rules1;
+using NinjaTrader.NinjaScript.MarketAnalyzerColumns;
+using System.Xml.Linq;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public abstract class Rooster : BarClosedATMBase<TradeAction>, IATMStrategy
+    public class Swan : BarClosedATMBase<TradeAction>, IATMStrategy
     {
-        public Rooster(string name) : base(name) { }
+        public Swan(string name) : base(name) { }
 
-        public Rooster() : this("ROOSTER") 
+        public Swan() : this("SWAN")
         {
-            Configured_TimeFrameToTrade = TimeFrameToTrade.OneMinute; 
+            Configured_TimeFrameToTrade = TimeFrameToTrade.OneMinute;
         }
 
         private const int DEMA_Period = 9;
@@ -47,6 +47,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double ema51_1m = -1;
         protected double ema120_1m = -1;
         protected double currentPrice = -1;
+
+        protected double lowPrice_1m = -1;
+        protected double highPrice_1m = -1;
+        protected double closePrice_1m = -1;
+        protected double openPrice_1m = -1;
+
         #endregion
 
         #region 5 minutes values 
@@ -92,13 +98,13 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double ema46_5m = -1;
         protected double ema51_5m = -1;
 
-        protected Series<WAE_ValueSet> waeValuesSeries_5m;        
+        protected Series<WAE_ValueSet> waeValuesSeries_5m;
 
         #region Indicators
         private Bollinger Bollinger1Indicator_5m { get; set; }
         private Bollinger Bollinger2Indicator_5m { get; set; }
         private WaddahAttarExplosion WAEIndicator_5m { get; set; }
-        
+
         private RSI RSIIndicator_5m { get; set; }
 
         private WaddahAttarExplosion WAEIndicator_15m { get; set; }
@@ -113,7 +119,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected DateTime TouchEMA4651Time { get; set; } = DateTime.MinValue;
 
         // KeyLevels
-        protected List<double> KeyLevels = new List<double>();        
+        protected List<double> KeyLevels = new List<double>();
 
         #endregion
         #endregion
@@ -135,7 +141,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 return;
             }
-            
+
             // Cancel lệnh do đợi quá lâu
             var firstOrder = GetPendingOrder();
 
@@ -167,9 +173,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 CancelAllPendingOrder();
                 return;
             }
-            else 
+            else
             {
-               
+
                 var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(checkShouldTradeAgain);
 
                 var newPrice = GetSetPrice(checkShouldTradeAgain, atmStrategy);
@@ -201,7 +207,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             //{
             //    LocalPrint($"[ShouldTrade], current: {CurrentTradeAction}, new: {checkShouldTradeAgain}, right now DO NOTHING.");
             //}
-        }        
+        }
 
         /// <summary>
         /// Tìm các giá trị của Waddah Attar Explosion ở khung 5 phút
@@ -271,14 +277,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             return TradeAction.NoTrade;
         }
-        
+
+        private TradeAction WaitTradeAction = TradeAction.NoTrade;
+
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
         {
             // Make sure each stratergy have each own time frame to trade
             if (timeFrameToTrade != Configured_TimeFrameToTrade)
             {
-                return; 
-            }    
+                return;
+            }
             if (TradingStatus == TradingStatus.Idle)
             {
                 var shouldTrade = ShouldTrade();
@@ -288,7 +296,44 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Điều kiện [barIndex_5m != enteredbarIndex_5m] để tránh việc trade 1 bar 5 phút nhiều lần
                 if (shouldTrade != TradeAction.NoTrade)// && CurrentBarIndex_5m != EnteredBarIndex_5m)
                 {
-                    EnterOrder(shouldTrade);
+                    
+                    WaitTradeAction = shouldTrade;
+
+                    // Wait for confirm candle 
+                    tradingStatus = TradingStatus.WatingForConfirmation;
+                }
+            }
+            else if (TradingStatus == TradingStatus.WatingForConfirmation)
+            {
+                if (WaitTradeAction == TradeAction.Buy_Reversal)
+                {
+                    // Kiểm tra điều kiện nến 1 phút xanh (HOLD) thì mới vào lệnh BUY
+                    if (CandleUtilities.IsGreenCandle(closePrice_1m, openPrice_1m))
+                    {                        
+                        EnterOrder(WaitTradeAction);
+                    }    
+                    // Nến break down FishTrend --> Cancel lệnh
+                    else if (CandleUtilities.IsRedCandle(closePrice_1m, openPrice_1m) 
+                        && Math.Min(ema46_5m, ema51_5m) > highPrice_1m 
+                        && Math.Min(ema46_5m, ema51_5m) - highPrice_1m > 12)
+                    {
+                        tradingStatus = TradingStatus.Idle;
+                    }   
+                }   
+                else if (WaitTradeAction == TradeAction.Sell_Reversal)
+                {
+                    // Kiểm tra điều kiện nến 1 phút đỏ
+                    if (CandleUtilities.IsRedCandle(closePrice_1m, openPrice_1m))
+                    {
+                        EnterOrder(WaitTradeAction);
+                    }
+                    // Nến break out FishTrend --> Cancel lệnh
+                    else if (CandleUtilities.IsGreenCandle(closePrice_1m, openPrice_1m)
+                        && lowPrice_1m > Math.Max(ema46_5m, ema51_5m)  
+                        && lowPrice_1m - Math.Max(ema46_5m, ema51_5m) > 12)
+                    {
+                        tradingStatus = TradingStatus.Idle;
+                    }
                 }
             }
             else if (TradingStatus == TradingStatus.PendingFill)
@@ -300,7 +345,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void OnBarUpdate()
         {
             // Cập nhật lại status 
-            tradingStatus = CheckCurrentStatusBasedOnOrders();            
+            tradingStatus = CheckCurrentStatusBasedOnOrders();
 
             var passTradeCondition = CheckingTradeCondition();
             if (!passTradeCondition)
@@ -320,11 +365,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ema51_1m = EMA(51).Value[0];
                 ema120_1m = EMA(120).Value[0];
 
+                lowPrice_1m = Low[0];
+                highPrice_1m = High[0];
+                closePrice_1m = Close[0];
+                openPrice_1m = Open[0];
+
                 currentPrice = Close[0];
 
                 DrawKeyLevels("MiddleEMA", (ema51_1m + ema29_1m) / 2, Brushes.Gold, Brushes.Green);
 
-                BasicActionForTrading(TimeFrameToTrade.OneMinute); 
+                BasicActionForTrading(TimeFrameToTrade.OneMinute);
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
@@ -340,10 +390,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 rsi_5m = RSIIndicator_5m[0];
 
                 volume_5m = Volume[0];
-               
+
                 ema46_5m = EMA46_5m.Value[0];
                 ema46_5m = EMA46_5m.Value[0];
-                middleEma4651_5m = (EMA46_5m.Value[0] + EMA51_5m.Value[0]) / 2.0; 
+                middleEma4651_5m = (EMA46_5m.Value[0] + EMA51_5m.Value[0]) / 2.0;
 
                 upperBB_5m = bollinger.Upper[0];
                 lowerBB_5m = bollinger.Lower[0];
@@ -364,7 +414,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     TouchEMA4651Time = Time[0];
                     LocalPrint($"Touch EMA46/51 at {TouchEMA4651Time}");
-                }    
+                }
 
                 prev_lowPrice_5m = Low[1];
                 prev_highPrice_5m = High[1];
@@ -403,15 +453,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 15)
             {
                 wAE_ValueSet_15m = FindWaddahAttarExplosion_15m();
-            }    
+            }
         }
 
         protected override void SetDefaultProperties()
         {
             base.SetDefaultProperties();
 
-            Name = "Rooster (EMA46/51 ONLY)";
-            Description = "[Rooster] là giải thuật trade ngược trend, dùng EMA46/51 only.";
+            Name = "Swan (EMA46/51 ONLY)";
+            Description = "[Swan] là giải thuật trade ngược trend, dùng EMA46/51 khung 5 phút only.";
 
             FullSizeATMName = "Rooster_Default_4cts";
             HalfSizefATMName = "Rooster_Default_2cts";
@@ -453,8 +503,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (State == State.Configure)
             {
                 AddDataSeries(BarsPeriodType.Minute, 15);
-            }    
-            else if (State == State.DataLoaded )
+            }
+            else if (State == State.DataLoaded)
             {
                 Bollinger1Indicator_5m = Bollinger(1, 20);
                 Bollinger1Indicator_5m.Plots[0].Brush = Bollinger1Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
@@ -490,13 +540,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 AddChartIndicator(Bollinger1Indicator_5m);
                 AddChartIndicator(Bollinger2Indicator_5m);
-                
+
                 AddChartIndicator(WAEIndicator_5m);
                 //AddChartIndicator(MACD_5m);
                 AddChartIndicator(EMA46_5m);
                 AddChartIndicator(EMA51_5m);
                 AddChartIndicator(RSIIndicator_5m);
-            }            
+            }
         }
 
         /// <summary>
@@ -506,7 +556,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// <returns></returns>
         protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy atmStrategy)
         {
-            return StrategiesUtilities.RoundPrice(middleEma4651_5m);            
+            return StrategiesUtilities.RoundPrice(middleEma4651_5m);
         }
         /*
          * End of class 

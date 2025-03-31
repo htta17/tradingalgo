@@ -148,78 +148,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 StrategiesUtilities.CalculatePnL(this, Account, Print);
 
-                if (TradingStatus == TradingStatus.Idle)
-                {
-                    var shouldTrade = ShouldTrade();                    
+                BasicActionForTrading(TimeFrameToTrade.OneMinute); 
 
-                    if (shouldTrade == ADXBollingerAction.SetBuyOrder || shouldTrade == ADXBollingerAction.SetSellOrder)
-                    {
-                        // Enter Order
-                        EnterOrder(shouldTrade);
-                    }
-                }
-                else if (TradingStatus == TradingStatus.PendingFill)
-                {
-                    // Kiểm tra các điều kiện để cancel lệnh
 
-                    if (adx_5m > ADXToCancelOrder)
-                    {
-                        LocalPrint($"Price is greater than Bollinger middle, cancel all pending orders");
-                        // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
-                        CancelAllPendingOrder();
-                    }
-                    else if (CurrentTradeAction == ADXBollingerAction.SetBuyOrder && lowPrice_5m > middleBB_5m)
-                    {
-                        LocalPrint($"Price is greater than Bollinger middle, cancel all pending orders");
-                        // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
-                        CancelAllPendingOrder();
-                    }
-                    else if (CurrentTradeAction == ADXBollingerAction.SetSellOrder && highPrice_5m < middleBB_5m)
-                    {
-                        LocalPrint($"Price is smaller than Bollinger middle, Cancel all pending orders");
-                        // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
-                        CancelAllPendingOrder();
-                    }
-                    else
-                    {
-                        var shouldTrade = ShouldTrade();
 
-                        // Xem điều kiện có bị thay đổi gì không? 
-                        if (shouldTrade == ADXBollingerAction.NoTrade)
-                        {
-                            // Do nothing, do việc cancel xảy ra khi adx_5m > [ADXToCancelOrder]
-                        }
-                        else
-                        {
-                            if (shouldTrade == CurrentTradeAction)
-                            {
-                                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(shouldTrade);
-
-                                var newPrice = GetSetPrice(shouldTrade, atmStrategy);
-                                
-                                var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice, atmStrategy);
-
-                                var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice, atmStrategy);
-
-                                var targetPrice_Half = GetTargetPrice_Half(shouldTrade, newPrice, atmStrategy);
-
-                                LocalPrint($"Update entry price to {newPrice:N2}.");
-
-                                UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
-                            }
-                            else
-                            {
-                                CancelAllPendingOrder();
-
-                                EnterOrder(shouldTrade);
-                            }
-                        }
-                    }
-                }
-                else if (TradingStatus == TradingStatus.OrderExists)
-                {
-
-                }
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
@@ -311,6 +243,82 @@ namespace NinjaTrader.NinjaScript.Strategies
             LocalPrint($"Adx_5m: {adx_5m:N2}, ADXToEnterOrder: {ADXToEnterOrder}, lowPrice_5m: {lowPrice_5m:N2}, middleBB_5m: {middleBB_5m:N2}, highPrice_5m: {highPrice_5m}, should trade?: [{answer}] {description}. ");
 
             return answer; 
+        }
+
+        protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
+        {
+            if (TradingStatus == TradingStatus.Idle)
+            {
+                var shouldTrade = ShouldTrade();
+
+                if (shouldTrade == ADXBollingerAction.SetBuyOrder || shouldTrade == ADXBollingerAction.SetSellOrder)
+                {
+                    // Enter Order
+                    EnterOrder(shouldTrade);
+                }
+            }
+            else if (TradingStatus == TradingStatus.PendingFill)
+            {
+                // Kiểm tra các điều kiện để cancel lệnh
+
+                if (adx_5m > ADXToCancelOrder)
+                {
+                    LocalPrint($"Price is greater than Bollinger middle, cancel all pending orders");
+                    // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
+                    CancelAllPendingOrder();
+                }
+                else if (CurrentTradeAction == ADXBollingerAction.SetBuyOrder && lowPrice_5m > middleBB_5m)
+                {
+                    LocalPrint($"Price is greater than Bollinger middle, cancel all pending orders");
+                    // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
+                    CancelAllPendingOrder();
+                }
+                else if (CurrentTradeAction == ADXBollingerAction.SetSellOrder && highPrice_5m < middleBB_5m)
+                {
+                    LocalPrint($"Price is smaller than Bollinger middle, Cancel all pending orders");
+                    // toàn bộ cây nến 5 phút đã vượt qua vùng giữa của Bollinger 
+                    CancelAllPendingOrder();
+                }
+                else
+                {
+                    var shouldTrade = ShouldTrade();
+
+                    // Xem điều kiện có bị thay đổi gì không? 
+                    if (shouldTrade == ADXBollingerAction.NoTrade)
+                    {
+                        // Do nothing, do việc cancel xảy ra khi adx_5m > [ADXToCancelOrder]
+                    }
+                    else
+                    {
+                        if (shouldTrade == CurrentTradeAction)
+                        {
+                            var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(shouldTrade);
+
+                            var newPrice = GetSetPrice(shouldTrade, atmStrategy);
+
+                            var stopLossPrice = GetStopLossPrice(shouldTrade, newPrice, atmStrategy);
+
+                            var targetPrice_Full = GetTargetPrice_Full(shouldTrade, newPrice, atmStrategy);
+
+                            var targetPrice_Half = GetTargetPrice_Half(shouldTrade, newPrice, atmStrategy);
+
+                            LocalPrint($"Update entry price to {newPrice:N2}.");
+
+                            UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
+                        }
+                        else
+                        {
+                            CancelAllPendingOrder();
+
+                            EnterOrder(shouldTrade);
+                        }
+                    }
+                }
+            }
+            else if (TradingStatus == TradingStatus.OrderExists)
+            {
+
+            }
         }
     }
 }

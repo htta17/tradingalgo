@@ -82,7 +82,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (Time[0].TimeOfDay < StartDayTradeTime || Time[0].TimeOfDay > EndDayTradeTime)
             {
-                LocalPrint($"Thời gian trade được thiết lập từ {StartDayTradeTime:HH:mm} to {EndDayTradeTime:HH:mm} --> No Trade.");
+                LocalPrint($"Thời gian trade được thiết lập từ {StartDayTradeTime:hh:mm} to {EndDayTradeTime:hh:mm} --> No Trade.");
                 return TradeAction.NoTrade;
             }
 

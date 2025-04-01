@@ -410,8 +410,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Hệ số (so với cây nến trước): Lấy 1/2 nếu Strong, 1/3 nếu Super Strong
                 var coeff =
-                    volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium || volumeStrength == WAE_Strength.Strong ? 2.0
-                    : volumeStrength == WAE_Strength.SuperStrong ? 3.0 : 4.0;
+                    (waeValuesSeries_5m[0].UpTrendVal + waeValuesSeries_5m[0].DownTrendVal) > 600 ? 2.0 
+                    : (volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium || volumeStrength == WAE_Strength.Strong) ? 2.0
+                    : 3.0;
 
                 if (tradeAction == TradeAction.Buy_Trending)
                 {

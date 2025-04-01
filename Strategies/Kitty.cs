@@ -115,6 +115,7 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 4. Volume sau cao hơn DeadZone 
              * 5. Nến phải là nến ĐỎ, Thân nến > 5 points
              * 6. (NOT IN USE) Thân cây nến trước không quá 60pts
+             * 6. Cây nến trước đó cũng là nến ĐỎ
              * 7. (CONFIGUABLE) RSI > 30 (Not oversold)
              * 8. Râu nến phía DƯỚI không quá dài (Râu DƯỚI dài chứng tỏ có lực MUA mạnh, có thể đảo chiều)
              * 9. (NOT IN USE) KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là XANH và có body > 50% cây nến gần nhất.
@@ -127,7 +128,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             const int PERCENTAGE_WICK_TO_TRADE = 70;
             const int RSI_TOO_BOUGHT = 70;
-            const int RSI_TOO_SOLD = 30;            
+            const int RSI_TOO_SOLD = 30;
 
             var bottomToBodyPercent = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m);
             var bottomToBody = bottomToBodyPercent < PERCENTAGE_WICK_TO_TRADE;
@@ -165,7 +166,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var conditionForSell = currentWAE.HasBEARVolume && // 1 & 4
                 previousWAE.DownTrendVal > 0 && //2
                                                 //currentWAE.DownTrendVal > previousWAE.DownTrendVal && //3
-                isRedCandle && // 5 
+                isRedCandle && isPreviousRed && // 5 
                                //previousBody && // 6
                 rsiTooSold; // 7
                               //bottomToBody && // 8
@@ -180,6 +181,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 2. 2 Volume ĐỎ liền nhau hoặc 3 volume liền nhau thứ tự là ĐỎ - XANH - ĐỎ: [{continueRedTrending}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
                 5. Nến ĐỎ, Thân nến hiện tại > 5 points: [{isRedCandle}]
+                6. Cây nến trước đó cũng là nến ĐỎ: [{isPreviousRed}]
                 {rsiTooSoldText}
                 8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {bottomToBodyPercent:N2}%): [{bottomToBody}].                
                 FINAL: [{conditionForSell}]");
@@ -218,6 +220,7 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 4. Volume sau cao hơn DeadZone 
              * 5. Nến phải là nến xanh, Thân nến > 5 points
              * 6. (NOT IN USE)  Thân cây nến trước không quá 60pts
+             * 6. Cây nến trước đó cũng là nến XANH
              * 7. (CONFIGUABLE) RSI < 70 (Not overbought)
              * 8. Râu nến phía TRÊN không quá dài (Râu TRÊN dài chứng tỏ có lực BÁN mạnh, có thể đảo chiều)
              * 9. (NOT IN USE) KHÔNG ĐƯỢC THỎA MÃN điều kiện: Nến trước là ĐỎ và có body > 50% cây nến gần nhất.
@@ -250,8 +253,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             var conditionForBuy = currentWAE.HasBULLVolume && // 1 & 4
                 previousWAE.UpTrendVal > 0 && //2
                                               //currentWAE.UpTrendVal > previousWAE.UpTrendVal && //3
-                isGreenCandle && // 5
-                                 //previousBody &&   // 6                
+                isGreenCandle && isPreviousGreen &&// 5
+                         //previousBody &&   // 6                
                 rsiTooBought; //&& // 7
                                 //topToBody && //8
                                 //!previousIsRedAndTooStrong_FORBUY &&  // 9 (Don't forget NOT)
@@ -264,7 +267,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 1. Volume XANH & cao hơn DeadZone: [{currentWAE.HasBULLVolume}],
                 2. 2 Volume XANH liền nhau hoặc 3 volume liền nhau thứ tự là XANH - ĐỎ - XANH: [{continueGreenTrending}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến XANH, Thân nến hiện tại > 5 points: [{isGreenCandle}]                
+                5. Nến XANH, Thân nến hiện tại > 5 points: [{isGreenCandle}]      
+                6. Cây nến trước đó cũng là nến XANH: [{isPreviousGreen}]
                 {rsiTooBoughtText}
                 8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {topToBodyPercent:N2}%): [{topToBody}].               
                 FINAL: [{conditionForBuy}]");
@@ -409,10 +413,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var wholeBody = Math.Abs(closePrice_5m - openPrice_5m);
 
                 // Hệ số (so với cây nến trước): Lấy 1/2 nếu Strong, 1/3 nếu Super Strong
-                var coeff =
-                    (waeValuesSeries_5m[0].UpTrendVal + waeValuesSeries_5m[0].DownTrendVal) > 600 ? 2.0 
-                    : (volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium || volumeStrength == WAE_Strength.Strong) ? 2.0
-                    : 3.0;
+                var coeff = 
+                    volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium || volumeStrength == WAE_Strength.Strong ? 2.0 : 3.0;
 
                 if (tradeAction == TradeAction.Buy_Trending)
                 {

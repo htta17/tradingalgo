@@ -277,7 +277,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (tradeReversal) // Nếu đã chạm EMA46/51 lâu rồi 
             {
-                if (closePrice_5m > middleEma4651_5m && openPrice_5m > middleEma4651_5m)
+                if (closePrice_5m > middleEma4651_5m && openPrice_5m < middleEma4651_5m)
                 {
                     LocalPrint($"Đủ điều kiện cho BUY REVERSAL: {logText}");
                     return TradeAction.Buy_Reversal;

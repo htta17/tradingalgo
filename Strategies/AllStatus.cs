@@ -105,7 +105,7 @@ namespace NinjaTrader.Custom.Strategies
     public class WAE_ValueSet
     {
         // Là hệ số đảm bảo cho UpTrendVal hoặc DownTrendVal phải lớn hơn [DeadZoneVal] *  [SafetyRatio]
-        public const double SafetyRatio = 1.2;
+        public const double SafetyRatio = 1.4;
 
         /// <summary>
         /// Volume ≤ [WeakRange]: Weak

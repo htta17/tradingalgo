@@ -147,7 +147,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var previousIsRedAndTooStrong_FORSELL = isPreviousRed && previousContinueAndTooStrong;
 
-            var redVolume_15m = wAE_ValueSet_15m.DownTrendVal > 0;            
+            //var redVolume_15m = wAE_ValueSet_15m.DownTrendVal > 0;            
 
             var rsiTooSold = !AllowUseRSIIndicator || rsi_5m > RSI_TOO_SOLD; // Không dùng điều kiện RSI oversold hoặc nếu dùng thì phải thỏa mãn
             var rsiTooSoldText = !AllowUseRSIIndicator ? "7. (RSI Condition - NOT IN USE)" : $"7. RSI > {RSI_TOO_SOLD} (Not oversold): [{rsi_5m > RSI_TOO_SOLD}],";
@@ -167,12 +167,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                                                 //currentWAE.DownTrendVal > previousWAE.DownTrendVal && //3
                 isRedCandle && // 5 
                                //previousBody && // 6
-                rsiTooSold && // 7
+                rsiTooSold; // 7
                               //bottomToBody && // 8
                               //!previousIsGreenAndTooStrong_FORSELL && // 9 (Don't forget NOT)
                               //!previousIsRedAndTooStrong_FORSELL && // 10 (Don't forget NOT)
                               //!bodyPassBollingerDOWN // 11 (Don't forget NOT)
-                redVolume_15m;
+                              //redVolume_15m;
 
             LocalPrint($@"
                 Điều kiện vào SELL (Close: [{closePrice_5m:N2}], Open:[{openPrice_5m:N2}], Body: {Math.Abs(closePrice_5m - openPrice_5m):N2}): 
@@ -181,8 +181,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 4. Volume sau cao hơn DeadZone: (See 1)
                 5. Nến ĐỎ, Thân nến hiện tại > 5 points: [{isRedCandle}]
                 {rsiTooSoldText}
-                8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {bottomToBodyPercent:N2}%): [{bottomToBody}].
-                12. VOLUME KHUNG 15 phút phải là ĐỎ: {redVolume_15m}
+                8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {bottomToBodyPercent:N2}%): [{bottomToBody}].                
                 FINAL: [{conditionForSell}]");
 
             if (conditionForSell)
@@ -246,19 +245,19 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var rsiTooBoughtText = !AllowUseRSIIndicator ? "7. (RSI Condition - NOT IN USE)" : $"7. RSI < {RSI_TOO_BOUGHT} (Not overbought): [{rsi_5m < RSI_TOO_BOUGHT}],"; // Không dùng điều kiện RSI oversold hoặc nếu dùng thì phải thỏa mãn
 
-            var greenVolume_15m = wAE_ValueSet_15m.UpTrendVal > 0;
+            //var greenVolume_15m = wAE_ValueSet_15m.UpTrendVal > 0;
 
             var conditionForBuy = currentWAE.HasBULLVolume && // 1 & 4
                 previousWAE.UpTrendVal > 0 && //2
                                               //currentWAE.UpTrendVal > previousWAE.UpTrendVal && //3
                 isGreenCandle && // 5
                                  //previousBody &&   // 6                
-                rsiTooBought && // && // 7
+                rsiTooBought; //&& // 7
                                 //topToBody && //8
                                 //!previousIsRedAndTooStrong_FORBUY &&  // 9 (Don't forget NOT)
                                 //!previousIsGreenAndTooStrong_FORBUY && // 10 (Don't forget NOT)
                                 //!bodyPassBollingerUP; // 11 (Don't forget NOT)
-                greenVolume_15m;
+                // greenVolume_15m;
 
             LocalPrint($@"
                 Điều kiện vào BUY (Close: [{closePrice_5m:N2}], Open:[{openPrice_5m:N2}], Body: {Math.Abs(closePrice_5m - openPrice_5m):N2}): 
@@ -267,8 +266,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 4. Volume sau cao hơn DeadZone: (See 1)
                 5. Nến XANH, Thân nến hiện tại > 5 points: [{isGreenCandle}]                
                 {rsiTooBoughtText}
-                8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {topToBodyPercent:N2}%): [{topToBody}].
-                12. VOLUME KHUNG 15 phút phải là XANH: {greenVolume_15m}
+                8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {topToBodyPercent:N2}%): [{topToBody}].               
                 FINAL: [{conditionForBuy}]");
 
             if (conditionForBuy)

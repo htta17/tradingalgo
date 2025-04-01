@@ -1,4 +1,9 @@
-﻿#region Using declarations
+﻿/*
+ * Use: 
+ * #define USE_SOME_UNNEEDED_INDICATORS to display: Bollinger Bands, RSI
+ */
+
+#region Using declarations
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -79,11 +84,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double currentDEMA_5m = -1;
         protected double lastDEMA_5m = -1;
 
-        // Volume 
-        protected double volume_5m = -1;
-        protected double volumeBuy_5m = -1;
-        protected double volumeSell_5m = -1;
 
+
+#if USE_SOME_UNNEEDED_INDICATORS
         // RSI
         protected double rsi_5m = -1;
 
@@ -93,14 +96,13 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double waeUptrend_5m = -1;
         protected double waeDowntrend_5m = -1;
 
-        // Fish trend value 
-        protected double middleEma4651_5m = -1;
-        protected double ema46_5m = -1;
-        protected double ema51_5m = -1;
+        // Volume 
+        protected double volume_5m = -1;
+        protected double volumeBuy_5m = -1;
+        protected double volumeSell_5m = -1;
 
         protected Series<WAE_ValueSet> waeValuesSeries_5m;
 
-        #region Indicators
         private Bollinger Bollinger1Indicator_5m { get; set; }
         private Bollinger Bollinger2Indicator_5m { get; set; }
         private WaddahAttarExplosion WAEIndicator_5m { get; set; }
@@ -110,6 +112,17 @@ namespace NinjaTrader.NinjaScript.Strategies
         private WaddahAttarExplosion WAEIndicator_15m { get; set; }
 
         protected WAE_ValueSet wAE_ValueSet_15m { get; set; }
+#endif
+
+        // Fish trend value 
+        protected double middleEma4651_5m = -1;
+        protected double ema46_5m = -1;
+        protected double ema51_5m = -1;
+
+        
+
+        #region Indicators
+        
 
         //private MACD MACD_5m { get; set; }
 
@@ -118,12 +131,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected DateTime TouchEMA4651Time { get; set; } = DateTime.MinValue;
 
-        // KeyLevels
-        protected List<double> KeyLevels = new List<double>();
-
         #endregion
-        #endregion
+#endregion
 
+#if USE_SOME_UNNEEDED_INDICATORS
         protected virtual bool ShouldCancelPendingOrdersByTrendCondition()
         {
             return
@@ -134,6 +145,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
                 (IsSelling && waeValuesSeries_5m[0].HasBULLVolume);
         }
+#endif
 
         protected override void UpdatePendingOrder()
         {
@@ -209,6 +221,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             //}
         }
 
+#if USE_SOME_UNNEEDED_INDICATORS
         /// <summary>
         /// Tìm các giá trị của Waddah Attar Explosion ở khung 5 phút
         /// </summary>
@@ -238,6 +251,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 UpTrendVal = WAEIndicator_15m.Values[0][0]
             };
         }
+#endif
 
         protected override TradeAction ShouldTrade()
         {
@@ -387,9 +401,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var bollinger = Bollinger(1, 20);
                 var bollingerStd2 = Bollinger(2, 20);
 
+                #if USE_SOME_UNNEEDED_INDICATORS
                 rsi_5m = RSIIndicator_5m[0];
-
                 volume_5m = Volume[0];
+                #endif
 
                 ema46_5m = EMA46_5m.Value[0];
                 ema46_5m = EMA46_5m.Value[0];
@@ -427,6 +442,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 lastDEMA_5m = DEMA(DEMA_Period).Value[1];
                 currentPrice = Close[0];
 
+#if USE_SOME_UNNEEDED_INDICATORS
                 var wae = FindWaddahAttarExplosion();
 
                 waeValuesSeries_5m[0] = wae;
@@ -440,6 +456,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     $"DowntrendVal: {wae.DownTrendVal:N2}, " +
                     $"UptrendVal: {wae.UpTrendVal:N2}." +
                     $"{(wae.HasBULLVolume ? "--> BULL Volume" : wae.HasBEARVolume ? "--> BEAR Volume" : "")}");
+#endif
 
                 #region Enter order
                 if (State != State.Realtime)
@@ -450,10 +467,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 BasicActionForTrading(TimeFrameToTrade.FiveMinutes);
                 #endregion
             }
+            #if USE_SOME_UNNEEDED_INDICATORS
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 15)
             {
                 wAE_ValueSet_15m = FindWaddahAttarExplosion_15m();
             }
+            #endif
         }
 
         protected override void SetDefaultProperties()
@@ -500,12 +519,16 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             base.OnStateChange();
 
+            #if USE_SOME_UNNEEDED_INDICATORS
             if (State == State.Configure)
             {
                 AddDataSeries(BarsPeriodType.Minute, 15);
             }
-            else if (State == State.DataLoaded)
+            else 
+            #endif
+            if (State == State.DataLoaded)
             {
+#if USE_SOME_UNNEEDED_INDICATORS
                 Bollinger1Indicator_5m = Bollinger(1, 20);
                 Bollinger1Indicator_5m.Plots[0].Brush = Bollinger1Indicator_5m.Plots[2].Brush = Brushes.DarkCyan;
                 Bollinger1Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
@@ -515,6 +538,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Bollinger2Indicator_5m.Plots[1].Brush = Brushes.DeepPink;
 
                 waeValuesSeries_5m = new Series<WAE_ValueSet>(this);
+#endif
 
                 /* 
                  * Bars Array orders: 
@@ -524,6 +548,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                  * 3: 15 minutes
                  */
 
+                #if USE_SOME_UNNEEDED_INDICATORS
                 WAEIndicator_5m = WaddahAttarExplosion(BarsArray[1]);
                 WAEIndicator_15m = WaddahAttarExplosion(BarsArray[3]);
 
@@ -531,21 +556,22 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 //MACD_5m = MACD(12, 26, 9);
 
+                AddChartIndicator(Bollinger1Indicator_5m);
+                AddChartIndicator(Bollinger2Indicator_5m);
+                AddChartIndicator(RSIIndicator_5m);
+                AddChartIndicator(WAEIndicator_5m);
+                //AddChartIndicator(MACD_5m);
+                #endif
+
                 EMA46_5m = EMA(46);
                 EMA46_5m.Plots[0].Brush = Brushes.DarkOrange;
 
                 EMA51_5m = EMA(51);
                 EMA51_5m.Plots[0].Brush = Brushes.DeepSkyBlue;
                 EMA51_5m.Plots[0].DashStyleHelper = DashStyleHelper.Dash;
-
-                AddChartIndicator(Bollinger1Indicator_5m);
-                AddChartIndicator(Bollinger2Indicator_5m);
-
-                AddChartIndicator(WAEIndicator_5m);
-                //AddChartIndicator(MACD_5m);
+                
                 AddChartIndicator(EMA46_5m);
                 AddChartIndicator(EMA51_5m);
-                AddChartIndicator(RSIIndicator_5m);
             }
         }
 

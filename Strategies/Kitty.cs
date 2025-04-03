@@ -113,7 +113,7 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 2. 2 Volume ĐỎ liền nhau 
              * 3. (NOT IN USE) Volume sau cao hơn volume trước 
              * 4. Volume sau cao hơn DeadZone 
-             * 5. Nến phải là nến ĐỎ, Thân nến > 5 points
+             * 5. Nến phải là nến ĐỎ, thân nến > 5 points và < 60 pts
              * 6. (NOT IN USE) Thân cây nến trước không quá 60pts
              * 6. Cây nến trước đó cũng là nến ĐỎ
              * 7. (CONFIGUABLE) RSI > 30 (Not oversold)
@@ -180,7 +180,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 1. Volume ĐỎ & cao hơn DeadZone: [{currentWAE.HasBEARVolume}],
                 2. 2 Volume ĐỎ liền nhau hoặc 3 volume liền nhau thứ tự là ĐỎ - XANH - ĐỎ: [{continueRedTrending}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến ĐỎ, Thân nến hiện tại > 5 points: [{isRedCandle}]
+                5. Nến ĐỎ, Thân nến hiện tại > 5 points và < 60 pts: [{isRedCandle}]
                 6. Cây nến trước đó cũng là nến ĐỎ: [{isPreviousRed}]
                 {rsiTooSoldText}
                 8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {bottomToBodyPercent:N2}%): [{bottomToBody}].                
@@ -218,7 +218,7 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 2. 2 Volume XANH liền nhau 
              * 3. (NOT IN USE) Volume sau cao hơn volume trước 
              * 4. Volume sau cao hơn DeadZone 
-             * 5. Nến phải là nến xanh, Thân nến > 5 points
+             * 5. Nến phải là nến xanh, thân nến > 5 points và < 60 pts
              * 6. (NOT IN USE)  Thân cây nến trước không quá 60pts
              * 6. Cây nến trước đó cũng là nến XANH
              * 7. (CONFIGUABLE) RSI < 70 (Not overbought)
@@ -267,7 +267,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 1. Volume XANH & cao hơn DeadZone: [{currentWAE.HasBULLVolume}],
                 2. 2 Volume XANH liền nhau hoặc 3 volume liền nhau thứ tự là XANH - ĐỎ - XANH: [{continueGreenTrending}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến XANH, Thân nến hiện tại > 5 points: [{isGreenCandle}]      
+                5. Nến XANH, thân nến hiện tại > 5 points và < 60 pts: [{isGreenCandle}]      
                 6. Cây nến trước đó cũng là nến XANH: [{isPreviousGreen}]
                 {rsiTooBoughtText}
                 8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {topToBodyPercent:N2}%): [{topToBody}].               
@@ -485,6 +485,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else
                 {
+                    #region Code cũ - Có thể sử dụng lại sau này
+                    /*
+                     * Old code cho trường hợp stop loss đã về ngang với giá vào lệnh (break even). 
+                     * - Có 2x contracts, cắt x contract còn x contracts
+                     * - Khi giá lên [Target_Half + 7] thì đưa stop loss lên Target_Half
+                     */
+
+                    /*
                     allowMoving = allowMoving || (filledPrice <= stopOrderPrice && stopOrderPrice < TargetPrice_Half && TargetPrice_Half + 7 < updatedPrice);
 
                     LocalPrint($"Điều kiện để chuyển stop lên target 1 - filledPrice: {filledPrice:N2} <= stopOrderPrice: {stopOrderPrice:N2} <= TargetPrice_Half {TargetPrice_Half:N2} --> Allow move: {allowMoving}");
@@ -494,7 +502,23 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         newPrice = TargetPrice_Half;                        
                     }
-                }               
+                    */
+                    #endregion
+                    
+                    // Calculate new stop loss based on last candle 
+                    if (CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, null, null))
+                    {
+                        var newStopLossBasedOnGreenCandle = StrategiesUtilities.RoundPrice(openPrice_5m + Math.Abs(closePrice_5m - openPrice_5m) / 3);                        
+
+                        allowMoving = allowMoving || (filledPrice <= stopOrderPrice && stopOrderPrice < newStopLossBasedOnGreenCandle);
+
+                        if (allowMoving)
+                        {
+                            LocalPrint($"Chuyển stop loss đến {newStopLossBasedOnGreenCandle:N2}");
+                            newPrice = newStopLossBasedOnGreenCandle;
+                        }    
+                    }
+                }
             }
             else if (isSelling)
             {
@@ -506,6 +530,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else
                 {
+                    #region Code cũ - Có thể sử dụng lại sau này
+                    /*
+                     * Old code cho trường hợp stop loss đã về ngang với giá vào lệnh (break even). 
+                     * - Có 2x contracts, cắt x contract còn x contracts
+                     * - Khi giá lên [Target_Half + 7] thì đưa stop loss lên Target_Half
+                     */
+
+                    /*
                     allowMoving = allowMoving || (filledPrice >= stopOrderPrice && stopOrderPrice > TargetPrice_Half && TargetPrice_Half - 7 > updatedPrice);
 
                     LocalPrint($"Điều kiện để chuyển stop lên target 1  - filledPrice: {filledPrice:N2} >= stopOrderPrice: {stopOrderPrice:N2} > TargetPrice_Half {TargetPrice_Half:N2} --> Allow move: {allowMoving}");
@@ -514,16 +546,34 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         newPrice = TargetPrice_Half;
                     }
+                    */
+                    #endregion
+
+                    #region Code mới - Dịch stop loss dựa trên cây nến đỏ gần nhất
+                    // Calculate new stop loss based on last candle 
+                    if (CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, null, null))
+                    {
+                        var newStopLossBasedOnRedCandle = StrategiesUtilities.RoundPrice(openPrice_5m - Math.Abs(closePrice_5m - openPrice_5m) / 3);
+
+                        allowMoving = allowMoving || (filledPrice >= stopOrderPrice && stopOrderPrice > newStopLossBasedOnRedCandle);
+
+                        if (allowMoving)
+                        {
+                            LocalPrint($"Chuyển stop loss đến {newStopLossBasedOnRedCandle:N2}");
+                            newPrice = newStopLossBasedOnRedCandle;
+                        }
+                    }
+                    #endregion
                 }
             }
 
-            if (allowMoving)
-            {
-                LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
+if (allowMoving)
+{
+LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
 
-                MoveTargetOrStopOrder(newPrice, stopOrder, false, IsBuying ? "BUY" : "SELL", stopOrder.FromEntrySignal);
-            }
-        }
-    }
+MoveTargetOrStopOrder(newPrice, stopOrder, false, IsBuying ? "BUY" : "SELL", stopOrder.FromEntrySignal);
+}
+}
+}
 
 }

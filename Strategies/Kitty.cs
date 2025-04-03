@@ -481,9 +481,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             return false;
         }
 
+
         protected override void UpdateExistingOrder()
         {
-            LocalPrint("[UpdateExistingOrder - Kitty]");
+            LocalPrint("[UpdateExistingOrder - Kitty] - NOT Using now");
+            return; 
+
+            // NOT USE NOW
+            
             /*
              * Giải thuật hiện tại của Kitty: 
              * - Sau khi ATM đưa stop loss về break even
@@ -592,24 +597,31 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     */
                     #endregion
-
-                    #region Code mới - Dịch stop loss dựa trên cây nến xanh gần nhất (NOT IN USE - move về OnBarUpdate) 
-                    /*
-                    // Calculate new stop loss based on last candle 
-                    if (CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, null, null))
+                    
+                    
+                    // Nếu giá đã về break even và cây nến là XANH
+                    if (filledPrice <= stopOrderPrice && CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, null, null))
                     {
-                        var newStopLossBasedOnGreenCandle = StrategiesUtilities.RoundPrice(openPrice_5m + Math.Abs(closePrice_5m - openPrice_5m) / 3);                        
+                        var bodyLength = Math.Abs(closePrice_5m - openPrice_5m);
 
-                        allowMoving = allowMoving || (filledPrice <= stopOrderPrice && stopOrderPrice < newStopLossBasedOnGreenCandle);
-
-                        if (allowMoving)
+                        if (bodyLength >= CloseOrderWhenCandleGreaterThan)
                         {
-                            LocalPrint($"Chuyển stop loss đến {newStopLossBasedOnGreenCandle:N2}");
-                            newPrice = newStopLossBasedOnGreenCandle;
-                        }    
+                            LocalPrint($"Nến xanh có body > {CloseOrderWhenCandleGreaterThan} pts, chốt lời. --> Close order.");
+                            CloseExistingOrders();
+                        }
+                        else if (bodyLength > 12)
+                        {
+                            var newStopLossBasedOnGreenCandle = StrategiesUtilities.RoundPrice(openPrice_5m + Math.Abs(closePrice_5m - openPrice_5m) / 3);
+
+                            allowMoving = stopOrderPrice < newStopLossBasedOnGreenCandle;
+
+                            if (allowMoving)
+                            {
+                                LocalPrint($"Chuyển stop loss đến {newStopLossBasedOnGreenCandle:N2}");
+                                newPrice = newStopLossBasedOnGreenCandle;
+                            }
+                        }
                     }
-                    */
-                    #endregion
                 }
             }
             else if (isSelling)
@@ -641,22 +653,32 @@ namespace NinjaTrader.NinjaScript.Strategies
                     */
                     #endregion
 
-                    #region Code mới - Dịch stop loss dựa trên cây nến đỏ gần nhất (NOT IN USE - move về OnBarUpdate) 
-                    /*
-                    // Calculate new stop loss based on last candle 
-                    if (CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, null, null))
+                    #region Code mới - Dịch stop loss dựa trên cây nến đỏ gần nhất
+                    
+                    if (filledPrice >= stopOrderPrice && CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, null, null))
                     {
-                        var newStopLossBasedOnRedCandle = StrategiesUtilities.RoundPrice(openPrice_5m - Math.Abs(closePrice_5m - openPrice_5m) / 3);
+                        var bodyLength = Math.Abs(closePrice_5m - openPrice_5m);
 
-                        allowMoving = allowMoving || (filledPrice >= stopOrderPrice && stopOrderPrice > newStopLossBasedOnRedCandle);
 
-                        if (allowMoving)
+                        if (bodyLength >= CloseOrderWhenCandleGreaterThan)
                         {
-                            LocalPrint($"Chuyển stop loss đến {newStopLossBasedOnRedCandle:N2}");
-                            newPrice = newStopLossBasedOnRedCandle;
+                            LocalPrint($"Nến xanh có body > {CloseOrderWhenCandleGreaterThan} pts, chốt lời. --> Close order.");
+                            CloseExistingOrders();
                         }
+                        else if (bodyLength > 12)
+                        {
+                            var newStopLossBasedOnRedCandle = StrategiesUtilities.RoundPrice(openPrice_5m - Math.Abs(closePrice_5m - openPrice_5m) / 3);
+
+                            allowMoving = stopOrderPrice > newStopLossBasedOnRedCandle;
+
+                            if (allowMoving)
+                            {
+                                LocalPrint($"Chuyển stop loss đến {newStopLossBasedOnRedCandle:N2}");
+                                newPrice = newStopLossBasedOnRedCandle;
+                            }
+                        }    
                     }
-                    */
+                    
                     #endregion
                 }
             }

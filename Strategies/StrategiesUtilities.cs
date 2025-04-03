@@ -21,6 +21,8 @@ namespace NinjaTrader.Custom.Strategies
         public const string Configuration_Sizing_Name = "How to set stoploss/gain";
         public const string Configuration_General_Name = "General Setting";
 
+        public const string Configuration_DisplayIndicators = "Display Indicators";
+
         // Some default news time, being used for many places.
         public const string Configuration_General_TradingTime = "Trading Time";
 

@@ -112,11 +112,48 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected DateTime TouchEMA4651Time { get; set; } = DateTime.MinValue;
 
-        // KeyLevels
-        protected List<double> KeyLevels = new List<double>();        
+        #endregion
+        #endregion
 
-        #endregion
-        #endregion
+
+        /// <summary>
+        /// Display Volume Indicator
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Hiển thị volume:",
+            Description = "Hiển thị chỉ báo Volume trên chart",
+            Order = 1, GroupName = StrategiesUtilities.Configuration_DisplayIndicators)]        
+        public bool DisplayVolumeIndicator { get; set; }
+
+        /// <summary>
+        /// Display RSI Indicator
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Hiển thị RSI:",
+            Description = "Hiển thị chỉ báo RSI trên chart",
+            Order = 2, GroupName = StrategiesUtilities.Configuration_DisplayIndicators)]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public bool DisplayRSIIndicator { get; set; }
+
+        /// <summary>
+        /// Display EMA46, EMA51 Indicator
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Hiển thị EMA46/51:",
+            Description = "Hiển thị chỉ báo EMA46/51 trên chart",
+            Order = 2, GroupName = StrategiesUtilities.Configuration_DisplayIndicators)]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public bool DisplayEMA4651Indicator { get; set; }
+
+        /// <summary>
+        /// Display Bollinger Indicator
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Hiển thị Bollinger:",
+            Description = "Hiển thị chỉ báo Bollinger trên chart",
+            Order = 2, GroupName = StrategiesUtilities.Configuration_DisplayIndicators)]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public bool DisplayBollingerIndicator { get; set; }
 
         protected virtual bool ShouldCancelPendingOrdersByTrendCondition()
         {
@@ -422,6 +459,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             StartDayTradeTime = new TimeSpan(9, 10, 0); // 9:10:00 am 
             EndDayTradeTime = new TimeSpan(15, 0, 0); // 2:00:00 pm
+
+            DisplayBollingerIndicator = true;
+            DisplayEMA4651Indicator = true;
+            DisplayRSIIndicator = true;
+            DisplayVolumeIndicator = true;
         }
 
         protected override bool IsBuying
@@ -492,14 +534,30 @@ namespace NinjaTrader.NinjaScript.Strategies
                 EMA51_5m.Plots[0].Brush = Brushes.DeepSkyBlue;
                 EMA51_5m.Plots[0].DashStyleHelper = DashStyleHelper.Dash;
 
-                AddChartIndicator(Bollinger1Indicator_5m);
-                AddChartIndicator(Bollinger2Indicator_5m);
                 
-                AddChartIndicator(WAEIndicator_5m);
+                if (DisplayBollingerIndicator)
+                {
+                    AddChartIndicator(Bollinger1Indicator_5m);
+                    AddChartIndicator(Bollinger2Indicator_5m);
+                }                
+                
+                if (DisplayVolumeIndicator)
+                {
+                    AddChartIndicator(WAEIndicator_5m);
+                }
+                
                 //AddChartIndicator(MACD_5m);
-                AddChartIndicator(EMA46_5m);
-                AddChartIndicator(EMA51_5m);
-                AddChartIndicator(RSIIndicator_5m);
+
+                if (DisplayEMA4651Indicator)
+                {
+                    AddChartIndicator(EMA46_5m);
+                    AddChartIndicator(EMA51_5m);
+                }    
+                 
+                if (DisplayRSIIndicator)
+                {
+                    AddChartIndicator(RSIIndicator_5m);
+                }                    
             }            
         }
 

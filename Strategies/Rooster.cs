@@ -295,6 +295,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 UpdatePendingOrder();
             }
+            else if (TradingStatus == TradingStatus.OrderExists)
+            {
+                UpdateExistingOrder();
+            }    
         }
 
         protected override void OnBarUpdate()

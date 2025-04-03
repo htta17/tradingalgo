@@ -302,6 +302,10 @@ namespace NinjaTrader.Custom.Strategies
 
         }
 
+        protected virtual void UpdateExistingOrder() 
+        { 
+        }
+
         protected virtual void SetDefaultProperties()
         {
             MaximumDailyLoss = 260;

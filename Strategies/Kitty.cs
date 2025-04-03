@@ -503,15 +503,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 bool allowMoving = false;                
                 double newPrice = -1;
+                var bodyLength = Math.Abs(closePrice_5m - openPrice_5m);
 
                 if (IsBuying && filledPrice <= stopOrderPrice && CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, null, null))
                 {
-                    if (Math.Abs(closePrice_5m - openPrice_5m) >= CloseOrderWhenCandleGreaterThan)
+                    if (bodyLength >= CloseOrderWhenCandleGreaterThan)
                     {
                         LocalPrint($"Nến xanh có body > {CloseOrderWhenCandleGreaterThan} pts, chốt lời. --> Close order.");
                         CloseExistingOrders();
                     }
-                    else 
+                    else if (bodyLength > 12)
                     {
                         var newStopLossBasedOnGreenCandle = StrategiesUtilities.RoundPrice(openPrice_5m + Math.Abs(closePrice_5m - openPrice_5m) / 3);
 
@@ -526,12 +527,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (IsSelling && filledPrice >= stopOrderPrice && CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, null, null))
                 {
-                    if (Math.Abs(closePrice_5m - openPrice_5m) >= CloseOrderWhenCandleGreaterThan)
+                    if (bodyLength >= CloseOrderWhenCandleGreaterThan)
                     {
                         LocalPrint($"Nến đỏ có body > {CloseOrderWhenCandleGreaterThan} pts, chốt lời. --> Close order.");
                         CloseExistingOrders();
                     }
-                    else 
+                    else if (bodyLength > 12)
                     {
                         var newStopLossBasedOnRedCandle = StrategiesUtilities.RoundPrice(openPrice_5m - Math.Abs(closePrice_5m - openPrice_5m) / 3);
 

@@ -483,6 +483,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void UpdateExistingOrder()
         {
+            LocalPrint("[UpdateExistingOrder - Kitty]");
             /*
              * Giải thuật hiện tại của Kitty: 
              * - Sau khi ATM đưa stop loss về break even
@@ -490,13 +491,14 @@ namespace NinjaTrader.NinjaScript.Strategies
              * - Nếu đóng nến đỏ (khi đang có lệnh bán) thì chuyển stop loss, nếu nến đỏ > 60 pts thì đóng lệnh
              * 
              */
-            var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && order.Name.Contains(OrderStopName)).ToList();
-            var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains(OrderTargetName)).ToList();
+            var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && order.Name.Contains(OrderStopName)).ToList();            
 
             var stopOrder = stopOrders.First();
 
-            if (stopOrders.Count == 1 && targetOrders.Count == 1)
+            if (stopOrders.Count == 1)
             {
+                LocalPrint($"Có {stopOrders.Count} stop order, should move stop loss if pass condition.");
+
                 var stopOrderPrice = stopOrder.LimitPrice;
 
                 var filledPrice = FilledPrice;

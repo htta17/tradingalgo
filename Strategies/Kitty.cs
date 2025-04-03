@@ -148,8 +148,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             var bottomToBody = bottomToBodyPercent < PERCENTAGE_WICK_TO_TRADE;
             var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, MIN_BODY_LENGTH_TO_TRADE, MAX_BODY_LENGTH_TO_TRADE);
 
-            var isPreviousGreen = CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m, MIN_BODY_LENGTH_TO_TRADE, MAX_BODY_LENGTH_TO_TRADE);
-            var isPreviousRed = CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m, MIN_BODY_LENGTH_TO_TRADE, MAX_BODY_LENGTH_TO_TRADE);
+            var isPreviousGreen = CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m, null, MAX_BODY_LENGTH_TO_TRADE);
+            var isPreviousRed = CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m, null, MAX_BODY_LENGTH_TO_TRADE);
 
             var previousBodyLength = Math.Abs(prev_openPrice_5m - prev_closePrice_5m);
             var currentBodyLength = Math.Abs(closePrice_5m - openPrice_5m);

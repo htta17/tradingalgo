@@ -95,6 +95,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             CloseOrderWhenCandleGreaterThan = 60; // 60 điểm
         }
+
         protected override TradeAction ShouldTrade()
         {
             if (Time[0].TimeOfDay < StartDayTradeTime || Time[0].TimeOfDay > EndDayTradeTime)
@@ -140,13 +141,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             const int PERCENTAGE_WICK_TO_TRADE = 70;
             const int RSI_TOO_BOUGHT = 70;
             const int RSI_TOO_SOLD = 30;
+            const int MIN_BODY_LENGTH_TO_TRADE = 5;
+            const int MAX_BODY_LENGTH_TO_TRADE = 60;
 
             var bottomToBodyPercent = CandleUtilities.BottomToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m);
             var bottomToBody = bottomToBodyPercent < PERCENTAGE_WICK_TO_TRADE;
-            var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m);
+            var isRedCandle = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, MIN_BODY_LENGTH_TO_TRADE, MAX_BODY_LENGTH_TO_TRADE);
 
-            var isPreviousGreen = CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m);
-            var isPreviousRed = CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m);
+            var isPreviousGreen = CandleUtilities.IsGreenCandle(prev_closePrice_5m, prev_openPrice_5m, MIN_BODY_LENGTH_TO_TRADE, MAX_BODY_LENGTH_TO_TRADE);
+            var isPreviousRed = CandleUtilities.IsRedCandle(prev_closePrice_5m, prev_openPrice_5m, MIN_BODY_LENGTH_TO_TRADE, MAX_BODY_LENGTH_TO_TRADE);
 
             var previousBodyLength = Math.Abs(prev_openPrice_5m - prev_closePrice_5m);
             var currentBodyLength = Math.Abs(closePrice_5m - openPrice_5m);
@@ -191,8 +194,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 1. Volume ĐỎ & cao hơn DeadZone: [{currentWAE.HasBEARVolume}],
                 2. 2 Volume ĐỎ liền nhau hoặc 3 volume liền nhau thứ tự là ĐỎ - XANH - ĐỎ: [{continueRedTrending}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến ĐỎ, Thân nến hiện tại > 5 points và < 60 pts: [{isRedCandle}]
-                6. Cây nến trước đó cũng là nến ĐỎ: [{isPreviousRed}]
+                5. Nến ĐỎ, Thân nến hiện tại > {MIN_BODY_LENGTH_TO_TRADE} points và < {MAX_BODY_LENGTH_TO_TRADE} pts: [{isRedCandle}]
+                6. Cây nến trước đó cũng là nến ĐỎ, > {MIN_BODY_LENGTH_TO_TRADE} points và < {MAX_BODY_LENGTH_TO_TRADE} pts: [{isPreviousRed}]
                 {rsiTooSoldText}
                 8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {bottomToBodyPercent:N2}%): [{bottomToBody}].                
                 FINAL: [{conditionForSell}]");
@@ -241,7 +244,7 @@ namespace NinjaTrader.NinjaScript.Strategies
              * 11. (NOT IN USE) KHÔNG ĐƯỢC THỎA MÃN điều kiện: Cây nến XANH và có open < upper bollinger (std=2) và có close > upper bollinger (std=2)
              * 12. VOLUME KHUNG 15 phút phải là XANH. 
              */
-            var isGreenCandle = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m);
+            var isGreenCandle = CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, MIN_BODY_LENGTH_TO_TRADE, MAX_BODY_LENGTH_TO_TRADE);
 
             var topToBodyPercent = CandleUtilities.TopToBodyPercentage(closePrice_5m, openPrice_5m, highPrice_5m, lowPrice_5m);
             var topToBody = topToBodyPercent < PERCENTAGE_WICK_TO_TRADE;
@@ -278,8 +281,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 1. Volume XANH & cao hơn DeadZone: [{currentWAE.HasBULLVolume}],
                 2. 2 Volume XANH liền nhau hoặc 3 volume liền nhau thứ tự là XANH - ĐỎ - XANH: [{continueGreenTrending}],                 
                 4. Volume sau cao hơn DeadZone: (See 1)
-                5. Nến XANH, thân nến hiện tại > 5 points và < 60 pts: [{isGreenCandle}]      
-                6. Cây nến trước đó cũng là nến XANH: [{isPreviousGreen}]
+                5. Nến XANH, thân nến hiện tại > {MIN_BODY_LENGTH_TO_TRADE} points và < {MAX_BODY_LENGTH_TO_TRADE} pts: [{isGreenCandle}]      
+                6. Cây nến trước đó cũng là nến XANH, > {MIN_BODY_LENGTH_TO_TRADE} points và < {MAX_BODY_LENGTH_TO_TRADE} pts: [{isPreviousGreen}]
                 {rsiTooBoughtText}
                 8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {topToBodyPercent:N2}%): [{topToBody}].               
                 FINAL: [{conditionForBuy}]");
@@ -405,11 +408,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (tradeAction == TradeAction.Buy_Trending)
                     {
+                        LocalPrint($"Body length nhỏ hơn 2 râu phía trên và dưới, vào lệnh BUY theo giá LOW của cây nến trước {lowPrice_5m:N2}");
                         // Đặt lệnh BUY với 1/3 cây nến trước đó 
                         return StrategiesUtilities.RoundPrice(lowPrice_5m);
                     }
                     else // SELL 
                     {
+                        LocalPrint($"Body length nhỏ hơn 2 râu phía trên và dưới, vào lệnh SELL theo giá HIGH của cây nến trước {highPrice_5m:N2}");
                         // Đặt lệnh SELL với 1/3 cây nến trước đó 
                         return StrategiesUtilities.RoundPrice(highPrice_5m);
                     }
@@ -499,7 +504,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 bool allowMoving = false;                
                 double newPrice = -1;
 
-                if (IsBuying && CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, null, null))
+                if (IsBuying && filledPrice <= stopOrderPrice && CandleUtilities.IsGreenCandle(closePrice_5m, openPrice_5m, null, null))
                 {
                     if (Math.Abs(closePrice_5m - openPrice_5m) >= CloseOrderWhenCandleGreaterThan)
                     {
@@ -510,7 +515,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         var newStopLossBasedOnGreenCandle = StrategiesUtilities.RoundPrice(openPrice_5m + Math.Abs(closePrice_5m - openPrice_5m) / 3);
 
-                        allowMoving = filledPrice <= stopOrderPrice && stopOrderPrice < newStopLossBasedOnGreenCandle;
+                        allowMoving = stopOrderPrice < newStopLossBasedOnGreenCandle;
 
                         if (allowMoving)
                         {
@@ -519,7 +524,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                     }
                 }
-                else if (IsSelling && CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, null, null))
+                else if (IsSelling && filledPrice >= stopOrderPrice && CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m, null, null))
                 {
                     if (Math.Abs(closePrice_5m - openPrice_5m) >= CloseOrderWhenCandleGreaterThan)
                     {
@@ -530,7 +535,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         var newStopLossBasedOnRedCandle = StrategiesUtilities.RoundPrice(openPrice_5m - Math.Abs(closePrice_5m - openPrice_5m) / 3);
 
-                        allowMoving = filledPrice >= stopOrderPrice && stopOrderPrice > newStopLossBasedOnRedCandle;
+                        allowMoving = stopOrderPrice > newStopLossBasedOnRedCandle;
 
                         if (allowMoving)
                         {

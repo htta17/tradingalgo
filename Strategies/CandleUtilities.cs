@@ -68,7 +68,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <param name="hi"></param>
         /// <param name="low"></param>
         /// <returns></returns>
-        public static bool IsGreenCandle(double close, double open, double? minBody = 5, double? maxBody = 60, double? hi = null, double? low = null)
+        public static bool IsGreenCandle(double close, double open, double? minBody = null, double? maxBody = null, double? hi = null, double? low = null)
         {
             var ans = (close > open);
             if (minBody.HasValue)

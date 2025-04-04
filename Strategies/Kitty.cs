@@ -566,7 +566,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             double newPrice = -1;
             var allowMoving = false;
-            var stopOrderPrice = stopOrder.StopPrice;
+            var stopOrderPrice = stopOrder.StopPrice;            
             
             if (isBuying)
             {
@@ -574,6 +574,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (StartMovingStoploss && stopOrderPrice > filledPrice && stopOrderPrice + PointToMoveLoss < updatedPrice)
                 {
                     newPrice = updatedPrice - PointToMoveLoss;
+                    allowMoving = true;
+                }
+                else if (updatedPrice - filledPrice >= 60 && stopOrderPrice - filledPrice < 40)
+                {
+                    newPrice = filledPrice + 40; 
+                    allowMoving = true;
+                }
+                else if (updatedPrice - filledPrice >= 30 && stopOrderPrice - filledPrice < 10)
+                {
+                    newPrice = filledPrice + 10;
                     allowMoving = true;
                 }
                 else
@@ -630,6 +640,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (StartMovingStoploss && stopOrderPrice < filledPrice && stopOrderPrice - PointToMoveLoss > updatedPrice)
                 {
                     newPrice = updatedPrice + PointToMoveLoss;
+                    allowMoving = true;
+                }
+                else if (filledPrice - updatedPrice>= 60 && filledPrice - stopOrderPrice < 40)
+                {
+                    newPrice = filledPrice - 40;
+                    allowMoving = true;
+                }
+                else if (filledPrice - updatedPrice >= 30 && filledPrice - stopOrderPrice < 10)
+                {
+                    newPrice = filledPrice - 10;
                     allowMoving = true;
                 }
                 else

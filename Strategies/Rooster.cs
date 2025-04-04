@@ -206,7 +206,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else 
             {
-               
                 var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(checkShouldTradeAgain);
 
                 var newPrice = GetSetPrice(checkShouldTradeAgain, atmStrategy);
@@ -215,10 +214,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 var targetPrice_Half = GetTargetPrice_Half(checkShouldTradeAgain, newPrice, atmStrategy);
 
-                var targetPrice_Full = GetTargetPrice_Full(checkShouldTradeAgain, newPrice, atmStrategy);
+                var targetPrice_Full = GetTargetPrice_Full(checkShouldTradeAgain, newPrice, atmStrategy);                
+
+                // Số lượng contracts hiện tại
 
                 // Nếu ngược trend hoặc backtest thì vào cancel lệnh cũ và vào lệnh mới
-                if (State == State.Historical || (CurrentTradeAction != checkShouldTradeAgain))
+                if (State == State.Historical || (CurrentTradeAction != checkShouldTradeAgain) || (CurrentChosenStrategy != atmStrategyName))
                 {
                     #region Cancel current order and enter new one
                     CancelAllPendingOrder();
@@ -339,7 +340,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         protected override void OnBarUpdate()
-        {
+        {   
             // Cập nhật lại status 
             tradingStatus = CheckCurrentStatusBasedOnOrders();            
 

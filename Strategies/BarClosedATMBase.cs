@@ -94,6 +94,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double StopLossPrice = -1;
         protected double TargetPrice_Full = -1;
         protected double TargetPrice_Half = -1;
+        protected string CurrentChosenStrategy = "";
         #endregion
 
         protected override void CloseExistingOrders()
@@ -334,6 +335,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             TargetPrice_Half = targetHalf;
 
             TargetPrice_Full = targetFull;
+
+            CurrentChosenStrategy = atmStrategyName;
 
             LocalPrint($@"Enter {action}. Price to set: {priceToSet:N2}, StopLossPrice: {StopLossPrice:N2}, Target 1: {TargetPrice_Half:N2}, Target Full: {TargetPrice_Full:N2}");
 

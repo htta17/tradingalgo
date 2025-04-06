@@ -149,9 +149,6 @@ namespace NinjaTrader.NinjaScript.Strategies
                 StrategiesUtilities.CalculatePnL(this, Account, Print);
 
                 BasicActionForTrading(TimeFrameToTrade.OneMinute); 
-
-
-
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {

@@ -640,7 +640,7 @@ namespace NinjaTrader.Custom.Strategies
             else
             {
                 Print(val);
-            }            
+            }
         }
         
         protected void EnterOrderPureUsingPrice(double priceToSet, double target, double stoploss, string signal, int quantity, bool isBuying, bool isSelling)

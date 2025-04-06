@@ -23,6 +23,8 @@ namespace NinjaTrader.Custom.Strategies
 
         public const string Configuration_DisplayIndicators = "Display Indicators";
 
+        public const string Configuration_ATMStrategy_Group = "ATM Information";
+
         // Some default news time, being used for many places.
         public const string Configuration_General_TradingTime = "Trading Time";
 

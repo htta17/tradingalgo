@@ -35,7 +35,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Sử dụng thông tin RSI",
             Description = "Nếu TRUE: Sử dụng điều kiện RSI overbought hoặc oversold kết hợp với các điều kiện hiện tại để vào lệnh",
-            Order = 2, GroupName = ATMStrategy_Group)]
+            Order = 2, GroupName = StrategiesUtilities.Configuration_ATMStrategy_Group)]
         [TypeConverter(typeof(ATMStrategyConverter))]
         public bool AllowUseRSIIndicator { get; set; }
 
@@ -44,7 +44,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Ricky ATM Strategy", Description = "Ricky ATM Strategy", Order = 2,
-            GroupName = ATMStrategy_Group)]
+            GroupName = StrategiesUtilities.Configuration_ATMStrategy_Group)]
         [TypeConverter(typeof(ATMStrategyConverter))]
         public string RiskyAtmStrategyName { get; set; }
 

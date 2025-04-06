@@ -39,8 +39,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         }
 
-        #region Constants 
-        protected const string ATMStrategy_Group = "ATM Information";
+        #region Constants         
         protected const string OrderEntryName = "Entry";
         protected const string OrderStopName = "Stop";
         protected const string OrderTargetName = "Target";
@@ -52,7 +51,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Default ATM Strategy", Description = "Default ATM Strategy", Order = 1,
-            GroupName = ATMStrategy_Group)]
+            GroupName = StrategiesUtilities.Configuration_ATMStrategy_Group)]
         [TypeConverter(typeof(ATMStrategyConverter))]
         public string FullSizeATMName { get; set; }
 
@@ -62,7 +61,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         [NinjaScriptProperty]
         [Display(Name = "Reduced size Strategy",
             Description = "Strategy sử dụng khi loss/gain more than a half",
-            Order = 2, GroupName = ATMStrategy_Group)]
+            Order = 2, GroupName = StrategiesUtilities.Configuration_ATMStrategy_Group)]
         [TypeConverter(typeof(ATMStrategyConverter))]
         public string HalfSizefATMName { get; set; }        
         #endregion

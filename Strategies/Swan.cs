@@ -84,46 +84,13 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double currentDEMA_5m = -1;
         protected double lastDEMA_5m = -1;
 
-
-
-#if USE_SOME_UNNEEDED_INDICATORS
-        // RSI
-        protected double rsi_5m = -1;
-
-        // WAE Values 
-        protected double waeDeadVal_5m = -1;
-        protected double waeExplosion_5m = -1;
-        protected double waeUptrend_5m = -1;
-        protected double waeDowntrend_5m = -1;
-
-        // Volume 
-        protected double volume_5m = -1;
-        protected double volumeBuy_5m = -1;
-        protected double volumeSell_5m = -1;
-
-        protected Series<WAE_ValueSet> waeValuesSeries_5m;
-
-        private Bollinger Bollinger1Indicator_5m { get; set; }
-        private Bollinger Bollinger2Indicator_5m { get; set; }
-        private WaddahAttarExplosion WAEIndicator_5m { get; set; }
-
-        private RSI RSIIndicator_5m { get; set; }
-
-        private WaddahAttarExplosion WAEIndicator_15m { get; set; }
-
-        protected WAE_ValueSet wAE_ValueSet_15m { get; set; }
-#endif
-
         // Fish trend value 
         protected double middleEma4651_5m = -1;
         protected double ema46_5m = -1;
         protected double ema51_5m = -1;
-
-        
+        #endregion
 
         #region Indicators
-        
-
         //private MACD MACD_5m { get; set; }
 
         private EMA EMA46_5m { get; set; }
@@ -132,20 +99,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected DateTime TouchEMA4651Time { get; set; } = DateTime.MinValue;
 
         #endregion
-#endregion
-
-#if USE_SOME_UNNEEDED_INDICATORS
-        protected virtual bool ShouldCancelPendingOrdersByTrendCondition()
-        {
-            return
-                // Trend suy yếu, 
-                waeValuesSeries_5m[0].IsInDeadZone ||
-                // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
-                (IsBuying && waeValuesSeries_5m[0].HasBEARVolume) ||
-                // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
-                (IsSelling && waeValuesSeries_5m[0].HasBULLVolume);
-        }
-#endif
 
         protected override void UpdatePendingOrder()
         {

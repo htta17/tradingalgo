@@ -47,9 +47,21 @@ namespace NinjaTrader.NinjaScript.Strategies
         [TypeConverter(typeof(ATMStrategyConverter))]
         public string HalfSizefATMName { get; set; }
 
+        /// <summary>
+        /// Risky live trade.
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Risky Strategy",
+            Description = "Strategy sử dụng khi lệnh là risky",
+            Order = 2, GroupName = StrategiesUtilities.Configuration_ATMStrategy_Group)]
+        [TypeConverter(typeof(ATMStrategyConverter))]
+        public string RiskyATMName { get; set; }
+
         protected AtmStrategy FullSizeAtmStrategy { get; set; }
 
         protected AtmStrategy HalfSizeAtmStrategy { get; set; }
+
+        protected AtmStrategy RiskyAtmStrategy { get; set; }
 
         public PriceChangedATMBasedClass() : this("BASE")
         { 

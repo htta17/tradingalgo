@@ -250,51 +250,12 @@ namespace NinjaTrader.Custom.Strategies
         #endregion
 
         /// <summary>
-        /// Đọc thông tin 
+        /// Đọc thông tin về ngày giờ có news từ file 
         /// </summary>
         /// <returns></returns>
         private string ReadNewsInfoFromFile()
         {
-            var filePath = @"\\JOYFUL\TradingFolder\WeekNewsTime.txt";
-
-            try
-            {
-                if (File.Exists(filePath))
-                {
-                    string jsonContent = File.ReadAllText(filePath);
-                    JavaScriptSerializer serializer = new JavaScriptSerializer();
-
-                    var data = serializer.Deserialize< NewsTimeReader>(jsonContent);
-
-                    var today = DateTime.Today.DayOfWeek;
-
-                    var newsTime = string.Empty;
-
-                    switch (today)
-                    { 
-                        case DayOfWeek.Sunday:
-                            return data.Sunday;
-                        case DayOfWeek.Monday: 
-                            return data.Monday;
-                        case DayOfWeek.Tuesday:
-                            return data.Tuesday;
-                        case DayOfWeek.Wednesday:
-                            return data.Wednesday;
-                        case DayOfWeek.Thursday:
-                            return data.Thursday;
-                        case DayOfWeek.Friday:
-                            return data.Friday;
-                        // No Saturday, ok? 
-                    }
-                    
-                    Print(jsonContent);
-                }
-            }
-            catch (Exception ex)
-            {
-                Print(ex.ToString());
-            }
-            return string.Empty; 
+            return GeneralUtilities.ReadNewsInfoFromFile(Print);
         }
 
         protected virtual void UpdatePendingOrder()

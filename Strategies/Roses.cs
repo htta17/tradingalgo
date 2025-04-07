@@ -37,7 +37,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 			base.OnStateChange();
 
             Description = "Roses (ATM realtime)";
-            Name = "EMA 21/29 khung 1 phút, trending.";
+            Name = "EMA 21/29 1-min frame, trending.";
+
+            FullSizeATMName = "Roses_Default_4cts";
+            HalfSizefATMName = "Roses_Default_4cts";
+            RiskyATMName = "Roses_Default_4cts";
         }		
 
         protected override void OnNewBarOpen(int barsPeriod)

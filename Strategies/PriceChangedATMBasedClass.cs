@@ -133,14 +133,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     lastExecutionTime_1m = DateTime.Now;
 
-                    //LocalPrint($"{DateTime.Now.Subtract(Time[0]).TotalSeconds:N0} - {barsPeriod}");
-                }
-                else if (DateTime.Now.Subtract(Time[0]).TotalSeconds < 1 && !triggerLastBar_1m)
-                {
-                    triggerLastBar_1m = true;
+                    LocalPrint($"{Time[0]} - {DateTime.Now} - {Time[0].Subtract(DateTime.Now).TotalSeconds:N0} - {barsPeriod}");
 
-                    OnCurrentBarClosed(barsPeriod);
-                }
+                    if (Time[0].Subtract(DateTime.Now).TotalSeconds < 1 && !triggerLastBar_1m)
+                    {
+                        triggerLastBar_1m = true;
+
+                        OnCurrentBarClosed(barsPeriod);
+                    }
+                }                 
             }
             else if (barsPeriod == 3)
             {
@@ -150,14 +151,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     lastExecutionTime_3m = DateTime.Now;
 
-                    //LocalPrint($"{DateTime.Now.Subtract(Time[0]).TotalSeconds:N0} - {barsPeriod}");
-                }
-                else if (DateTime.Now.Subtract(Time[0]).TotalSeconds < 1 && !triggerLastBar_3m)
-                {
-                    triggerLastBar_3m = true;
+                    LocalPrint($"{Time[0]} - {DateTime.Now} - {Time[0].Subtract(DateTime.Now).TotalSeconds:N0} - {barsPeriod}");
 
-                    OnCurrentBarClosed(barsPeriod);
-                }
+                    if (Time[0].Subtract(DateTime.Now).TotalSeconds < 1 && !triggerLastBar_3m)
+                    {
+                        triggerLastBar_3m = true;
+
+                        OnCurrentBarClosed(barsPeriod);
+                    }
+                }                 
             }
             else if (barsPeriod == 5)
             {
@@ -167,14 +169,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     lastExecutionTime_5m = DateTime.Now;
 
-                    //LocalPrint($"{DateTime.Now.Subtract(Time[0]).TotalSeconds:N0} - {barsPeriod}");
-                }
-                else if (DateTime.Now.Subtract(Time[0]).TotalSeconds < 1 && !triggerLastBar_5m)
-                {
-                    triggerLastBar_5m = true;
+                    LocalPrint($"{Time[0]} - {DateTime.Now} - {Time[0].Subtract(DateTime.Now).TotalSeconds:N0} - {barsPeriod}");
 
-                    OnCurrentBarClosed(barsPeriod);
-                }
+                    if (Time[0].Subtract(DateTime.Now).TotalSeconds < 1 && !triggerLastBar_5m)
+                    {
+                        triggerLastBar_5m = true;
+
+                        OnCurrentBarClosed(barsPeriod);
+                    }
+                }                
             }
 
             return isTooFast;

@@ -400,6 +400,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Sell_Trending)
             {
                 // High risk 
+                
+                /*
                 var currentBodyLength = Math.Abs(closePrice_5m - openPrice_5m);
                 var bodyIsSmallerThanOthers = currentBodyLength < (highPrice_5m - Math.Max(closePrice_5m, openPrice_5m))
                     && currentBodyLength < (Math.Min(closePrice_5m, openPrice_5m) - lowPrice_5m);
@@ -419,28 +421,51 @@ namespace NinjaTrader.NinjaScript.Strategies
                         return StrategiesUtilities.RoundPrice(highPrice_5m);
                     }
                 }
+                */
 
                 // Low risk 
                 var volumeStrength = waeValuesSeries_5m[0].WAE_Strength;
                 LocalPrint($"Volume Strength: SUM: {(waeValuesSeries_5m[0].DownTrendVal + waeValuesSeries_5m[0].UpTrendVal):N2}, [{volumeStrength.ToString()}]");
 
+                /*
                 // Tìm điểm vào lệnh thích hợp. 
                 // Nếu cây nến hiện tại cùng chiều market (Red khi bearish, hoặc Green khi bullish) 
-                var wholeBody = Math.Abs(closePrice_5m - openPrice_5m);
-
+                
                 // Hệ số (so với cây nến trước): Lấy 1/2 nếu Strong, 1/3 nếu Super Strong
-                var coeff = 
-                    volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium || volumeStrength == WAE_Strength.Strong ? 2.0 : 3.0;
+                //var coeff = 
+                //    volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium || volumeStrength == WAE_Strength.Strong ? 2.0 : 3.0;                
+                */
 
-                if (tradeAction == TradeAction.Buy_Trending)
+                if (volumeStrength == WAE_Strength.SuperWeak || volumeStrength == WAE_Strength.Weak)
                 {
-                    // Đặt lệnh BUY với 1/3 cây nến trước đó 
-                    return StrategiesUtilities.RoundPrice(closePrice_5m - (wholeBody / coeff));
+                    return StrategiesUtilities.RoundPrice(ema10_5m);
                 }
-                else // SELL 
+                else if (volumeStrength == WAE_Strength.Medium)
                 {
-                    // Đặt lệnh SELL với 1/3 cây nến trước đó 
-                    return StrategiesUtilities.RoundPrice(closePrice_5m + (wholeBody / coeff));
+                    return StrategiesUtilities.RoundPrice((ema29_1m + ema10_5m) / 2);
+                }
+                else if (volumeStrength == WAE_Strength.MediumStrong)
+                {
+                    return StrategiesUtilities.RoundPrice(ema29_1m);
+                }
+                else if (volumeStrength == WAE_Strength.Strong)
+                {
+                    return StrategiesUtilities.RoundPrice(ema21_1m);
+                }
+                else // SuperStrong
+                {
+                    var wholeBody = Math.Abs(closePrice_5m - openPrice_5m);
+
+                    if (tradeAction == TradeAction.Buy_Trending)
+                    {
+                        // Đặt lệnh BUY với 1/3 cây nến trước đó 
+                        return StrategiesUtilities.RoundPrice(closePrice_5m - (wholeBody / 3));
+                    }
+                    else // SELL 
+                    {
+                        // Đặt lệnh SELL với 1/3 cây nến trước đó 
+                        return StrategiesUtilities.RoundPrice(closePrice_5m + (wholeBody / 3));
+                    }
                 }
             }
             else // Reveral trade 

@@ -92,11 +92,12 @@ namespace NinjaTrader.Custom.Strategies
 
     public enum WAE_Strength
     {
+        SuperWeak,
         Weak,
         Medium,
+        MediumStrong,
         Strong,
-        SuperStrong,
-        ExtremelySuperStrong,
+        SuperStrong
     }
 
     /// <summary>
@@ -110,24 +111,30 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Volume ≤ [WeakRange]: Weak
         /// </summary>
-        public const int WeakRange = 150;
+        public const int SuperWeakRange = 150;
 
         /// <summary>
         /// [WeakRange] &lt; Volume ≤ [MediumRange]: Medium
         /// </summary>
-        public const int MediumRange = 250;
+        public const int WeakRange = 350;
 
         /// <summary>
         /// [MediumRange] &lt; Volume ≤ [StrongRange]: Strong <br/>
         /// [StrongRange] &lt; Volume: SuperStrong &lt; [ExtremelySuperStrong]
         /// </summary>
-        public const int StrongRange = 300;
+        public const int MediumRange = 600;
 
         /// <summary>
         /// [MediumRange] &lt; Volume ≤ [StrongRange]: Strong <br/>
         /// [StrongRange] &lt; Volume: SuperStrong
         /// </summary>
-        public const int ExtremelySuperStrong = 800;
+        public const int MediumStrongRange = 800;
+
+        /// <summary>
+        /// [MediumRange] &lt; Volume ≤ [StrongRange]: Strong <br/>
+        /// [StrongRange] &lt; Volume: SuperStrong
+        /// </summary>
+        public const int StrongRange = 1100;
 
         public double DeadZoneVal { get; set; }
         public double ExplosionVal { get; set; }
@@ -190,7 +197,11 @@ namespace NinjaTrader.Custom.Strategies
                 {
                     var sum = DownTrendVal + UpTrendVal;
 
-                    if (sum <= WeakRange)
+                    if (sum <= SuperWeakRange)
+                    {
+                        wAE_Strength = WAE_Strength.SuperWeak;
+                    }
+                    else if (SuperWeakRange < sum && sum <= WeakRange)
                     {
                         wAE_Strength = WAE_Strength.Weak;
                     }
@@ -198,17 +209,17 @@ namespace NinjaTrader.Custom.Strategies
                     {
                         wAE_Strength = WAE_Strength.Medium;
                     }
-                    else if (MediumRange < sum && sum <= StrongRange)
+                    else if (MediumRange < sum && sum <= MediumStrongRange)
+                    {
+                        wAE_Strength = WAE_Strength.MediumStrong;
+                    }
+                    else if (MediumStrongRange < sum && sum <= StrongRange)
                     {
                         wAE_Strength = WAE_Strength.Strong;
                     }
-                    else if (StrongRange < sum && sum <= ExtremelySuperStrong)
+                    else 
                     {
                         wAE_Strength = WAE_Strength.SuperStrong;
-                    }
-                    else // ExtremelySuperStrong < sum
-                    {
-                        wAE_Strength = WAE_Strength.ExtremelySuperStrong;
                     }
                 }
                 return wAE_Strength.Value;

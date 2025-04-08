@@ -357,11 +357,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                         // Nếu volume đang yếu hoặc Medium thì 
                         var volumeStrength = waeValuesSeries[0].WAE_Strength;
                         LocalPrint($"Volume Strength: SUM: {(waeValuesSeries[0].DownTrendVal + waeValuesSeries[0].UpTrendVal):N2}, [{ volumeStrength.ToString() }]");
-                        if (volumeStrength == WAE_Strength.Weak || volumeStrength == WAE_Strength.Medium)
+                        if (volumeStrength == WAE_Strength.SuperWeak || volumeStrength == WAE_Strength.Weak)
                         {
                             return StrategiesUtilities.RoundPrice(middleEMA);
                         }
-                        else if (volumeStrength == WAE_Strength.Strong || volumeStrength == WAE_Strength.SuperStrong)
+                        else if (volumeStrength == WAE_Strength.Medium || volumeStrength == WAE_Strength.MediumStrong)
                         {
                             var currentCandleIs_RED = CandleUtilities.IsRedCandle(closePrice_5m, openPrice_5m);
 
@@ -373,7 +373,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             // Nếu cây nến hiện tại cùng chiều market (Red khi bearish, hoặc Green khi bullish) 
                             var wholeBody = Math.Abs(closePrice_5m - openPrice_5m);
                             // Hệ số (so với cây nến trước): Lấy 1/2 nếu Strong, 1/3 nếu Super Strong
-                            var coeff = volumeStrength == WAE_Strength.Strong ? 2.0 : 3.0;
+                            var coeff = volumeStrength == WAE_Strength.Medium ? 2.0 : 3.0;
 
                             if (tradeAction == TradeAction.Buy_Trending && currentCandleIs_GREEN)
                             {

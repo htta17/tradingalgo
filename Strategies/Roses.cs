@@ -21,6 +21,7 @@ using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
+using System.Reflection;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -43,22 +44,83 @@ namespace NinjaTrader.NinjaScript.Strategies
             HalfSizefATMName = "Roses_Default_4cts";
             RiskyATMName = "Roses_Default_4cts";
         }
+
+        private EMA EMA29Indicator_1m { get; set; }
+        private EMA EMA21Indicator_1m { get; set; }
+        private EMA EMA46Indicator_5m { get; set; }
+        private EMA EMA51Indicator_5m { get; set; }
+        private EMA EMA9Indicator_5m { get; set; }
+
+        private WaddahAttarExplosion WaddahAttarExplosion_5m { get; set; }
+
+        protected override void AddIndicators()
+        {
+            EMA29Indicator_1m = EMA(BarsArray[2], 29);
+            EMA29Indicator_1m.Plots[0].Brush = Brushes.Red;
+            EMA21Indicator_1m = EMA(BarsArray[2], 21);
+            EMA21Indicator_1m.Plots[0].Brush = Brushes.Blue;
+
+            EMA46Indicator_5m = EMA(BarsArray[1], 46);
+            EMA51Indicator_5m = EMA(BarsArray[1], 51);
+            EMA9Indicator_5m = EMA(BarsArray[1], 10);
+
+            WaddahAttarExplosion_5m = WaddahAttarExplosion(BarsArray[1]);
+
+            AddChartIndicator(EMA29Indicator_1m);
+            AddChartIndicator(EMA21Indicator_1m);
+        }
+
         protected override void OnNewBarCreated(int barsPeriod)
         {
-			LocalPrint($"1st tick of the bar {barsPeriod}-mins {DateTime.Now}");
+            var index = GetBarIndex(barsPeriod);
+
+            LocalPrint($"1st tick of the bar {barsPeriod}-mins {DateTime.Now} - Hi: {Highs[index][0]:N2}, Lo: {Lows[index][0]:N2}, Open: {Opens[index][0]:N2}, Close: {Closes[index][0]:N2}");
         }
 
         protected override void OnCurrentBarClosed(int barsPeriod)
         {
-            LocalPrint($"last tick of the bar {barsPeriod}-mins {DateTime.Now}");
+            var index = GetBarIndex(barsPeriod);
+
+            LocalPrint($"Last tick of the bar {barsPeriod}-mins {DateTime.Now} - Hi: {Highs[index][0]:N2}, Lo: {Lows[index][0]:N2}, Open: {Opens[index][0]:N2}, Close: {Closes[index][0]:N2}");
+        }
+        protected override void OnRegularTick(int barsPeriod)
+        {
+            var index = GetBarIndex(barsPeriod);            
+            if (barsPeriod == 5)
+            {
+                var ema46 = EMA46Indicator_5m.Value[0];
+                var ema51 = EMA51Indicator_5m.Value[0];
+                var ema9 = EMA9Indicator_5m.Value[0];
+
+                DrawLine("ema46", ema46, Brushes.Green, Brushes.Green);
+                DrawLine("ema51", ema51, Brushes.Red, Brushes.Red, textPosition: 3);
+                DrawLine("ema9", ema9, Brushes.Orange, Brushes.Orange, textPosition: -6);
+            }
+
+            
+
+            
+
+
+
         }
 
         protected override TradeAction ShouldTrade()
         {
+            return TradeAction.NoTrade; 
+        }
+
+        protected override void EnterOrderHistorical(TradeAction action)
+        {
+            
+        }
+
+        protected override void TransitionOrdersToLive()
+        {
             throw new NotImplementedException();
         }
 
-        protected override void EnterOrder(TradeAction action)
+        protected override void EnterOrderRealtime(TradeAction action)
         {
             throw new NotImplementedException();
         }

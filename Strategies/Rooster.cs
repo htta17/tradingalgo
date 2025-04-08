@@ -91,6 +91,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double middleEma4651_5m = -1;
         protected double ema46_5m = -1;
         protected double ema51_5m = -1;
+        protected double ema10_5m = -1;        
 
         protected Series<WAE_ValueSet> waeValuesSeries_5m;        
 
@@ -109,6 +110,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private EMA EMA46_5m { get; set; }
         private EMA EMA51_5m { get; set; }
+
+        private EMA EMA10_5m {  get; set; }
 
         protected DateTime TouchEMA4651Time { get; set; } = DateTime.MinValue;
 
@@ -385,6 +388,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                
                 ema46_5m = EMA46_5m.Value[0];
                 ema46_5m = EMA46_5m.Value[0];
+                ema10_5m = EMA10_5m.Value[0];
+
                 middleEma4651_5m = (EMA46_5m.Value[0] + EMA51_5m.Value[0]) / 2.0; 
 
                 upperBB_5m = bollinger.Upper[0];
@@ -535,12 +540,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                 EMA51_5m.Plots[0].Brush = Brushes.DeepSkyBlue;
                 EMA51_5m.Plots[0].DashStyleHelper = DashStyleHelper.Dash;
 
-                
+                EMA10_5m = EMA(10);
+                EMA51_5m.Plots[0].Brush = Brushes.DarkCyan;
+                EMA51_5m.Plots[0].DashStyleHelper = DashStyleHelper.Dash;
+
+                /*
                 if (DisplayBollingerIndicator)
                 {
                     AddChartIndicator(Bollinger1Indicator_5m);
                     AddChartIndicator(Bollinger2Indicator_5m);
-                }                
+                } 
+                */
                 
                 if (DisplayVolumeIndicator)
                 {
@@ -551,8 +561,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (DisplayEMA4651Indicator)
                 {
+                    AddChartIndicator(EMA10_5m);
                     AddChartIndicator(EMA46_5m);
-                    AddChartIndicator(EMA51_5m);
+                    AddChartIndicator(EMA51_5m);                    
                 }    
                  
                 if (DisplayRSIIndicator)

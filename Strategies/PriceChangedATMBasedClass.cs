@@ -13,6 +13,9 @@ using System.Collections.Generic;
 using NinjaTrader.Custom.Strategies;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
+using System.Linq;
+using NinjaTrader.Gui;
+using System.Windows;
 #endregion
 
 namespace NinjaTrader.NinjaScript.Strategies
@@ -63,6 +66,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected AtmStrategy RiskyAtmStrategy { get; set; }
 
+        protected TradingStatus tradingStatus { get; set; } = TradingStatus.Idle;
+
+        protected TradingStatus TradingStatus
+        {
+            get
+            {
+                return tradingStatus;
+            }
+        }
+
         public PriceChangedATMBasedClass() : this("BASE")
         { 
         }
@@ -79,8 +92,32 @@ namespace NinjaTrader.NinjaScript.Strategies
             RiskyATMName = "Roses_Default_4cts";
         }
 
-        protected override void OnStateChange()
+        protected void DrawLine(string name, double value, Brush lineColor, Brush textColor, DashStyleHelper dashStyle = DashStyleHelper.Dot, int textPosition = -3 )
         {
+            Draw.HorizontalLine(this, name, value, lineColor, dashStyle, 2);
+            Draw.Text(this, $"{name}_label", true, $"[{value:N2}]",
+                textPosition,
+                value,
+                5,
+                textColor,
+                new SimpleFont("Arial", 10),
+                TextAlignment.Left,
+                Brushes.Transparent,
+                Brushes.Transparent, 0);
+        }
+
+
+        /// <summary>
+        /// Hiện tại, [OnStateChange] đã có code: <br/>
+        ///     • State == State.SetDefaults: Có thể set defaults thêm, sử dụng [SetDefaultProperties] <br/>
+        ///     • State == State.Configure: Added data of 5m, 3m, and 1m. Add indicators: EMA(BarsArray[1], 46)[0] sẽ add indicator EMA64 cho khung 5 phút <br/>
+        ///     (BarsArray[1] sẽ là info của nến khung 5 phút) <br/>
+        ///     • State == State.DataLoaded: [AddIndicators]
+        ///     
+        /// </summary>
+        protected sealed override void OnStateChange()
+        {
+            base.OnStateChange();
             if (State == State.SetDefaults)
             {
                 Description = "Price Changed & ATM Based Class";
@@ -95,7 +132,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 OrderFillResolution = OrderFillResolution.Standard;
                 StartBehavior = StartBehavior.WaitUntilFlat;
                 TraceOrders = false;
-                BarsRequiredToTrade = 10;
+                BarsRequiredToTrade = 51;
                 IsInstantiatedOnEachOptimizationIteration = true;
 
                 SetDefaultProperties();
@@ -103,23 +140,48 @@ namespace NinjaTrader.NinjaScript.Strategies
             else if (State == State.Configure)
             {
                 ClearOutputWindow();
-                AddDataSeries(BarsPeriodType.Minute, 5);
-                AddDataSeries(BarsPeriodType.Minute, 3);
+                AddDataSeries(BarsPeriodType.Minute, 5);                
                 AddDataSeries(BarsPeriodType.Minute, 1);
+
+                try
+                {
+                    FullSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(FullSizeATMName, Print).AtmStrategy;
+
+                    HalfSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(HalfSizefATMName, Print).AtmStrategy;
+
+                    RiskyAtmStrategy = StrategiesUtilities.ReadStrategyData(RiskyATMName, Print).AtmStrategy;
+                }
+                catch (Exception e)
+                {
+                    Print(e.Message);
+                }                
             }
+            else if (State == State.DataLoaded)
+            {
+                AddIndicators();                
+            }
+            else if (State == State.Realtime)
+            {
+                try
+                {
+                    // Nếu có lệnh đang chờ thì cancel các lệnh hiện có bắt đầu chuyển về dùng ATM
+                    TransitionOrdersToLive();
+                }
+                catch (Exception e)
+                {
+                    LocalPrint("[OnStateChange] - State change to Realtime - ERROR: " + e.Message);
+                }
+            }    
         }
 
         #region Helpers - Make sure not too many times OnBarUpdate is counted
-        private DateTime lastExecutionTime_5m = DateTime.MinValue;
-        private DateTime lastExecutionTime_3m = DateTime.MinValue;
+        private DateTime lastExecutionTime_5m = DateTime.MinValue;        
         private DateTime lastExecutionTime_1m = DateTime.MinValue;
 
-        int lastBar_5m = -1;
-        int lastBar_3m = -1;
+        int lastBar_5m = -1;        
         int lastBar_1m = -1;
 
-        bool triggerLastBar_1m = false;
-        bool triggerLastBar_3m = false;
+        bool triggerLastBar_1m = false;        
         bool triggerLastBar_5m = false;
 
         private bool RunningTooFast(int barsPeriod)
@@ -133,43 +195,25 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     lastExecutionTime_1m = DateTime.Now;
 
-                    LocalPrint($"{Time[0]} - {DateTime.Now} - {Time[0].Subtract(DateTime.Now).TotalSeconds:N0} - {barsPeriod}");
-
                     if (Time[0].Subtract(DateTime.Now).TotalSeconds < 1 && !triggerLastBar_1m)
                     {
                         triggerLastBar_1m = true;
 
                         OnCurrentBarClosed(barsPeriod);
                     }
-                }                 
-            }
-            else if (barsPeriod == 3)
-            {
-                isTooFast = DateTime.Now.Subtract(lastExecutionTime_3m).TotalSeconds < 1;
-
-                if (!isTooFast)
-                {
-                    lastExecutionTime_3m = DateTime.Now;
-
-                    LocalPrint($"{Time[0]} - {DateTime.Now} - {Time[0].Subtract(DateTime.Now).TotalSeconds:N0} - {barsPeriod}");
-
-                    if (Time[0].Subtract(DateTime.Now).TotalSeconds < 1 && !triggerLastBar_3m)
+                    else 
                     {
-                        triggerLastBar_3m = true;
-
-                        OnCurrentBarClosed(barsPeriod);
+                        OnRegularTick(barsPeriod);
                     }
                 }                 
-            }
+            }           
             else if (barsPeriod == 5)
             {
                 isTooFast = DateTime.Now.Subtract(lastExecutionTime_5m).TotalSeconds < 1;
 
                 if (!isTooFast)
                 {
-                    lastExecutionTime_5m = DateTime.Now;
-
-                    LocalPrint($"{Time[0]} - {DateTime.Now} - {Time[0].Subtract(DateTime.Now).TotalSeconds:N0} - {barsPeriod}");
+                    lastExecutionTime_5m = DateTime.Now;                    
 
                     if (Time[0].Subtract(DateTime.Now).TotalSeconds < 1 && !triggerLastBar_5m)
                     {
@@ -177,10 +221,28 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                         OnCurrentBarClosed(barsPeriod);
                     }
+                    else
+                    {
+                        OnRegularTick(barsPeriod);
+                    }
                 }                
             }
 
             return isTooFast;
+        }
+
+        /// <summary>
+        /// Do with regular tick
+        /// </summary>
+        /// <param name="barsPeriod"></param>
+        protected virtual void OnRegularTick(int barsPeriod)
+        {
+            
+        }
+
+        protected int GetBarIndex(int barsPeriod)
+        {
+            return barsPeriod == 5 ? 1 : 2;
         }
 
         protected void LocalPrint(object val)
@@ -203,13 +265,78 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected abstract T1 ShouldTrade();
 
-        protected abstract void EnterOrder(T1 action);
+        protected abstract void EnterOrderHistorical(T1 action);
+
+        protected abstract void EnterOrderRealtime(T1 action); 
+
+        private void EnterOrder(T1 action)
+        {
+            if (State == State.Historical)
+            {
+                // Enter với stop loss và stop gain 
+                EnterOrderHistorical(action);
+            }
+            else 
+            {
+                EnterOrderRealtime(action);
+            }
+        }
+
+        /// <summary>
+        /// Add indicators
+        /// </summary>
+        protected abstract void AddIndicators();
 
         /// <summary>
         /// Excecute when current bar close (last tick of current bar)
         /// </summary>
         /// <param name="barsPeriod"></param>
         protected abstract void OnCurrentBarClosed(int barsPeriod);
+
+        protected virtual void TransitionOrdersToLive()
+        {
+            if (TradingStatus == TradingStatus.OrderExists)
+            {
+                LocalPrint($"Transition to live, close all ActiveOrders");
+
+                CloseExistingOrders();
+            }
+            else if (TradingStatus == TradingStatus.PendingFill)
+            {
+                var pendingOrders = Account.Orders.Where(c => c.OrderState == OrderState.Working && c.Name == OrderEntryName).ToList(); 
+                for (var i = 0; i < pendingOrders.Count; i++)
+                {                    
+                    var newOrder = GetRealtimeOrder(pendingOrders[i]);
+                    CancelOrder(newOrder);
+                }
+            }
+        }
+
+        protected virtual void CloseExistingOrders()
+        {
+
+        }
+
+        protected TradingStatus CheckCurrentStatusBasedOnOrders()
+        {
+            var activeOrders = Account.Orders
+                                .Where(c => c.OrderState == OrderState.Accepted || c.OrderState == OrderState.Working)
+                                .Select(c => new { c.OrderState, c.Name, c.OrderType })
+                                .ToList();
+
+            if (activeOrders.Count == 0)
+            {
+                return TradingStatus.Idle;
+            }
+            else if (activeOrders.Count == 1 && activeOrders[0].Name == OrderEntryName)
+            {
+                return TradingStatus.PendingFill;
+            }
+            else
+            {
+                return TradingStatus.OrderExists;
+            }
+        }
         #endregion
 
         protected override void OnBarUpdate()
@@ -229,25 +356,19 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (lastBar_1m != CurrentBar)
                 {
                     triggerLastBar_1m = false; 
-                    OnNewBarCreated(BarsPeriod.Value); 
-                }               
-                lastBar_1m = CurrentBar;
-            }
-            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 3) //3 minute
-            {
-                if (lastBar_3m != CurrentBar)
-                {
                     OnNewBarCreated(BarsPeriod.Value);
-                }
-                lastBar_3m = CurrentBar;
-            }
+                    lastBar_1m = CurrentBar;
+                }               
+                
+            }           
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) //5 minute
             {
                 if (lastBar_5m != CurrentBar)
                 {
+                    triggerLastBar_5m = false;
                     OnNewBarCreated(BarsPeriod.Value);
-                }
-                lastBar_5m = CurrentBar;
+                    lastBar_5m = CurrentBar;
+                }                
             }
         }
     }

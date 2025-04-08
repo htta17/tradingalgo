@@ -74,7 +74,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected virtual void SetDefaultProperties()
         {
-            
+            FullSizeATMName = "Roses_Default_4cts";
+            HalfSizefATMName = "Roses_Default_4cts";
+            RiskyATMName = "Roses_Default_4cts";
         }
 
         protected override void OnStateChange()
@@ -130,12 +132,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (!isTooFast)
                 {
                     lastExecutionTime_1m = DateTime.Now;
+
+                    //LocalPrint($"{DateTime.Now.Subtract(Time[0]).TotalSeconds:N0} - {barsPeriod}");
                 }
-                else if (DateTime.Now.Subtract(Time[0]).TotalSeconds > 59 && !triggerLastBar_1m)
+                else if (DateTime.Now.Subtract(Time[0]).TotalSeconds < 1 && !triggerLastBar_1m)
                 {
                     triggerLastBar_1m = true;
 
-                    OnCurrentBarClose(barsPeriod);
+                    OnCurrentBarClosed(barsPeriod);
                 }
             }
             else if (barsPeriod == 3)
@@ -145,12 +149,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (!isTooFast)
                 {
                     lastExecutionTime_3m = DateTime.Now;
+
+                    //LocalPrint($"{DateTime.Now.Subtract(Time[0]).TotalSeconds:N0} - {barsPeriod}");
                 }
-                else if (DateTime.Now.Subtract(Time[0]).TotalSeconds > 179 && !triggerLastBar_3m)
+                else if (DateTime.Now.Subtract(Time[0]).TotalSeconds < 1 && !triggerLastBar_3m)
                 {
                     triggerLastBar_3m = true;
 
-                    OnCurrentBarClose(barsPeriod);
+                    OnCurrentBarClosed(barsPeriod);
                 }
             }
             else if (barsPeriod == 5)
@@ -160,12 +166,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (!isTooFast)
                 {
                     lastExecutionTime_5m = DateTime.Now;
+
+                    //LocalPrint($"{DateTime.Now.Subtract(Time[0]).TotalSeconds:N0} - {barsPeriod}");
                 }
-                else if (DateTime.Now.Subtract(Time[0]).TotalSeconds > 259 && !triggerLastBar_5m)
+                else if (DateTime.Now.Subtract(Time[0]).TotalSeconds < 1 && !triggerLastBar_5m)
                 {
                     triggerLastBar_5m = true;
 
-                    OnCurrentBarClose(barsPeriod);
+                    OnCurrentBarClosed(barsPeriod);
                 }
             }
 
@@ -188,7 +196,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Excecute when it moved to new bar
         /// </summary>
         /// <param name="barsPeriod"></param>
-        protected abstract void OnNewBarOpen(int barsPeriod);
+        protected abstract void OnNewBarCreated(int barsPeriod);
 
         protected abstract T1 ShouldTrade();
 
@@ -198,7 +206,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Excecute when current bar close (last tick of current bar)
         /// </summary>
         /// <param name="barsPeriod"></param>
-        protected abstract void OnCurrentBarClose(int barsPeriod);
+        protected abstract void OnCurrentBarClosed(int barsPeriod);
         #endregion
 
         protected override void OnBarUpdate()
@@ -218,7 +226,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (lastBar_1m != CurrentBar)
                 {
                     triggerLastBar_1m = false; 
-                    OnNewBarOpen(BarsPeriod.Value); 
+                    OnNewBarCreated(BarsPeriod.Value); 
                 }               
                 lastBar_1m = CurrentBar;
             }
@@ -226,7 +234,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 if (lastBar_3m != CurrentBar)
                 {
-                    OnNewBarOpen(BarsPeriod.Value);
+                    OnNewBarCreated(BarsPeriod.Value);
                 }
                 lastBar_3m = CurrentBar;
             }
@@ -234,7 +242,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 if (lastBar_5m != CurrentBar)
                 {
-                    OnNewBarOpen(BarsPeriod.Value);
+                    OnNewBarCreated(BarsPeriod.Value);
                 }
                 lastBar_5m = CurrentBar;
             }

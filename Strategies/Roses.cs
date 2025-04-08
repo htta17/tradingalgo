@@ -32,9 +32,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{ 
 		}
 
-		protected override void OnStateChange()
-		{
-			base.OnStateChange();
+        protected override void SetDefaultProperties()
+        {
+            base.SetDefaultProperties();
 
             Description = "Roses (ATM realtime)";
             Name = "EMA 21/29 1-min frame, trending.";
@@ -42,16 +42,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             FullSizeATMName = "Roses_Default_4cts";
             HalfSizefATMName = "Roses_Default_4cts";
             RiskyATMName = "Roses_Default_4cts";
-        }		
-
-        protected override void OnNewBarOpen(int barsPeriod)
+        }
+        protected override void OnNewBarCreated(int barsPeriod)
         {
-			LocalPrint($"1st bar {barsPeriod}");
+			LocalPrint($"1st tick of the bar {barsPeriod}-mins {DateTime.Now}");
         }
 
-        protected override void OnCurrentBarClose(int barsPeriod)
+        protected override void OnCurrentBarClosed(int barsPeriod)
         {
-            LocalPrint($"last bar {barsPeriod}");
+            LocalPrint($"last tick of the bar {barsPeriod}-mins {DateTime.Now}");
         }
 
         protected override TradeAction ShouldTrade()

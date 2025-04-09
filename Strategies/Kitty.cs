@@ -104,6 +104,32 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return TradeAction.NoTrade;
             }
 
+            var currentWAE = waeValuesSeries_5m[0];
+
+            if (currentWAE.HasBULLVolume)
+            {
+                return TradeAction.Buy_Trending;
+            }
+            else if (currentWAE.HasBEARVolume)
+            {
+                return TradeAction.Sell_Trending;
+            }
+
+            return TradeAction.NoTrade;         
+        }
+
+        /// <summary>
+        /// Old Function, để đó lỡ cần tham khảo đến sau này. 
+        /// </summary>
+        /// <returns></returns>
+        protected TradeAction ShouldTrade_OLD()
+        {
+            if (Time[0].TimeOfDay < StartDayTradeTime || Time[0].TimeOfDay > EndDayTradeTime)
+            {
+                LocalPrint($"Thời gian trade được thiết lập từ {StartDayTradeTime} to {EndDayTradeTime} --> No Trade.");
+                return TradeAction.NoTrade;
+            }
+
             var time = ToTime(Time[0]);
 
             // Từ 3:30pm - 5:05pm thì không nên trade 
@@ -284,7 +310,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 5. Nến XANH, thân nến hiện tại > {MIN_BODY_LENGTH_TO_TRADE} points và < {MAX_BODY_LENGTH_TO_TRADE} pts: [{isGreenCandle}]      
                 6. Cây nến trước đó cũng là nến XANH, > {MIN_BODY_LENGTH_TO_TRADE} points và < {MAX_BODY_LENGTH_TO_TRADE} pts: [{isPreviousGreen}]
                 {rsiTooBoughtText}
-                8. Râu nến phía DƯỚI không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {topToBodyPercent:N2}%): [{topToBody}].               
+                8. Râu nến phía TRÊN không quá {PERCENTAGE_WICK_TO_TRADE}% toàn cây nến (Tỉ lệ hiện tại {topToBodyPercent:N2}%): [{topToBody}].               
                 FINAL: [{conditionForBuy}]");
 
             if (conditionForBuy)

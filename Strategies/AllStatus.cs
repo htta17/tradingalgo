@@ -92,11 +92,34 @@ namespace NinjaTrader.Custom.Strategies
 
     public enum WAE_Strength
     {
+        /// <summary>
+        /// &lt; 150
+        /// </summary>
         SuperWeak,
+
+        /// <summary>
+        /// Range from 150 - 350
+        /// </summary>
         Weak,
+
+        /// <summary>
+        /// Range from 350 - 600
+        /// </summary>
         Medium,
+
+        /// <summary>
+        /// Range from 600 - 800
+        /// </summary>
         MediumStrong,
+
+        /// <summary>
+        /// Range from 800 - 1100
+        /// </summary>
         Strong,
+
+        /// <summary>
+        /// > 1100
+        /// </summary>
         SuperStrong
     }
 

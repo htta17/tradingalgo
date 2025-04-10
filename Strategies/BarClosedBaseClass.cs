@@ -267,6 +267,12 @@ namespace NinjaTrader.Custom.Strategies
         { 
         }
 
+        /// <summary>
+        /// Set default properties. Normally, we need to set: <br/> 
+        /// - Name <br/> 
+        /// - Description <br/> 
+        /// - Other properties like: MaximumDailyLoss, DailyTargetProfit and local properties<br/> 
+        /// </summary>
         protected virtual void SetDefaultProperties()
         {
             MaximumDailyLoss = 260;
@@ -377,67 +383,86 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
+        /// <summary>
+        /// Sử dụng trong [OnStateChange] (State == State.Configure) <br/>
+        /// </summary>
+        protected virtual void OnStateChange_Configure()
+        {
+            try
+            {
+                var newsFromFile = ReadNewsInfoFromFile();
+
+                if (newsFromFile != string.Empty)
+                {
+                    newsFromFile = $"{StrategiesUtilities.DefaultNewsTime},{newsFromFile}";
+                    Print($"[NewsTime]: {newsFromFile}");
+                }
+                else // Nếu ngày hôm nay không có gì thì chỉ lấy thời gian mở, đóng cửa. 
+                {
+                    newsFromFile = StrategiesUtilities.DefaultNewsTime;
+                }
+
+                NewsTimes = newsFromFile.Split(',').Select(c => int.Parse(c)).ToList();
+            }
+            catch (Exception e)
+            {
+                Print($"[OnStateChange] - ERROR: " + e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Sử dụng trong [OnStateChange] (State == State.Configure) <br/>
+        /// </summary>
+        protected virtual void OnStateChange_Realtime()
+        {
+            try
+            {
+                TransitionOrdersToLive();
+            }
+            catch (Exception e)
+            {
+                LocalPrint("[OnStateChange] - ERROR" + e.Message);
+            }
+        }
+
+        protected virtual void OnStateChange_SetDefaults()
+        {
+            Description = @"Based Class for all Strategies which is triggered to execute with [Calculate] is [OnBarClose].";
+            // Let not set Name here, each inheritted class will set by itself
+            Calculate = Calculate.OnBarClose;
+            EntriesPerDirection = 2;
+            EntryHandling = EntryHandling.AllEntries;
+            IsExitOnSessionCloseStrategy = true;
+            ExitOnSessionCloseSeconds = 30;
+            IsFillLimitOnTouch = false;
+            MaximumBarsLookBack = MaximumBarsLookBack.TwoHundredFiftySix;
+            OrderFillResolution = OrderFillResolution.Standard;
+            Slippage = 0;
+            StartBehavior = StartBehavior.WaitUntilFlat;
+            TimeInForce = Cbi.TimeInForce.Gtc;
+            TraceOrders = false;
+            RealtimeErrorHandling = RealtimeErrorHandling.IgnoreAllErrors;
+            StopTargetHandling = StopTargetHandling.PerEntryExecution;
+            BarsRequiredToTrade = 20;
+            // Disable this property for performance gains in Strategy Analyzer optimizations
+            // See the Help Guide for additional information
+            IsInstantiatedOnEachOptimizationIteration = true;
+
+            SetDefaultProperties();
+        }
         protected override void OnStateChange()
         {   
             if (State == State.SetDefaults)
             {
-                Description = @"Based Class for all Strategies which is triggered to execute with [Calculate] is [OnBarClose].";
-                // Let not set Name here, each inheritted class will set by itself
-                Calculate = Calculate.OnBarClose;
-                EntriesPerDirection = 2;
-                EntryHandling = EntryHandling.AllEntries;
-                IsExitOnSessionCloseStrategy = true;
-                ExitOnSessionCloseSeconds = 30;
-                IsFillLimitOnTouch = false;
-                MaximumBarsLookBack = MaximumBarsLookBack.TwoHundredFiftySix;
-                OrderFillResolution = OrderFillResolution.Standard;
-                Slippage = 0;
-                StartBehavior = StartBehavior.WaitUntilFlat;
-                TimeInForce = Cbi.TimeInForce.Gtc;
-                TraceOrders = false;
-                RealtimeErrorHandling = RealtimeErrorHandling.IgnoreAllErrors;
-                StopTargetHandling = StopTargetHandling.PerEntryExecution;
-                BarsRequiredToTrade = 20;
-                // Disable this property for performance gains in Strategy Analyzer optimizations
-                // See the Help Guide for additional information
-                IsInstantiatedOnEachOptimizationIteration = true;
-
-                SetDefaultProperties();
+                OnStateChange_SetDefaults();
             }
             else if (State == State.Configure)
             {
-                try
-                {
-                    var newsFromFile = ReadNewsInfoFromFile();
-
-                    if (newsFromFile != string.Empty)
-                    {
-                        newsFromFile = $"{StrategiesUtilities.DefaultNewsTime},{newsFromFile}";
-                        Print($"[NewsTime]: {newsFromFile}");
-                    }
-                    else // Nếu ngày hôm nay không có gì thì chỉ lấy thời gian mở, đóng cửa. 
-                    {
-                        newsFromFile = StrategiesUtilities.DefaultNewsTime; 
-                    }
-
-                    NewsTimes = newsFromFile.Split(',').Select(c => int.Parse(c)).ToList();
-                }
-                catch (Exception e)
-                {
-                    Print($"[OnStateChange] - ERROR: " + e.Message);
-                }
+                OnStateChange_Configure();
             }
             else if (State == State.Realtime)
             {
-                try
-                {
-                    // Nếu có lệnh đang chờ thì cancel 
-                    TransitionOrdersToLive();
-                }
-                catch (Exception e)
-                {
-                    LocalPrint("[OnStateChange] - ERROR" + e.Message);
-                }
+                OnStateChange_Realtime();
             }         
         }
 

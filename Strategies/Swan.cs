@@ -537,8 +537,18 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             return StrategiesUtilities.RoundPrice(middleEma4651_5m);
         }
+
+        protected override void AddCustomDataSeries()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void AddCustomIndicators()
+        {
+            throw new NotImplementedException();
+        }
         /*
-         * End of class 
-         */
+* End of class 
+*/
     }
 }

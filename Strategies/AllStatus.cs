@@ -324,6 +324,7 @@ namespace NinjaTrader.Custom.Strategies
     { 
         OneMinute, 
         ThreeMinutes, 
-        FiveMinutes
+        FiveMinutes,
+        FifteenMinutes
     }
 }

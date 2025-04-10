@@ -158,13 +158,25 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected abstract void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade);        
+        protected abstract void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade);
+
+
+        /// <summary>
+        /// Sử dụng trong [OnStateChange] (State == State.Configure)
+        /// </summary>        
+        protected abstract void AddCustomDataSeries();
+
+        /// <summary>
+        /// Sử dụng trong [OnStateChange] (State == State.DataLoaded)
+        /// </summary>
+        /// <exception cref="NotImplementedException"></exception>
+        protected abstract void AddCustomIndicators();
 
         protected override void SetDefaultProperties()
         {
             base.SetDefaultProperties();
 
-            Name = "Tiger [ADX + Bollinger (Reverse)]";
+            Name = "General ATM based class";
             Description = "";
 
             tradingStatus = TradingStatus.Idle;
@@ -175,56 +187,52 @@ namespace NinjaTrader.NinjaScript.Strategies
             SetBreakEvenManually = false;
         }
 
-        protected override void OnStateChange()
+        protected override void OnStateChange_Configure()
         {
-            base.OnStateChange();            
+            base.OnStateChange_Configure();
 
-            if (State == State.Configure)
+            ClearOutputWindow();
+
+            AddCustomDataSeries();
+
+            FullSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(FullSizeATMName, Print).AtmStrategy;
+
+            HalfSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(HalfSizefATMName, Print).AtmStrategy;
+
+            Print($"FullSizeAtmStrategy: [{FullSizeAtmStrategy.DisplayName}], HalfSizeAtmStrategy: [{HalfSizeAtmStrategy.DisplayName}]");
+        }
+
+        protected override void OnStateChange_Realtime()
+        {
+            base.OnStateChange_Realtime();
+
+            // Load thông tin liên quan đến Status, OrderId và AtmStrategyId
+            if (File.Exists(FileName))
             {
-                ClearOutputWindow();
-                AddDataSeries(BarsPeriodType.Minute, 5);
-                AddDataSeries(BarsPeriodType.Minute, 1);
-
-                FullSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(FullSizeATMName, Print).AtmStrategy;
-
-                HalfSizeAtmStrategy = StrategiesUtilities.ReadStrategyData(HalfSizefATMName, Print).AtmStrategy;
-
-                Print($"FullSizeAtmStrategy: [{FullSizeAtmStrategy.DisplayName}], HalfSizeAtmStrategy: [{HalfSizeAtmStrategy.DisplayName}]");
-            }
-            else if (State == State.DataLoaded)
-            {
-                // Mỗi giải thuật sẽ tự add data
-            }
-            else if (State == State.Realtime)
-            {
-                // Load thông tin liên quan đến
-                if (File.Exists(FileName))
+                try
                 {
-                    try
+                    var text = File.ReadAllText(FileName);
+
+                    var arr = text.Split(',');
+
+                    if (arr.Length == 1)
                     {
-                        var text = File.ReadAllText(FileName);
-
-                        var arr = text.Split(',');
-
-                        if (arr.Length == 1)
-                        {
-                            AtmStrategyId = arr[0];
-                        }
-                        else if (arr.Length == 2)
-                        {
-                            AtmStrategyId = arr[0];
-                            OrderId = arr[1];
-
-                            tradingStatus = CheckCurrentStatusBasedOnOrders();
-                            Print($"Initial status - {tradingStatus}");
-                        }
+                        AtmStrategyId = arr[0];
                     }
-                    catch (Exception e)
+                    else if (arr.Length == 2)
                     {
-                        Print(e.Message);
+                        AtmStrategyId = arr[0];
+                        OrderId = arr[1];
+
+                        tradingStatus = CheckCurrentStatusBasedOnOrders();
+                        Print($"Initial status - {tradingStatus}");
                     }
-                }                
-            }            
+                }
+                catch (Exception e)
+                {
+                    Print(e.Message);
+                }
+            }
         }
 
         protected void SaveAtmStrategyIdToFile(string strategyId, string orderId)

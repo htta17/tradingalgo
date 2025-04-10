@@ -398,7 +398,7 @@
     <Compile Include="Strategies\BarClosedATMBase.cs" />
     <Compile Include="Indicators\ADXandDI.cs" />
     <Compile Include="Strategies\GeneralBackTest.cs" />
-    <Compile Include="Strategies\TrendTracker.cs" />
+    <Compile Include="Strategies\FishTrend.cs" />
     <Compile Include="Strategies\Swan.cs" />
     <Compile Include="Strategies\Roses.cs" />
     <Compile Include="Strategies\GeneralUtilities.cs" />

@@ -112,6 +112,16 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             throw new NotImplementedException();
         }
+
+        protected override void AddCustomDataSeries()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void AddCustomIndicators()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public abstract class TestStopLossGainOrigin : Strategy

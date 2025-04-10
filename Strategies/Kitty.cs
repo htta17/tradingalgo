@@ -65,14 +65,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             Configured_TimeFrameToTrade = TimeFrameToTrade.FiveMinutes;
         }
 
-        protected override void OnStateChange()
+        protected override void OnStateChange_Configure()
         {
-            base.OnStateChange();
+            base.OnStateChange_Configure();
 
-            if (State == State.Configure)
-            {
-                RiskyAtmStrategy = StrategiesUtilities.ReadStrategyData(RiskyAtmStrategyName, Print).AtmStrategy;
-            }            
+            RiskyAtmStrategy = StrategiesUtilities.ReadStrategyData(RiskyAtmStrategyName, Print).AtmStrategy;
         }
 
         protected override void SetDefaultProperties()
@@ -91,8 +88,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             StartDayTradeTime = new TimeSpan(9, 10, 0); // 9:10:00 am 
             EndDayTradeTime = new TimeSpan(15, 0, 0); // 2:00:00 pm
 
-            Print($"Thời gian trade được thiết lập từ {StartDayTradeTime} to {EndDayTradeTime}");
-
             CloseOrderWhenCandleGreaterThan = 60; // 60 điểm
         }
 
@@ -104,20 +99,21 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return TradeAction.NoTrade;
             }
 
-            var currentWAE = waeValuesSeries_5m[0];
+            //var currentWAE = waeValuesSeries_5m[0];
 
-            if (currentWAE.HasBULLVolume)
-            {
-                return TradeAction.Buy_Trending;
-            }
-            else if (currentWAE.HasBEARVolume)
-            {
-                return TradeAction.Sell_Trending;
-            }
+            //if (currentWAE.HasBULLVolume)
+            //{
+            //    return TradeAction.Buy_Trending;
+            //}
+            //else if (currentWAE.HasBEARVolume)
+            //{
+            //    return TradeAction.Sell_Trending;
+            //}
 
             return TradeAction.NoTrade;         
         }
 
+#if USE_WAE
         /// <summary>
         /// Old Function, để đó lỡ cần tham khảo đến sau này. 
         /// </summary>
@@ -369,6 +365,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             return TradeAction.NoTrade;
         }
+#endif
 
         protected override (AtmStrategy, string) GetAtmStrategyByPnL(TradeAction tradeAction)
         {
@@ -423,10 +420,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy atmStrategy)
         {
+#if USE_WAE
             if (tradeAction == TradeAction.Buy_Trending || tradeAction == TradeAction.Sell_Trending)
             {
                 // High risk 
-                
+
                 /*
                 var currentBodyLength = Math.Abs(closePrice_5m - openPrice_5m);
                 var bodyIsSmallerThanOthers = currentBodyLength < (highPrice_5m - Math.Max(closePrice_5m, openPrice_5m))
@@ -502,6 +500,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 return StrategiesUtilities.RoundPrice(setPrice);
             }
+#endif
+            return StrategiesUtilities.RoundPrice((ema29_1m + ema10_5m) / 2);
         }
 
         protected override bool ShouldCancelPendingOrdersByTrendCondition()

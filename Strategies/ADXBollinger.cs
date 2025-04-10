@@ -317,5 +317,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             }
         }
+
+        protected override void AddCustomDataSeries()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void AddCustomIndicators()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

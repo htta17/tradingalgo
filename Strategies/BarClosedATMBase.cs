@@ -368,12 +368,17 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Price is already be sure that > 100
         /// </summary>
         /// <param name="updatedPrice"></param>
-        protected virtual void OnMarketData_DoForPendingFill(double updatedPrice)
+        protected virtual void OnMarketData_PendingFill(double updatedPrice)
         { 
         
         }
 
-        protected virtual void OnMarketData_DoForOrderExists(double updatedPrice)
+        protected virtual void OnMarketData_OrderExists(double updatedPrice)
+        {
+
+        }
+
+        protected virtual void OnMarketData_WatingForConfirmation(double updatedPrice)
         {
 
         }
@@ -408,7 +413,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         $"updatedPrice:{updatedPrice:N2}, StopLossPrice: {StopLossPrice:N2}, " +
                         $"buyPriceIsOutOfRange: {buyPriceIsOutOfRange}, :sellPriceIsOutOfRange: {sellPriceIsOutOfRange}. ");
 
-                    OnMarketData_DoForOrderExists(updatedPrice);
+                    OnMarketData_OrderExists(updatedPrice);
                 }
                 else
                 {
@@ -451,7 +456,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Last TradingStatus: PendingFill, new TradingStatus: {TradingStatus}");
                 }
 
-                OnMarketData_DoForPendingFill(updatedPrice);
+                OnMarketData_PendingFill(updatedPrice);
+            }
+            else if (TradingStatus == TradingStatus.WatingForCondition)
+            { 
             }
         }
 

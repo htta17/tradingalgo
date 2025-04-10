@@ -74,9 +74,24 @@ namespace NinjaTrader.Custom.Strategies
     /// </summary>
     public enum TradingStatus
     {
-        Idle, // Đang không có lệnh 
-        PendingFill, // Lệnh đã submit nhưng chưa được fill do giá chưa đúng
-        WatingForConfirmation,
+        /// <summary>
+        /// Trạng thái cơ bản, không làm gì. 
+        /// </summary>
+        Idle,
+
+        /// <summary>
+        /// Lệnh đã submit nhưng chưa được fill
+        /// </summary>
+        PendingFill,
+
+        /// <summary>
+        /// Đợi đủ điều kiện để vào lệnh 
+        /// </summary>
+        WatingForCondition,
+
+        /// <summary>
+        /// Lệnh đã được filled.
+        /// </summary>
         OrderExists  // Lệnh đã được filled 
     }
 

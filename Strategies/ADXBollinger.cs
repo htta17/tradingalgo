@@ -28,7 +28,7 @@ using System.IO;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class ADXBollinger : BarClosedATMBase<ADXBollingerAction>
+	public abstract class ADXBollinger : BarClosedATMBase<ADXBollingerAction>
     {
         public ADXBollinger() : base("TIGER")
         {

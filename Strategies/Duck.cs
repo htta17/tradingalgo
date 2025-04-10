@@ -27,7 +27,7 @@ using System.IO;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class Duck : Strategy, IATMStrategy
+	public abstract class Duck : Strategy, IATMStrategy
     {
         private const int DEMA_Period = 9;
 
@@ -591,13 +591,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                                 EnterOrder(OrderAction.Sell, State, enterShort);
                                 Print("Enter Short");
                             }
-                            else if (enterLong == TradingStatus.WatingForConfirmation)
+                            else if (enterLong == TradingStatus.WatingForCondition)
                             {
                                 DuckStatus = enterLong;
                                 currentAction = OrderAction.Buy;
                                 Print("WaitingForGoodPrice to LONG");
                             }
-                            else if (enterShort == TradingStatus.WatingForConfirmation)
+                            else if (enterShort == TradingStatus.WatingForCondition)
                             {
                                 DuckStatus = enterShort;
                                 currentAction = OrderAction.Sell;
@@ -641,7 +641,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             UpdatePendingOrder(activeOrders.FirstOrDefault());
                         }
                     }
-                    else if (DuckStatus == TradingStatus.WatingForConfirmation)
+                    else if (DuckStatus == TradingStatus.WatingForCondition)
                     {
                         var hasActiveOrder = Account.Orders.Any(order => order.OrderState == OrderState.Working || order.OrderState == OrderState.Accepted);
 
@@ -723,7 +723,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (open_1m < Math.Max(ema29_1m, ema51_1m)) // Found cross, nhưng Open của nến 1 phút vẫn ở dưới EMA29/51)
                 {
                     LocalPrint($"Found cross BUY, but open1m {open_1m:F2} < Math.Max({ema29_1m:F2}, {ema51_1m:F2})");
-                    return TradingStatus.WatingForConfirmation; // Đợi khi nào có nến 1 phút vượt qua EMA29/51 thì set lệnh
+                    return TradingStatus.WatingForCondition; // Đợi khi nào có nến 1 phút vượt qua EMA29/51 thì set lệnh
                 }
                 else if (adx_5m < 22)
                 {
@@ -775,7 +775,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (open_1m > Math.Min(ema29_1m, ema51_1m)) // foundCross = true, nhưng open của nến 1 phút vẫn nằm trên EMA29/51 (chưa vượt qua được)
                 {
                     LocalPrint($"Found cross SELL, but open1m {open_1m:F2} > Math.Min({ema29_1m:F2}, {ema51_1m:F2})");
-                    return TradingStatus.WatingForConfirmation;
+                    return TradingStatus.WatingForCondition;
                 }
                 else if (adx_5m < 22)
                 {
@@ -809,7 +809,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         // Hàm này chỉ làm việc với DuckStatus hiện tại là DuckStatus.WaitingForGoodPrice
         protected virtual TradingStatus WaitForTradeCondition()
         {
-            if (DuckStatus != TradingStatus.WatingForConfirmation)
+            if (DuckStatus != TradingStatus.WatingForCondition)
             {
                 return DuckStatus;
             }
@@ -846,7 +846,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (open_1m < Math.Max(ema29_1m, ema51_1m)) // Found cross, nhưng Open của nến 1 phút vẫn ở dưới EMA29/51)
                 {
                     LocalPrint($"Continue waiting, open1m {open_1m:F2} < Math.Max({ema29_1m:F2}, {ema51_1m:F2})");
-                    return TradingStatus.WatingForConfirmation; // Tiếp tục chờ đợi
+                    return TradingStatus.WatingForCondition; // Tiếp tục chờ đợi
                 }
                 else if (adx_5m < 22)
                 {
@@ -905,7 +905,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     else if (open_1m > Math.Min(ema29_1m, ema51_1m)) // foundCross = true, nhưng open của nến 1 phút vẫn nằm trên EMA29/51 (chưa vượt qua được)
                     {
                         LocalPrint($"Found cross SELL, but open1m {open_1m:F2} > Math.Min({ema29_1m:F2}, {ema51_1m:F2})");
-                        return TradingStatus.WatingForConfirmation;
+                        return TradingStatus.WatingForCondition;
                     }
                     else if (adx_5m < 22)
                     {
@@ -932,7 +932,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
             }
 
-            return TradingStatus.WatingForConfirmation;
+            return TradingStatus.WatingForCondition;
         }
 
         private void UpdatePendingOrder(Order pendingOrder)

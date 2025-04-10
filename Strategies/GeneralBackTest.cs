@@ -29,7 +29,7 @@ using System.Windows.Controls.Primitives;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class GeneralBackTest : BarClosedBaseClass<GeneralTradeAction, GeneralTradeAction>
+	public abstract class GeneralBackTest : BarClosedBaseClass<GeneralTradeAction, GeneralTradeAction>
     {
         public GeneralBackTest() 
         {

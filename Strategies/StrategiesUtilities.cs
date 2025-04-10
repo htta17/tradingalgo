@@ -58,7 +58,7 @@ namespace NinjaTrader.Custom.Strategies
         public const string SignalEntry_GeneralFull = "Entry-GF";
 
         // Some default news time, being used for many places.
-        public const string DefaultNewsTime = "0830,1500,1700";
+        public const string DefaultNewsTime = "0730,0830,1500,1700";
 
         public static double RoundPrice(double price)
         {

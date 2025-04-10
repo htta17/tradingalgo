@@ -33,7 +33,7 @@ using System.Xml.Linq;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-    public class Swan : BarClosedATMBase<TradeAction>, IATMStrategy
+    public abstract class Swan : BarClosedATMBase<TradeAction>, IATMStrategy
     {
         public Swan(string name) : base(name) { }
 
@@ -267,10 +267,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                     WaitTradeAction = shouldTrade;
 
                     // Wait for confirm candle 
-                    tradingStatus = TradingStatus.WatingForConfirmation;
+                    tradingStatus = TradingStatus.WatingForCondition;
                 }
             }
-            else if (TradingStatus == TradingStatus.WatingForConfirmation)
+            else if (TradingStatus == TradingStatus.WatingForCondition)
             {
                 if (WaitTradeAction == TradeAction.Buy_Reversal)
                 {

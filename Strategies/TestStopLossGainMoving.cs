@@ -28,7 +28,7 @@ using System.Xml.Linq;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class TestStopLossGainMoving : BarClosedATMBase<TradeAction>
+	public abstract class TestStopLossGainMoving : BarClosedATMBase<TradeAction>
 	{
         protected override bool IsBuying => CurrentTradeAction == TradeAction.Buy_Trending;
 

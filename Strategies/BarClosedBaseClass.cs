@@ -425,6 +425,10 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
+        protected virtual void OnStateChange_DataLoaded()
+        { 
+        }
+
         protected virtual void OnStateChange_SetDefaults()
         {
             Description = @"Based Class for all Strategies which is triggered to execute with [Calculate] is [OnBarClose].";
@@ -451,7 +455,7 @@ namespace NinjaTrader.Custom.Strategies
             SetDefaultProperties();
         }
         protected override void OnStateChange()
-        {   
+        {
             if (State == State.SetDefaults)
             {
                 OnStateChange_SetDefaults();
@@ -459,6 +463,9 @@ namespace NinjaTrader.Custom.Strategies
             else if (State == State.Configure)
             {
                 OnStateChange_Configure();
+            }
+            else if (State == State.DataLoaded)
+            { 
             }
             else if (State == State.Realtime)
             {

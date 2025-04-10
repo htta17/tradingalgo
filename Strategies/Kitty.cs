@@ -27,8 +27,9 @@ using System.IO;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class Kitty : Rooster
+	public abstract class Kitty : Rooster
 	{
+#if USE_RSI_TO_ENTER_ORDER
         /// <summary>
         /// ATM name for live trade.
         /// </summary>
@@ -38,6 +39,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             Order = 2, GroupName = StrategiesUtilities.Configuration_ATMStrategy_Group)]
         [TypeConverter(typeof(ATMStrategyConverter))]
         public bool AllowUseRSIIndicator { get; set; }
+#endif
 
         /// <summary>
         /// ATM name for live trade.
@@ -83,7 +85,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             HalfSizefATMName = "Kitty_Default_2cts";
             RiskyAtmStrategyName = "Kitty_Risky";
 
+#if USE_RSI_TO_ENTER_ORDER
             AllowUseRSIIndicator = false;
+#endif
 
             StartDayTradeTime = new TimeSpan(9, 10, 0); // 9:10:00 am 
             EndDayTradeTime = new TimeSpan(15, 0, 0); // 2:00:00 pm

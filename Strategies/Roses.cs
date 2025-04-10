@@ -27,7 +27,7 @@ using System.Reflection;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class Roses : PriceChangedATMBasedClass<TradeAction>
+	public abstract class Roses : PriceChangedATMBasedClass<TradeAction>
 	{
 		public Roses() : base()
 		{ 

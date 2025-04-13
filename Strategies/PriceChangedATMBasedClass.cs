@@ -92,10 +92,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             RiskyATMName = "Roses_Default_4cts";
         }
 
-        protected void DrawLine(string name, double value, Brush lineColor, Brush textColor, DashStyleHelper dashStyle = DashStyleHelper.Dot, int textPosition = -3 )
+        protected void DrawLine(string name, double value, Brush lineColor, Brush textColor, DashStyleHelper dashStyle = DashStyleHelper.Dot, int textPosition = -3, string labelText = "")
         {
             Draw.HorizontalLine(this, name, value, lineColor, dashStyle, 2);
-            Draw.Text(this, $"{name}_label", true, $"[{value:N2}]",
+            Draw.Text(this, $"{name}_label", true, string.IsNullOrEmpty(labelText) ? $"[{value:N2}]" : labelText,
                 textPosition,
                 value,
                 5,
@@ -162,6 +162,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.Realtime)
             {
+                /*
                 try
                 {
                     // Nếu có lệnh đang chờ thì cancel các lệnh hiện có bắt đầu chuyển về dùng ATM
@@ -171,6 +172,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     LocalPrint("[OnStateChange] - State change to Realtime - ERROR: " + e.Message);
                 }
+                */
             }    
         }
 
@@ -339,6 +341,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
         #endregion
 
+        protected virtual void OnBarUpdate_StateHistorical(int barsPeriod)
+        { 
+            
+        }
+
         protected override void OnBarUpdate()
         {
             if (BarsInProgress == 0) // BarsInProgress == 0 dùng cho view hiện tại, ko làm gì
@@ -353,22 +360,35 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
-                if (lastBar_1m != CurrentBar)
+                if (State == State.Realtime)
                 {
-                    triggerLastBar_1m = false; 
-                    OnNewBarCreated(BarsPeriod.Value);
-                    lastBar_1m = CurrentBar;
-                }               
-                
+                    if (lastBar_1m != CurrentBar)
+                    {
+                        triggerLastBar_1m = false;
+                        OnNewBarCreated(BarsPeriod.Value);
+                        lastBar_1m = CurrentBar;
+                    }
+                }
+                else if (State == State.Historical)
+                {
+                    OnBarUpdate_StateHistorical(BarsPeriod.Value);
+                }
             }           
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) //5 minute
             {
-                if (lastBar_5m != CurrentBar)
+                if (State == State.Realtime)
                 {
-                    triggerLastBar_5m = false;
-                    OnNewBarCreated(BarsPeriod.Value);
-                    lastBar_5m = CurrentBar;
-                }                
+                    if (lastBar_5m != CurrentBar)
+                    {
+                        triggerLastBar_5m = false;
+                        OnNewBarCreated(BarsPeriod.Value);
+                        lastBar_5m = CurrentBar;
+                    }
+                }
+                else if (State == State.Historical)
+                {
+                    OnBarUpdate_StateHistorical(BarsPeriod.Value);
+                }
             }
         }
     }

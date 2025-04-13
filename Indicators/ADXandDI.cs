@@ -1,4 +1,4 @@
-#region Using declarations
+﻿#region Using declarations
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -52,9 +52,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                 AddPlot(Brushes.Green, "DI+");
                 AddPlot(Brushes.Red, "DI-");
-                
-                AddLine(new Stroke(Brushes.Green, DashStyleHelper.Dash, 1.5f), ThresholdLower, "Enter");
-                AddLine(new Stroke(Brushes.Red, DashStyleHelper.Dash, 1.5f), ThresholdUpper, "Cancel");
             }
             else if (State == State.DataLoaded)
             {
@@ -67,9 +64,14 @@ namespace NinjaTrader.NinjaScript.Indicators
                 dx = new Series<double>(this, MaximumBarsLookBack.Infinite);
                 adx = SMA(dx, Length);
             }
+            else if (State == State.Configure)
+            {
+                AddLine(new Stroke(Brushes.Green, DashStyleHelper.Dash, 1.5f), ThresholdLower, "Enter");
+                AddLine(new Stroke(Brushes.Red, DashStyleHelper.Dash, 1.5f), ThresholdUpper, "Cancel");
+            }
         }
 
-		protected override void OnBarUpdate()
+        protected override void OnBarUpdate()
 		{
             if (CurrentBar == 0)
                 return;

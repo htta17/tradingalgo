@@ -255,7 +255,7 @@ namespace NinjaTrader.Custom.Strategies
                     {
                         wAE_Strength = WAE_Strength.Strong;
                     }
-                    else 
+                    else
                     {
                         wAE_Strength = WAE_Strength.SuperStrong;
                     }
@@ -336,10 +336,26 @@ namespace NinjaTrader.Custom.Strategies
     #endregion
 
     public enum TimeFrameToTrade
-    { 
-        OneMinute, 
-        ThreeMinutes, 
+    {
+        OneMinute,
+        ThreeMinutes,
         FiveMinutes,
         FifteenMinutes
+    }
+
+    public class FishTrendKeyLevel 
+    {
+        public FishTrendKeyLevel(DateTime time, double upper, double lower)
+        { 
+            Time = time;
+            UpperValue = upper; 
+            LowerValue = lower;
+        }
+
+        public DateTime Time { get; private set; }
+
+        public double UpperValue { get; private set; }
+
+        public double LowerValue { get; private set; }
     }
 }

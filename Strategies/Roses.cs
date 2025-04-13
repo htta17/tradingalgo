@@ -27,7 +27,7 @@ using System.Reflection;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public abstract class Roses : PriceChangedATMBasedClass<TradeAction>
+	public class Roses : PriceChangedATMBasedClass<TradeAction>
 	{
 		public Roses() : base()
 		{ 
@@ -43,6 +43,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             FullSizeATMName = "Roses_Default_4cts";
             HalfSizefATMName = "Roses_Default_4cts";
             RiskyATMName = "Roses_Default_4cts";
+
+            AddPlot(Brushes.Orange, "EMA9");            
         }
 
         private EMA EMA29Indicator_1m { get; set; }
@@ -51,12 +53,15 @@ namespace NinjaTrader.NinjaScript.Strategies
         private EMA EMA51Indicator_5m { get; set; }
         private EMA EMA9Indicator_5m { get; set; }
 
-        private WaddahAttarExplosion WaddahAttarExplosion_5m { get; set; }
+        private ADXandDI ADXandDI { get; set; }
+
+        //private WaddahAttarExplosion WaddahAttarExplosion_5m { get; set; }
 
         protected override void AddIndicators()
         {
             EMA29Indicator_1m = EMA(BarsArray[2], 29);
             EMA29Indicator_1m.Plots[0].Brush = Brushes.Red;
+
             EMA21Indicator_1m = EMA(BarsArray[2], 21);
             EMA21Indicator_1m.Plots[0].Brush = Brushes.Blue;
 
@@ -64,10 +69,23 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA51Indicator_5m = EMA(BarsArray[1], 51);
             EMA9Indicator_5m = EMA(BarsArray[1], 10);
 
-            WaddahAttarExplosion_5m = WaddahAttarExplosion(BarsArray[1]);
+            ADXandDI = ADXandDI(14, 25, 20);
+
+            //WaddahAttarExplosion_5m = WaddahAttarExplosion(BarsArray[1]);
 
             AddChartIndicator(EMA29Indicator_1m);
             AddChartIndicator(EMA21Indicator_1m);
+
+            AddChartIndicator(ADXandDI);
+        }
+
+        protected override void OnBarUpdate_StateHistorical(int barsPeriod)
+        {
+            if (barsPeriod == 1)
+            {     
+                //Values[0][0] = EMA46Indicator_5m.Value[0];
+            }
+            
         }
 
         protected override void OnNewBarCreated(int barsPeriod)
@@ -85,18 +103,30 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
         protected override void OnRegularTick(int barsPeriod)
         {
-            var index = GetBarIndex(barsPeriod);            
+            var index = GetBarIndex(barsPeriod);
             if (barsPeriod == 5)
             {
                 var ema46 = EMA46Indicator_5m.Value[0];
                 var ema51 = EMA51Indicator_5m.Value[0];
                 var ema9 = EMA9Indicator_5m.Value[0];
 
-                DrawLine("ema46", ema46, Brushes.Green, Brushes.Green);
-                DrawLine("ema51", ema51, Brushes.Red, Brushes.Red, textPosition: 3);
-                DrawLine("ema9", ema9, Brushes.Orange, Brushes.Orange, textPosition: -6);
+                DrawLine("ema46", ema46, Brushes.Green, Brushes.Green, labelText: $"EMA46 (5): {ema46:N2}");
+                DrawLine("ema51", ema51, Brushes.Red, Brushes.Red, textPosition: 3, labelText: $"EMA51 (5): {ema51:N2}");
+                DrawLine("ema9", ema9, Brushes.Orange, Brushes.Orange, textPosition: -6, labelText: $"EMA9 (5): {ema9:N2}");                
             }
+            else if (barsPeriod == 1)
+            {
+                var ema9 = EMA9Indicator_5m.Value[0];
 
+                if (State == State.Realtime)
+                {
+                    Values[0][0] = ema9;
+                }
+
+                
+
+                LocalPrint($"EMA9: {Values[0][0]:N2}");
+            }
             
 
             

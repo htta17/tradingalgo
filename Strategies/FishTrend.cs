@@ -26,7 +26,7 @@ using NinjaTrader.Custom.Strategies;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class FishTrend : BarClosedATMBase<TradeAction>
+	public abstract class FishTrend : BarClosedATMBase<TradeAction>
 	{
         public FishTrend() : base("FISHTREND")
         { 
@@ -44,13 +44,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override bool IsSelling => throw new NotImplementedException();
 
         private double KeyLevel_15m_UP = -1;
-        private double KeyLevel_15m_DOWN = -1;
-
-        private double KeyLevel_5m_DOWN = -1;
-        private double KeyLevel_5m_UP = -1;
-
-        private double Previous_KeyLevel_5m_DOWN = -1;
-        private double Previous_KeyLevel_5m_UP = -1;
+        private double KeyLevel_15m_DOWN = -1;        
 
         private EMA EMA46Indicator_5m { get; set; }
         private EMA EMA51Indicator_5m { get; set; }       
@@ -60,6 +54,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double currentEMA46_5m = -1;
         protected double currentEMA51_5m = -1;
 
+        private Stack<FishTrendKeyLevel> KeyLevels5mins { get; set; }
 
         protected override void AddCustomDataSeries()
         {
@@ -141,8 +136,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 double pre_closePrice_15m = Close[1];
 
                 // EMA46Indicator_5m.Value[0], EMA46Indicator_5m.Value[1], EMA46Indicator_5m.Value[2] là 3 giá trị của EMA 46 khung 5 phút 
-                //      dùng để so với cây nến 15 phút hiện tại 
-
+                //      dùng để so với cây nến 15 phút hiện tại, 
+                // Sử dụng giá trị khung 15 phút, nên cần 3 cây nến khung 5 phút, do đó [EMA46Indicator_5m.Value] từ [0]-[2]
                 var emaValues_Current = new double[] 
                 {
                     //EMA46
@@ -187,33 +182,42 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Restart couter
                     TradeCounter = 0;
 
+                    LocalPrint($"Set 15-m keys, H:{highPrice_15m:N2}, L: {lowPrice_15m:N2}");
                     KeyLevel_15m_UP = highPrice_15m; 
                     KeyLevel_15m_DOWN = lowPrice_15m;
+
+                    // Find key levels khung 5 phút
+
                 }                
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
                 StrategiesUtilities.CalculatePnL(this, Account, Print);
 
-                double highPrice_15m = High[0];
-                double lowPrice_15m = Low[0];
-                double openPrice_15m = Open[0];
-                double closePrice_15m = Close[0];
+                double highPrice_5m = High[0];
+                double lowPrice_5m = Low[0];
+                double openPrice_5m = Open[0];
+                double closePrice_5m = Close[0];
 
-                if (highPrice_15m > EMA46Indicator_5m.Value[0] && highPrice_15m > EMA51Indicator_5m.Value[0] &&
-                    lowPrice_15m < EMA46Indicator_5m.Value[0] && lowPrice_15m < EMA51Indicator_5m.Value[0])
+                double pre_highPrice_5m = High[1];
+                double pre_lowPrice_5m = Low[1];
+                double pre_openPrice_5m = Open[1];
+                double pre_closePrice_5m = Close[1];
+
+                var maxEma_Current = GetMaxFromValues(EMA46Indicator_5m.Value[0], EMA51Indicator_5m.Value[0]);
+                var minEma_Current = GetMinFromValues(EMA46Indicator_5m.Value[0], EMA51Indicator_5m.Value[0]);
+
+                var maxEma_Previous = GetMaxFromValues(EMA46Indicator_5m.Value[1], EMA51Indicator_5m.Value[1]);
+                var minEma_Previous = GetMinFromValues(EMA46Indicator_5m.Value[1], EMA51Indicator_5m.Value[1]);
+
+                if (highPrice_5m > maxEma_Current && lowPrice_5m < minEma_Current &&
+                    ((pre_highPrice_5m < minEma_Previous && pre_lowPrice_5m < minEma_Previous) || (pre_highPrice_5m > maxEma_Previous && pre_lowPrice_5m > maxEma_Previous)))
                 {
-                    // Restart couter
-                    TradeCounter = 0;
-
-                    KeyLevel_5m_UP = highPrice_15m;
-                    KeyLevel_5m_DOWN = lowPrice_15m;
+                    LocalPrint($"Thêm key level H:{highPrice_5m:N2}, L: {lowPrice_5m:N2} lúc {Time[0]:HH:mm} vào hệ thống ");
+                    KeyLevels5mins.Push(new FishTrendKeyLevel(Time[0], highPrice_5m, lowPrice_5m));
                 }
-                
             }            
         }
-
-        
 
         protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy additionalInfo)
         {

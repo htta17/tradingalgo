@@ -24,12 +24,32 @@ namespace NinjaTrader.NinjaScript.Strategies
     /// 
     /// </summary>
     /// <typeparam name="T1">Should Trade answer</typeparam>
-    public abstract class PriceChangedATMBasedClass<T1> : Strategy
+    public abstract class PriceChangedATMBasedClass<T1, T2> : Strategy
     {
         private string LogPrefix { get; set; }        
         protected const string OrderEntryName = "Entry";
         protected const string OrderStopName = "Stop";
         protected const string OrderTargetName = "Target";
+
+        protected List<int> NewsTimes = new List<int>();
+
+        /// <summary>
+        /// If loss is more than [MaximumDayLoss], stop trading for that day
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Maximum Day Loss ($)",
+            Order = 5,
+            GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
+        public int MaximumDailyLoss { get; set; }
+
+        /// <summary>
+        /// If gain is more than [StopWhenGain], stop trading for that day 
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Stop Trading if daily Profit is ($)",
+            Order = 6,
+            GroupName = StrategiesUtilities.Configuration_DailyPnL_Name)]
+        public int DailyTargetProfit { get; set; } = 500;
 
         /// <summary>
         /// ATM name for live trade.
@@ -68,6 +88,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected TradingStatus tradingStatus { get; set; } = TradingStatus.Idle;
 
+        protected bool StartMovingStoploss { get; set; }
+
         protected TradingStatus TradingStatus
         {
             get
@@ -75,6 +97,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return tradingStatus;
             }
         }
+
+        protected T1 CurrentTradeAction { get; set; }
 
         public PriceChangedATMBasedClass() : this("BASE")
         { 
@@ -92,6 +116,59 @@ namespace NinjaTrader.NinjaScript.Strategies
             RiskyATMName = "Roses_Default_4cts";
         }
 
+        protected bool IsTradingHour()
+        {
+            var time = ToTime(Time[0]);
+
+            var newTime = NewsTimes.FirstOrDefault(c => StrategiesUtilities.NearNewsTime(time, c));
+
+            if (newTime != 0)
+            {
+                LocalPrint($"News at {newTime} --> Not trading hour");
+                return false;
+            }
+
+            return true;
+        }
+
+        protected abstract double GetSetPrice(T1 tradeAction, T2 additional);        
+        protected abstract double GetTargetPrice_Half(T1 tradeAction, double setPrice, T2 additional);
+        protected abstract double GetTargetPrice_Full(T1 tradeAction, double setPrice, T2 additional);
+        protected abstract double GetStopLossPrice(T1 tradeAction, double setPrice, T2 additional);
+
+        protected virtual bool CheckingTradeCondition(ValidateType validateType = ValidateType.MaxDayGainLoss | ValidateType.TradingHour)
+        {
+            // Không đủ số lượng Bar
+            if (CurrentBar < BarsRequiredToTrade)
+            {
+                return false;
+            }
+
+            // Không phải trading hour
+            if ((validateType & ValidateType.TradingHour) == ValidateType.TradingHour && !IsTradingHour())
+            {
+                if (TradingStatus == TradingStatus.Idle)
+                {
+                    return false;
+                }
+                else if (TradingStatus == TradingStatus.PendingFill)
+                {
+                    LocalPrint($"Gần giờ có news, cancel những lệnh chờ đang có");
+                    CancelAllPendingOrder();
+                    return false;
+                }              
+            }
+
+            // Đủ target loss/gain trong ngày
+            if ((validateType & ValidateType.MaxDayGainLoss) == ValidateType.MaxDayGainLoss &&
+                StrategiesUtilities.ReachMaxDayLossOrDayTarget(this, Account, MaximumDailyLoss, DailyTargetProfit))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         protected void DrawLine(string name, double value, Brush lineColor, Brush textColor, DashStyleHelper dashStyle = DashStyleHelper.Dot, int textPosition = -3, string labelText = "")
         {
             Draw.HorizontalLine(this, name, value, lineColor, dashStyle, 2);
@@ -106,6 +183,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Brushes.Transparent, 0);
         }
 
+        protected virtual void OnStateChange_Configure()
+        { 
+            
+        }
 
         /// <summary>
         /// Hiện tại, [OnStateChange] đã có code: <br/>
@@ -141,7 +222,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 ClearOutputWindow();
                 AddDataSeries(BarsPeriodType.Minute, 5);                
-                AddDataSeries(BarsPeriodType.Minute, 1);
+                AddDataSeries(BarsPeriodType.Minute, 1);                
 
                 try
                 {
@@ -188,26 +269,34 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private bool RunningTooFast(int barsPeriod)
         {
-            bool isTooFast = false; 
+            bool isTooFast = false;            
+            
             if (barsPeriod == 1)
             {
-                isTooFast = DateTime.Now.Subtract(lastExecutionTime_1m).TotalSeconds < 1;
-
-                if (!isTooFast)
+                if (State == State.Historical)
                 {
-                    lastExecutionTime_1m = DateTime.Now;
+                    OnBarUpdate_StateHistorical(barsPeriod);
+                }
+                else if (State == State.Realtime)
+                {
+                    isTooFast = DateTime.Now.Subtract(lastExecutionTime_1m).TotalSeconds < 1;
 
-                    if (Time[0].Subtract(DateTime.Now).TotalSeconds < 1 && !triggerLastBar_1m)
+                    if (!isTooFast)
                     {
-                        triggerLastBar_1m = true;
+                        lastExecutionTime_1m = DateTime.Now;
 
-                        OnCurrentBarClosed(barsPeriod);
+                        if (Time[0].Subtract(DateTime.Now).TotalSeconds < 1 && !triggerLastBar_1m)
+                        {
+                            triggerLastBar_1m = true;
+
+                            OnCurrentBarClosed(barsPeriod);
+                        }
+                        else
+                        {
+                            OnRegularTick(barsPeriod);
+                        }
                     }
-                    else 
-                    {
-                        OnRegularTick(barsPeriod);
-                    }
-                }                 
+                }                                
             }           
             else if (barsPeriod == 5)
             {
@@ -234,7 +323,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         /// <summary>
-        /// Do with regular tick
+        /// Do with regular tick, happens in realtime only
         /// </summary>
         /// <param name="barsPeriod"></param>
         protected virtual void OnRegularTick(int barsPeriod)
@@ -267,11 +356,24 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected abstract T1 ShouldTrade();
 
-        protected abstract void EnterOrderHistorical(T1 action);
+        protected virtual void EnterOrderHistorical(T1 action)
+        {
 
-        protected abstract void EnterOrderRealtime(T1 action); 
+        }
 
-        private void EnterOrder(T1 action)
+        protected virtual (AtmStrategy, string) GetAtmStrategyByPnL(T1 tradeAction)
+        {
+            var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
+
+            var reachHalf =
+                (todaysPnL <= (-MaximumDailyLoss / 2)) || (todaysPnL >= (DailyTargetProfit / 2));
+
+            return reachHalf ? (HalfSizeAtmStrategy, HalfSizefATMName) : (FullSizeAtmStrategy, FullSizeATMName);
+        }
+
+        protected abstract void EnterOrderRealtime(T1 action);
+
+        protected void EnterOrder(T1 action)
         {
             if (State == State.Historical)
             {
@@ -317,6 +419,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected virtual void CloseExistingOrders()
         {
 
+        }
+
+        protected virtual void CancelAllPendingOrder()
+        {
         }
 
         protected TradingStatus CheckCurrentStatusBasedOnOrders()

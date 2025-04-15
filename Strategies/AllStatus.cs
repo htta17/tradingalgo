@@ -343,12 +343,12 @@ namespace NinjaTrader.Custom.Strategies
         FifteenMinutes
     }
 
-    public class FishTrendKeyLevel 
+    public class FishTrendKeyLevel
     {
         public FishTrendKeyLevel(DateTime time, double upper, double lower)
-        { 
+        {
             Time = time;
-            UpperValue = upper; 
+            UpperValue = upper;
             LowerValue = lower;
         }
 
@@ -357,5 +357,71 @@ namespace NinjaTrader.Custom.Strategies
         public double UpperValue { get; private set; }
 
         public double LowerValue { get; private set; }
+    }
+
+    public enum EMA2129Position
+    {
+        Unknown,
+        Above,
+        Below,
+        Crossing
+
+    }
+    public class EMA2129Status
+    {
+        public EMA2129Status()
+        {
+            CountTouch = 0;
+            Position = EMA2129Position.Unknown;
+        }
+        public EMA2129Position Position { get; private set; }
+
+        public void SetPosition(EMA2129Position position) { Position = position; }
+
+        private int CountTouch { get; set; }
+
+        public void ResetCount()
+        {
+            CountTouch = 0;
+        }
+
+        public void Touch()
+        {
+            CountTouch++;
+        }
+
+        public int GetTouchCount()
+        {
+            return CountTouch;
+        }
+    }
+
+    public enum EMA2129SizingEnum
+    { 
+        Small, 
+        Medium,
+        Big
+    }
+
+    public enum EMA2129OrderPostition
+    {
+        NoTrade = 0,
+        EMA21,
+        EMA29,
+        EMA9       
+    }
+
+    public class EMA2129OrderDetail
+    {
+        public EMA2129OrderDetail()
+        { 
+            Postition = EMA2129OrderPostition.NoTrade;
+        }
+
+        public GeneralTradeAction Action { get; set; }  
+
+        public EMA2129SizingEnum Sizing { get; set; }
+
+        public EMA2129OrderPostition Postition { get; set; }
     }
 }

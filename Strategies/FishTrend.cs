@@ -66,7 +66,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void AddCustomIndicators()
         {
             EMA46Indicator_5m = EMA(46);
-            EMA46Indicator_5m.Plots[0].Brush = Brushes.DarkOrange;
+            EMA46Indicator_5m.Plots[0].Brush = Brushes.Green;
 
             EMA51Indicator_5m = EMA(51);
             EMA51Indicator_5m.Plots[0].Brush = Brushes.DeepSkyBlue;

@@ -16,6 +16,7 @@ using System.ComponentModel;
 using System.Linq;
 using NinjaTrader.Gui;
 using System.Windows;
+using System.IO;
 #endregion
 
 namespace NinjaTrader.NinjaScript.Strategies
@@ -100,8 +101,65 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected T1 CurrentTradeAction { get; set; }
 
+        protected string AtmStrategyId = string.Empty;
+
+        protected string OrderId = string.Empty;
+
+        protected abstract bool IsBuying { get; }
+
+        protected abstract bool IsSelling { get; }
+
+        protected double FilledPrice = -1;
+        protected double StopLossPrice = -1;
+        protected double TargetPrice_Full = -1;
+        protected double TargetPrice_Half = -1;
+
+        protected double PointToMoveTarget { get; set; }
+
+        protected double PointToMoveLoss { get; set; }
+
         public PriceChangedATMBasedClass() : this("BASE")
         { 
+        }
+
+        protected virtual Order GetPendingOrder()
+        {
+            var order = Account.Orders.FirstOrDefault(c => c.Name.Contains(OrderEntryName) && (c.OrderState == OrderState.Working || c.OrderState == OrderState.Accepted));
+
+            return order;
+        }
+
+        protected virtual bool ShouldCancelPendingOrdersByTimeCondition(DateTime filledOrderTime)
+        {
+            if ((Time[0] - filledOrderTime).TotalMinutes > 60)
+            {
+                //Account.CancelAllOrders(Instrument);
+                CancelAllPendingOrder();
+                LocalPrint($"Cancel lệnh do đợi quá lâu, Time[0]: {Time[0]}, filledTime: {filledOrderTime}");
+                return true;
+            }
+
+            // Cancel lệnh hết giờ trade
+            if (ToTime(Time[0]) >= 150000 && ToTime(filledOrderTime) < 150000)
+            {
+                //Account.CancelAllOrders(Instrument);
+                CancelAllPendingOrder();
+                LocalPrint($"Cancel lệnh hết giờ trade");
+                return true;
+            }
+
+            return false;
+        }
+
+        protected virtual void UpdatePendingOrder()
+        {
+            if (TradingStatus != TradingStatus.PendingFill)
+            {
+                return;
+            }
+
+            
+            
         }
 
         public PriceChangedATMBasedClass(string logPrefix)
@@ -114,6 +172,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             FullSizeATMName = "Roses_Default_4cts";
             HalfSizefATMName = "Roses_Default_4cts";
             RiskyATMName = "Roses_Default_4cts";
+
+            PointToMoveTarget = 3;
+            PointToMoveLoss = 10;
         }
 
         protected bool IsTradingHour()
@@ -135,6 +196,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected abstract double GetTargetPrice_Half(T1 tradeAction, double setPrice, T2 additional);
         protected abstract double GetTargetPrice_Full(T1 tradeAction, double setPrice, T2 additional);
         protected abstract double GetStopLossPrice(T1 tradeAction, double setPrice, T2 additional);
+
+        protected string FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyATMBase.txt");
 
         protected virtual bool CheckingTradeCondition(ValidateType validateType = ValidateType.MaxDayGainLoss | ValidateType.TradingHour)
         {
@@ -182,6 +245,165 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Brushes.Transparent,
                 Brushes.Transparent, 0);
         }
+
+        /// <summary>
+        /// Move target order
+        /// </summary>
+        /// <param name="targetOrder"></param>
+        /// <param name="updatedPrice"></param>
+        /// <param name="filledPrice"></param>
+        /// <param name="isBuying"></param>
+        /// <param name="isSelling"></param>        
+        protected virtual void MoveTargetOrder(Order targetOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)
+        {
+            var targetOrderPrice = targetOrder.LimitPrice;
+
+            // Dịch stop gain nếu giá quá gần target            
+            if (isBuying && updatedPrice + PointToMoveTarget > targetOrderPrice)
+            {
+                LocalPrint($"[MoveTargetOrder] - Moving target BUY --> True ({updatedPrice:N2} + {PointToMoveTarget} > {targetOrderPrice:N2})");
+
+                MoveTargetOrStopOrder(targetOrderPrice + PointToMoveTarget, targetOrder, true, "BUY", targetOrder.FromEntrySignal);
+
+                StartMovingStoploss = true;
+            }
+            else if (isSelling && updatedPrice - PointToMoveTarget < targetOrderPrice)
+            {
+                LocalPrint($"[MoveTargetOrder] - Moving target SELL --> True ({updatedPrice:N2} - {PointToMoveTarget} < {targetOrderPrice:N2})");
+
+                MoveTargetOrStopOrder(targetOrderPrice - PointToMoveTarget, targetOrder, true, "SELL", targetOrder.FromEntrySignal);
+
+                StartMovingStoploss = true;
+            }
+        }
+
+        protected virtual void MoveStopOrder(Order stopOrder, double updatedPrice, double filledPrice, bool isBuying, bool isSelling)
+        {
+            double newPrice = -1;
+            var allowMoving = false;
+            var stopOrderPrice = stopOrder.StopPrice;
+
+            if (isBuying)
+            {
+                // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
+                if (StartMovingStoploss && stopOrderPrice > filledPrice && stopOrderPrice + PointToMoveLoss < updatedPrice)
+                {
+                    newPrice = updatedPrice - PointToMoveLoss;
+                    allowMoving = true;
+                }
+                else if (updatedPrice - filledPrice >= 60 && stopOrderPrice - filledPrice < 40)
+                {
+                    newPrice = filledPrice + 40;
+                    allowMoving = true;
+                }
+                else if (updatedPrice - filledPrice >= 30 && stopOrderPrice - filledPrice < 10)
+                {
+                    newPrice = filledPrice + 10;
+                    allowMoving = true;
+                }
+                else
+                {
+                    #region Code cũ - Có thể sử dụng lại sau này
+                    /*
+                     * Old code cho trường hợp stop loss đã về ngang với giá vào lệnh (break even). 
+                     * - Có 2x contracts, cắt x contract còn x contracts
+                     * - Khi giá lên [Target_Half + 7] thì đưa stop loss lên Target_Half
+                     */
+
+                    /*
+                    allowMoving = allowMoving || (filledPrice <= stopOrderPrice && stopOrderPrice < TargetPrice_Half && TargetPrice_Half + 7 < updatedPrice);
+
+                    LocalPrint($"Điều kiện để chuyển stop lên target 1 - filledPrice: {filledPrice:N2} <= stopOrderPrice: {stopOrderPrice:N2} <= TargetPrice_Half {TargetPrice_Half:N2} --> Allow move: {allowMoving}");
+
+                    // Giá lên 37 điểm thì di chuyển stop loss lên 30 điểm
+                    if (allowMoving)
+                    {
+                        newPrice = TargetPrice_Half;                        
+                    }
+                    */
+                    #endregion
+                }
+            }
+            else if (isSelling)
+            {
+                // Dịch chuyển stop loss nếu giá quá xa stop loss, với điều kiện startMovingStoploss = true 
+                if (StartMovingStoploss && stopOrderPrice < filledPrice && stopOrderPrice - PointToMoveLoss > updatedPrice)
+                {
+                    newPrice = updatedPrice + PointToMoveLoss;
+                    allowMoving = true;
+                }
+                else if (filledPrice - updatedPrice >= 60 && filledPrice - stopOrderPrice < 40)
+                {
+                    newPrice = filledPrice - 40;
+                    allowMoving = true;
+                }
+                else if (filledPrice - updatedPrice >= 30 && filledPrice - stopOrderPrice < 10)
+                {
+                    newPrice = filledPrice - 10;
+                    allowMoving = true;
+                }
+                else
+                {
+                    #region Code cũ - Có thể sử dụng lại sau này
+                    /*
+                     * Old code cho trường hợp stop loss đã về ngang với giá vào lệnh (break even). 
+                     * - Có 2x contracts, cắt x contract còn x contracts
+                     * - Khi giá lên [Target_Half + 7] thì đưa stop loss lên Target_Half
+                     */
+
+                    /*
+                    allowMoving = allowMoving || (filledPrice >= stopOrderPrice && stopOrderPrice > TargetPrice_Half && TargetPrice_Half - 7 > updatedPrice);
+
+                    LocalPrint($"Điều kiện để chuyển stop lên target 1  - filledPrice: {filledPrice:N2} >= stopOrderPrice: {stopOrderPrice:N2} > TargetPrice_Half {TargetPrice_Half:N2} --> Allow move: {allowMoving}");
+
+                    if (allowMoving)
+                    {
+                        newPrice = TargetPrice_Half;
+                    }
+                    */
+                    #endregion                    
+                }
+            }
+
+            if (allowMoving)
+            {
+                LocalPrint($"Trying to move stop order to [{newPrice:N2}]. Filled Price: [{filledPrice:N2}], current Stop: {stopOrderPrice}, updatedPrice: [{updatedPrice}]");
+
+                MoveTargetOrStopOrder(newPrice, stopOrder, false, IsBuying ? "BUY" : "SELL", stopOrder.FromEntrySignal);
+            }
+        }
+
+
+        protected virtual void MoveTargetOrStopOrder(double newPrice, Cbi.Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
+        {
+            try
+            {
+                var text = isGainStop ? "TARGET" : "LOSS";
+                LocalPrint($"Dịch chuyển order [{order.Name}], id: {order.Id} ({text}), " +
+                    $"{order.Quantity} contract(s) từ [{(isGainStop ? order.LimitPrice : order.StopPrice)}] " +
+                    $"đến [{newPrice}] - {buyOrSell}");
+
+                AtmStrategyChangeStopTarget(
+                        isGainStop ? newPrice : 0,
+                        isGainStop ? 0 : newPrice,
+                        order.Name,
+                        AtmStrategyId);
+
+                if (isGainStop)
+                {
+                    TargetPrice_Full = newPrice;
+                }
+                else
+                {
+                    StopLossPrice = newPrice;
+                }
+            }
+            catch (Exception ex)
+            {
+                LocalPrint($"[MoveTargetOrStopOrder] - ERROR: {ex.Message}");
+            }
+        }
+
 
         protected virtual void OnStateChange_Configure()
         { 
@@ -255,6 +477,58 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 */
             }    
+        }
+
+        protected void SaveAtmStrategyIdToFile(string strategyId, string orderId)
+        {
+            try
+            {
+                File.WriteAllText(FileName, $"{strategyId},{orderId}");
+
+                LocalPrint($"Saved strategyId [{strategyId}] and orderId [{orderId}] to file");
+            }
+            catch (Exception e)
+            {
+                LocalPrint(e.Message);
+            }
+        }
+
+
+        protected virtual void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling)
+        {
+            // Vào lệnh theo ATM 
+            AtmStrategyId = GetAtmStrategyUniqueId();
+            OrderId = GetAtmStrategyUniqueId();
+
+            // Save to file, in case we need to pull [atmStrategyId] again
+            SaveAtmStrategyIdToFile(AtmStrategyId, OrderId);
+
+            var action = isBuying ? OrderAction.Buy : OrderAction.Sell;
+
+            FilledPrice = priceToSet;
+
+            // Enter a BUY/SELL order current price
+            AtmStrategyCreate(
+                action,
+                OrderType.Limit,
+                priceToSet,
+                0,
+                TimeInForce.Day,
+                OrderId,
+                atmStragtegyName,
+                AtmStrategyId,
+                (atmCallbackErrorCode, atmCallBackId) =>
+                {
+                    if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == AtmStrategyId)
+                    {
+                        // Set trading status to Pending Fill
+                        tradingStatus = TradingStatus.PendingFill;
+                    }
+                    else if (atmCallbackErrorCode != ErrorCode.NoError)
+                    {
+                        LocalPrint($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
+                    }
+                });
         }
 
         #region Helpers - Make sure not too many times OnBarUpdate is counted
@@ -361,6 +635,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         }
 
+        public double Min(params double[] inputs)
+        {
+            return inputs.Min(x => x);
+        }
+
+        public double Max(params double[] inputs)
+        {
+            return inputs.Max(x => x);
+        }
+
         protected virtual (AtmStrategy, string) GetAtmStrategyByPnL(T1 tradeAction)
         {
             var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
@@ -380,8 +664,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Enter với stop loss và stop gain 
                 EnterOrderHistorical(action);
             }
-            else 
-            {
+            else if (State == State.Realtime)
+            {                
                 EnterOrderRealtime(action);
             }
         }

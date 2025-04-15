@@ -43,9 +43,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         #region 1 minute values
         protected double ema21_1m = -1;
-        protected double ema29_1m = -1;
-        protected double ema51_1m = -1;
-        protected double ema120_1m = -1;
+        protected double ema29_1m = -1;       
         protected double currentPrice = -1;
         #endregion
 
@@ -80,24 +78,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         // RSI
         protected double rsi_5m = -1;
+        #endregion
 
-#if USE_WAE
-        // WAE Values 
-        protected double waeDeadVal_5m = -1;
-        protected double waeExplosion_5m = -1;
-        protected double waeUptrend_5m = -1;
-        protected double waeDowntrend_5m = -1;
-#endif
 
         // Fish trend value 
         protected double middleEma4651_5m = -1;
         protected double ema46_5m = -1;
         protected double ema51_5m = -1;
         protected double ema10_5m = -1;
-
-#if USE_WAE
-        protected Series<WAE_ValueSet> waeValuesSeries_5m;        
-#endif
 
         #region Indicators
         private Bollinger Bollinger1Indicator_5m { get; set; }
@@ -106,19 +94,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         
         private RSI RSIIndicator_5m { get; set; }
 
-        protected WAE_ValueSet wAE_ValueSet_15m { get; set; }
-
-        //private MACD MACD_5m { get; set; }
-
         private EMA EMA46_5m { get; set; }
         private EMA EMA51_5m { get; set; }
-
         private EMA EMA10_5m {  get; set; }
 
         protected DateTime TouchEMA4651Time { get; set; } = DateTime.MinValue;
 
         #endregion
-#endregion
+
 
 
         /// <summary>
@@ -162,19 +145,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected virtual bool ShouldCancelPendingOrdersByTrendCondition()
         {
-            return
-
-#if USE_WAE
-                // Trend suy yếu, 
-                waeValuesSeries_5m[0].IsInDeadZone ||
-                // Hiện tại có xu hướng bearish nhưng lệnh chờ là BUY
-                (IsBuying && waeValuesSeries_5m[0].HasBEARVolume) ||
-                // Hiện tại có xu hướng bullish nhưng lệnh chờ là SELL
-                (IsSelling && waeValuesSeries_5m[0].HasBULLVolume);
-#else
-        false;
-
-#endif
+            return false;
         }
 
         protected override void UpdatePendingOrder()
@@ -197,15 +168,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 return;
             }
-
-            /*
-            if (ShouldCancelPendingOrdersByTrendCondition())
-            {
-                CancelAllPendingOrder();
-                LocalPrint($"Cancel lệnh do xu hướng hiện tại ngược với lệnh chờ");
-                return;
-            }
-            */
 
             var checkShouldTradeAgain = ShouldTrade();
 
@@ -245,64 +207,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                     UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
                     #endregion
                 }
-            }
-            //else
-            //{
-            //    LocalPrint($"[ShouldTrade], current: {CurrentTradeAction}, new: {checkShouldTradeAgain}, right now DO NOTHING.");
-            //}
-        }        
-
-        /// <summary>
-        /// Tìm các giá trị của Waddah Attar Explosion ở khung 5 phút
-        /// </summary>
-        /// <returns></returns>
-        private WAE_ValueSet FindWaddahAttarExplosion()
-        {
-            return new WAE_ValueSet
-            {
-                DeadZoneVal = WAEIndicator_5m.Values[3][0],
-                DownTrendVal = WAEIndicator_5m.Values[1][0],
-                ExplosionVal = WAEIndicator_5m.Values[2][0],
-                UpTrendVal = WAEIndicator_5m.Values[0][0]
-            };
+            }          
         }       
-
         protected override TradeAction ShouldTrade()
         {
-            var time = ToTime(Time[0]);
-
-            if (Time[0].TimeOfDay < StartDayTradeTime || Time[0].TimeOfDay > EndDayTradeTime)
-            {
-                LocalPrint($"Thời gian trade được thiết lập từ {StartDayTradeTime} to {EndDayTradeTime} --> No Trade.");
-                return TradeAction.NoTrade;
-            }
-
-            var totalMinutes = Time[0].Subtract(TouchEMA4651Time).TotalMinutes;
-            var distanceToEMA = Math.Abs(middleEma4651_5m - currentPrice);
-            var tradeReversal = totalMinutes > 60 && distanceToEMA < 20;
-
-            var logText = @$"
-                    Last touch EMA46/51: {TouchEMA4651Time:HH:mm}, 
-                    Total minutes until now:  {totalMinutes}, 
-                    Distance to middle of EMA46/51: {distanceToEMA:N2}.
-                    --> Trade REVERSAL (totalMinutes > 60 && distanceToEMA < 20): {tradeReversal}";
-
-            LocalPrint(logText);
-
-            if (tradeReversal) // Nếu đã chạm EMA46/51 lâu rồi 
-            {
-                if (closePrice_5m > middleEma4651_5m && openPrice_5m > middleEma4651_5m)
-                {
-                    LocalPrint($"Đủ điều kiện cho BUY REVERSAL: {logText}");
-                    return TradeAction.Buy_Reversal;
-                }
-                else if (closePrice_5m < middleEma4651_5m && openPrice_5m < middleEma4651_5m)
-                {
-                    LocalPrint($"Đủ điều kiện cho SELL REVERSAL: {logText}");
-                    return TradeAction.Sell_Reversal;
-                }
-            }
-
             return TradeAction.NoTrade;
         }
         
@@ -354,13 +262,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // Cập nhật EMA29 và EMA51	
                 ema21_1m = EMA(21).Value[0];
-                ema29_1m = EMA(29).Value[0];
-                ema51_1m = EMA(51).Value[0];
-                ema120_1m = EMA(120).Value[0];
+                ema29_1m = EMA(29).Value[0];                
 
-                currentPrice = Close[0];
-
-                DrawKeyLevels("MiddleEMA", (ema51_1m + ema29_1m) / 2, Brushes.Gold, Brushes.Green);
+                currentPrice = Close[0];               
 
                 BasicActionForTrading(TimeFrameToTrade.OneMinute); 
             }

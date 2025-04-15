@@ -49,14 +49,20 @@ namespace NinjaTrader.NinjaScript.Strategies
             AddPlot(Brushes.Black, "EMA51_5m");
 
             EMA2129Status = new EMA2129Status();
-            MaxiumOrderBeforeReset = 3; 
+            MaxiumOrderBeforeReset = 3;
+
+            ADXValueToCancelOrder = 20;
+            ADXValueToEnterOrder = 25;
+
+            MaximumDailyLoss = 400;
+            DailyTargetProfit = 500;
         }
 
         private EMA EMA29Indicator_1m { get; set; }
         private EMA EMA21Indicator_1m { get; set; }
         private EMA EMA46Indicator_5m { get; set; }
         private EMA EMA51Indicator_5m { get; set; }
-        private EMA EMA9Indicator_5m { get; set; }
+        private EMA EMA10Indicator_5m { get; set; }
 
         private ADXandDI ADXandDI { get; set; }
 
@@ -80,6 +86,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             Order = 3, GroupName = StrategiesUtilities.Configuration_General_Name)]
         public int ADXValueToCancelOrder { get; set; }
 
+        protected override bool IsBuying => CurrentTradeAction.Action == GeneralTradeAction.Buy;
+
+        protected override bool IsSelling => CurrentTradeAction.Action == GeneralTradeAction.Sell;
+
         protected override void AddIndicators()
         {
             EMA29Indicator_1m = EMA(BarsArray[2], 29);
@@ -90,7 +100,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             EMA46Indicator_5m = EMA(BarsArray[1], 46);
             EMA51Indicator_5m = EMA(BarsArray[1], 51);
-            EMA9Indicator_5m = EMA(BarsArray[1], 10);
+            EMA10Indicator_5m = EMA(BarsArray[1], 10);
 
             ADXandDI = ADXandDI(14, 25, 20);            
 
@@ -101,19 +111,18 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         protected override void OnBarUpdate_StateHistorical(int barsPeriod)
-        {            
+        {
             if (barsPeriod == 1)
             {
                 try
                 {
                     // Print(EMA9Indicator_5m.Value[0]);
-                    Values[0][0] = EMA9Indicator_5m.Value[0];
+                    Values[0][0] = EMA10Indicator_5m.Value[0];
                     Values[1][0] = EMA46Indicator_5m.Value[0];
                     Values[2][0] = EMA51Indicator_5m.Value[0];
                 }
                 catch (Exception ex) 
-                {
-                    LocalPrint($"[OnBarUpdate_StateHistorical] - ERROR: {ex.Message}");
+                {                    
                 }               
             }            
         }
@@ -124,6 +133,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             LocalPrint($"1st tick of the bar {barsPeriod}-mins {DateTime.Now} - Hi: {Highs[index][0]:N2}, Lo: {Lows[index][0]:N2}, Open: {Opens[index][0]:N2}, Close: {Closes[index][0]:N2}");
         }
+
+
 
         protected override void OnCurrentBarClosed(int barsPeriod)
         {
@@ -138,6 +149,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (barsPeriod == 1)
             {
+                LocalPrint("[OnCurrentBarClosed] - 1m");
                 var index = GetBarIndex(barsPeriod);
 
                 var high = Highs[index][0];
@@ -147,8 +159,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 var ema21Val = EMA21Indicator_1m.Value[0];
                 var ema29Val = EMA29Indicator_1m.Value[0];
+                var ema10Val = EMA10Indicator_5m.Value[0];
+
                 
-                if (high < Math.Min(ema21Val, ema29Val))
+                var minValue = Min(ema21Val, ema29Val, ema10Val);
+                var maxValue = Min(ema21Val, ema29Val, ema10Val);
+
+
+                if (high < minValue)
                 {
                     if (EMA2129Status.Position == EMA2129Position.Unknown || EMA2129Status.Position == EMA2129Position.Above)
                     {
@@ -157,7 +175,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         EMA2129Status.ResetCount();
                     }
                 }
-                else if (low >  Math.Max(ema21Val,ema29Val))
+                else if (low > maxValue)
                 {
                     if (EMA2129Status.Position == EMA2129Position.Unknown || EMA2129Status.Position == EMA2129Position.Below)
                     {
@@ -175,42 +193,96 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         EnterOrder(shouldTrade);
                     }
-                }
-
-                
+                }                
             }            
         }
         protected override void OnRegularTick(int barsPeriod)
         {
             var index = GetBarIndex(barsPeriod);
+
             if (barsPeriod == 5)
             {
-                /*
-                var ema46 = EMA46Indicator_5m.Value[0];
-                var ema51 = EMA51Indicator_5m.Value[0];
-                var ema9 = EMA9Indicator_5m.Value[0];
-
-                DrawLine("ema46", ema46, Brushes.Black, Brushes.Black, labelText: $"EMA46 (5): {ema46:N2}");
-                DrawLine("ema51", ema51, Brushes.Red, Brushes.Red, textPosition: 3, labelText: $"EMA51 (5): {ema51:N2}");
-                DrawLine("ema9", ema9, Brushes.Green, Brushes.Green, textPosition: -6, labelText: $"EMA9 (5): {ema9:N2}");                
-                */
             }
             else if (barsPeriod == 1)
             {
-                var ema9 = EMA9Indicator_5m.Value[0];
+                var ema9 = EMA10Indicator_5m.Value[0];
                 var ema46 = EMA46Indicator_5m.Value[0];
                 var ema51 = EMA51Indicator_5m.Value[0];
-
                 
                 Values[0][0] = ema9;
                 Values[1][0] = ema46;
                 Values[2][0] = ema51;                   
             }
+            var updatedPrice = Close[0];            
+
+            if (TradingStatus == TradingStatus.OrderExists)
+            {
+                var buyPriceIsOutOfRange = IsBuying && (updatedPrice < StopLossPrice || updatedPrice > TargetPrice_Full);
+                var sellPriceIsOutOfRange = IsSelling && (updatedPrice > StopLossPrice || updatedPrice < TargetPrice_Full);
+
+                // Khi giá đã ở ngoài range (stoploss, target)
+                if (buyPriceIsOutOfRange || sellPriceIsOutOfRange)
+                {
+                    tradingStatus = CheckCurrentStatusBasedOnOrders();
+
+                    LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}. TargetPrice: {TargetPrice_Full:N2}, " +
+                        $"updatedPrice:{updatedPrice:N2}, StopLossPrice: {StopLossPrice:N2}, " +
+                        $"buyPriceIsOutOfRange: {buyPriceIsOutOfRange}, :sellPriceIsOutOfRange: {sellPriceIsOutOfRange}. ");
+                }
+                else
+                {
+                    var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && order.Name.Contains(OrderStopName)).ToList();
+                    var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains(OrderTargetName)).ToList();
+
+                    var countStopOrder = stopOrders.Count;
+                    var countTargetOrder = targetOrders.Count;
+
+                    if (countStopOrder == 0 || countTargetOrder == 0)
+                    {
+                        tradingStatus = TradingStatus.Idle;
+                        return;
+                    }
+                    else if (countStopOrder == 1 && countTargetOrder == 1)
+                    {
+                        var targetOrder = targetOrders.LastOrDefault();
+                        var stopLossOrder = stopOrders.LastOrDefault();
+
+                        if (targetOrder != null)
+                        {
+                            TargetPrice_Full = targetOrder.LimitPrice;
+                            MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
+                        }
+
+                        if (stopLossOrder != null)
+                        {
+                            StopLossPrice = stopLossOrder.StopPrice;
+                            MoveStopOrder(stopLossOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
+                        }
+                    }
+                }
+            }
+            else if (TradingStatus == TradingStatus.PendingFill)
+            {
+                if ((IsBuying && updatedPrice < FilledPrice) || (IsSelling && updatedPrice > FilledPrice))
+                {
+                    tradingStatus = CheckCurrentStatusBasedOnOrders();
+
+                    LocalPrint($"Last TradingStatus: PendingFill, new TradingStatus: {TradingStatus}");
+                }
+                else 
+                { 
+                
+                }
+            }           
         }
 
         protected override EMA2129OrderDetail ShouldTrade()
         {
-            var notradeDetail = new EMA2129OrderDetail
+            /*
+             * Cách trade: 
+             *  1. ADX lớn (
+             */
+            var answer = new EMA2129OrderDetail
             {
                 Action = GeneralTradeAction.NoTrade,
                 Postition = EMA2129OrderPostition.NoTrade,
@@ -218,45 +290,36 @@ namespace NinjaTrader.NinjaScript.Strategies
             };
             if (ADXandDI.Value[0] < ADXValueToCancelOrder)
             {
-                return notradeDetail;
+                return answer;
             }
             else // ADXandDI.Value[0] >= ADXValueToCancelOrder
             {
-                if (EMA2129Status.Position == EMA2129Position.Below)
+                if (EMA2129Status.Position == EMA2129Position.Above)
                 {
-                    var action = GeneralTradeAction.Sell;
-                    var position = EMA2129OrderPostition.EMA21;
-                    var sizing = EMA2129SizingEnum.Medium;
-
-                    return new EMA2129OrderDetail
+                    answer.Action = GeneralTradeAction.Buy;
+                    if (ADXandDI.Value[0] > ADXValueToEnterOrder && EMA2129Status.GetTouchCount() == 0)
                     {
-                        Action = action, 
-                        Postition = position,
-                        Sizing = sizing
-                    };
+                        answer.Postition = EMA2129OrderPostition.EMA21;
+                    }
+
+                    return answer;
                 }
-                else if (EMA2129Status.Position == EMA2129Position.Above)
+                else if (EMA2129Status.Position == EMA2129Position.Below)
                 {
-                    var action = GeneralTradeAction.Buy;
-                    var position = EMA2129OrderPostition.EMA21;
-                    var sizing = EMA2129SizingEnum.Medium;
-
-                    return new EMA2129OrderDetail
+                    answer.Action = GeneralTradeAction.Sell;
+                    if (ADXandDI.Value[0] > ADXValueToEnterOrder && EMA2129Status.GetTouchCount() == 0)
                     {
-                        Action = action,
-                        Postition = position,
-                        Sizing = sizing
-                    };
+                        answer.Postition = EMA2129OrderPostition.EMA21;
+                        answer.Sizing = EMA2129SizingEnum.Big;
+                    }    
+                   
+
+                    return answer;
                 }
+                
             }
 
-            return notradeDetail;
-
-        }
-
-        protected override void EnterOrderHistorical(EMA2129OrderDetail detail)
-        {
-            
+            return answer;
         }
 
         protected override void TransitionOrdersToLive()
@@ -264,16 +327,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             throw new NotImplementedException();
         }
 
-        protected double FilledPrice = -1;
-        protected double StopLossPrice = -1;
-        protected double TargetPrice_Full = -1;
-        protected double TargetPrice_Half = -1;
-
-
         protected override void EnterOrderRealtime(EMA2129OrderDetail detail)
         {
+            LocalPrint("EnterOrderRealtime");
             // Set global values
-            CurrentTradeAction = detail;            
+            CurrentTradeAction = detail;
 
             // Chưa cho move stop loss
             StartMovingStoploss = false;
@@ -299,13 +357,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             TargetPrice_Full = targetFull;
 
-            //CurrentChosenStrategy = atmStrategyName;
-
             LocalPrint($@"Enter {action}. Price to set: {priceToSet:N2}, StopLossPrice: {StopLossPrice:N2}, Target 1: {TargetPrice_Half:N2}, Target Full: {TargetPrice_Full:N2}");
 
             try
             {
-                //EnterOrderPure(priceToSet, 0, 0, atmStrategyName, 0, IsBuying, IsSelling);
+                EnterOrderPure(priceToSet, 0, 0, atmStrategyName, 0, IsBuying, IsSelling);
             }
             catch (Exception ex)
             {
@@ -315,42 +371,51 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetSetPrice(EMA2129OrderDetail tradeAction, AtmStrategy additional)
         {
-            double ans = -1; 
-
-            if (tradeAction.Postition == EMA2129OrderPostition.EMA21)
+            double ans = -1;            
+            /*
+             */
+            switch (tradeAction.Postition)
             {
-                ans = EMA21Indicator_1m.Value[0]; 
-            }
+                case EMA2129OrderPostition.EMA21:
+                    ans = EMA21Indicator_1m.Value[0];
+                    break;
+                case EMA2129OrderPostition.EMA29:
+                    ans = EMA29Indicator_1m.Value[0];
+                    break;
+                case EMA2129OrderPostition.MiddlePoint:
+                    ans = (EMA29Indicator_1m.Value[0] + EMA10Indicator_5m.Value[0]) / 2.0;
+                    break;
+                case EMA2129OrderPostition.EMA10:
+                    ans = EMA21Indicator_1m.Value[0];
+                    break;
+            }    
 
-            return ans;
+            return StrategiesUtilities.RoundPrice(ans);
         }
 
         protected override double GetTargetPrice_Half(EMA2129OrderDetail tradeAction, double setPrice, AtmStrategy additional)
         {
-            var isBuying = tradeAction.Action == GeneralTradeAction.Buy;
-            var targetTick_Half = isBuying ? additional.Brackets.Min(c => c.Target) : additional.Brackets.Max(c => c.Target);
+            var targetTick_Half = IsBuying ? additional.Brackets.Min(c => c.Target) : additional.Brackets.Max(c => c.Target);
 
-            return isBuying ?
+            return IsBuying ?
                 setPrice + targetTick_Half * TickSize :
                 setPrice - targetTick_Half * TickSize;
         }
 
         protected override double GetTargetPrice_Full(EMA2129OrderDetail tradeAction, double setPrice, AtmStrategy additional)
-        {
-            var isBuying = tradeAction.Action == GeneralTradeAction.Buy;
-            var targetTick_Full = isBuying ? additional.Brackets.Max(c => c.Target) : additional.Brackets.Min(c => c.Target);
+        {            
+            var targetTick_Full = IsBuying ? additional.Brackets.Max(c => c.Target) : additional.Brackets.Min(c => c.Target);
 
-            return isBuying ?
+            return IsBuying ?
                 setPrice + targetTick_Full * TickSize :
                 setPrice - targetTick_Full * TickSize;
         }
 
         protected override double GetStopLossPrice(EMA2129OrderDetail tradeAction, double setPrice, AtmStrategy additional)
         {
-            var stopLossTick = additional.Brackets[0].StopLoss;
-            var isBuying = tradeAction.Action == GeneralTradeAction.Buy;
+            var stopLossTick = additional.Brackets[0].StopLoss;            
 
-            return isBuying ?
+            return IsBuying ?
                 setPrice - stopLossTick * TickSize :
                 setPrice + stopLossTick * TickSize;
         }

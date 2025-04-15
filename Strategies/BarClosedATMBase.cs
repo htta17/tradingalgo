@@ -147,7 +147,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 try
                 {
-                    LocalPrint($"Trying to modify waiting order, new Price: {newPrice:N2}, new stop loss: {stopLossPrice:N2}, new target: {target:N2}");
+                    LocalPrint($"Trying to modify pending order, new Price: {newPrice:N2}, new stop loss: {stopLossPrice:N2}, new target: {target:N2}");
 
                     AtmStrategyChangeEntryOrder(newPrice, stopLossPrice, OrderId);
                 }

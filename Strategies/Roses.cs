@@ -270,8 +270,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Last TradingStatus: PendingFill, new TradingStatus: {TradingStatus}");
                 }
                 else 
-                { 
-                
+                {
+                    UpdatePendingOrder();
                 }
             }           
         }
@@ -301,6 +301,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         answer.Postition = EMA2129OrderPostition.EMA21;
                     }
+                    FilledTime = Time[0];
 
                     return answer;
                 }
@@ -311,8 +312,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         answer.Postition = EMA2129OrderPostition.EMA21;
                         answer.Sizing = EMA2129SizingEnum.Big;
-                    }    
-                   
+                    }
+                    FilledTime = Time[0];
 
                     return answer;
                 }

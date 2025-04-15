@@ -151,15 +151,74 @@ namespace NinjaTrader.NinjaScript.Strategies
             return false;
         }
 
+        protected DateTime FilledTime = DateTime.Now;
+
         protected virtual void UpdatePendingOrder()
         {
             if (TradingStatus != TradingStatus.PendingFill)
             {
                 return;
             }
+            
+            var firstOrder = GetPendingOrder();
 
-            
-            
+            if (firstOrder == null)
+            {
+                return;
+            }
+
+            // Cancel lệnh do đợi quá lâu            
+
+            var cancelOrderDueByTime = ShouldCancelPendingOrdersByTimeCondition(FilledTime);
+            if (cancelOrderDueByTime)
+            {
+                return;
+            }
+
+            /*
+            var checkShouldTradeAgain = ShouldTrade();
+
+            if (checkShouldTradeAgain == TradeAction.NoTrade)
+            {
+                LocalPrint($"Check lại các điều kiện với [ShouldTrade], new answer: [{checkShouldTradeAgain}] --> Cancel lệnh do không thỏa mãn các điều kiện trade");
+                CancelAllPendingOrder();
+                return;
+            }
+            else
+            {
+                var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(checkShouldTradeAgain);
+
+                var newPrice = GetSetPrice(checkShouldTradeAgain, atmStrategy);
+
+                var stopLossPrice = GetStopLossPrice(checkShouldTradeAgain, newPrice, atmStrategy);
+
+                var targetPrice_Half = GetTargetPrice_Half(checkShouldTradeAgain, newPrice, atmStrategy);
+
+                var targetPrice_Full = GetTargetPrice_Full(checkShouldTradeAgain, newPrice, atmStrategy);
+
+                // Số lượng contracts hiện tại
+
+                // Nếu ngược trend hoặc backtest thì vào cancel lệnh cũ và vào lệnh mới
+                if (State == State.Historical || (CurrentTradeAction != checkShouldTradeAgain) || (CurrentChosenStrategy != atmStrategyName))
+                {
+                    #region Cancel current order and enter new one
+                    CancelAllPendingOrder();
+
+                    EnterOrder(checkShouldTradeAgain);
+                    #endregion
+                }
+                // Ngược lại thì update điểm vào lệnh
+                else if (State == State.Realtime)
+                {
+                    #region Begin of move pending order
+                    UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
+                    #endregion
+                }           
+            }
+             */
+
+
+
         }
 
         public PriceChangedATMBasedClass(string logPrefix)
@@ -465,6 +524,33 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (State == State.Realtime)
             {
+                if (File.Exists(FileName))
+                {
+                    try
+                    {
+                        var text = File.ReadAllText(FileName);
+
+                        var arr = text.Split(',');
+
+                        if (arr.Length == 1)
+                        {
+                            AtmStrategyId = arr[0];
+                        }
+                        else if (arr.Length == 2)
+                        {
+                            AtmStrategyId = arr[0];
+                            OrderId = arr[1];
+
+                            tradingStatus = CheckCurrentStatusBasedOnOrders();
+                            Print($"Initial status - {tradingStatus}, found AtmStrategyId: {AtmStrategyId}, OrderId: {OrderId}");
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Print(e.Message);
+                    }
+                }
+
                 /*
                 try
                 {

@@ -35,7 +35,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// ATM name for live trade.
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Ricky ATM Strategy", Description = "Ricky ATM Strategy", Order = 2,
+        [Display(Name = "Risky ATM Strategy", Description = "Risky ATM Strategy", Order = 2,
             GroupName = StrategiesUtilities.Configuration_ATMStrategy_Group)]
         [TypeConverter(typeof(ATMStrategyConverter))]
         public string RiskyAtmStrategyName { get; set; }
@@ -68,13 +68,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// hoặc khi giá trị [PreviousPosition] là [Below], và cây nến hiện tại là [Above] thì mới reset việc EnteredOrder <br/>
         /// Trong trường hợp giá trị [PreviousPosition] == vị trí cây nến hiện tại thì không cần reset order.
         /// </summary>
-        private EMA2129Position PreviousPosition { get; set; } = EMA2129Position.Unknown; 
-
-        [NinjaScriptProperty]
-        [Display(Name = "Risky Strategy",
-            Description = "Strategy sử dụng khi lệnh là risky",
-            Order = 1, GroupName = StrategiesUtilities.Configuration_General_Name)]
-        public int MaxiumOrderBeforeReset { get; set; }
+        private EMA2129Position PreviousPosition { get; set; } = EMA2129Position.Unknown;         
 
         [NinjaScriptProperty]
         [Display(Name = "ADX Value to Enter Order:",
@@ -284,8 +278,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Display Volume Indicator
         /// </summary>
         [NinjaScriptProperty]
-        [Display(Name = "Hiển thị volume:",
-            Description = "Hiển thị chỉ báo Volume trên chart",
+        [Display(Name = "Hiển thị các chỉ báo:",
+            Description = "Hiển thị chỉ báo trên chart",
             Order = 1, GroupName = StrategiesUtilities.Configuration_DisplayIndicators)]
         public bool DisplayIndicators { get; set; }
 
@@ -312,6 +306,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             HalfSizefATMName = "Kitty_Default_2cts";
             RiskyAtmStrategyName = "Kitty_Risky";
 
+            DailyTargetProfit = 500;
+            MaximumDailyLoss = 350;
+
             StartDayTradeTime = new TimeSpan(2, 10, 0); // 9:10:00 am 
             EndDayTradeTime = new TimeSpan(23, 50, 0); // 2:00:00 pm
             EMA2129Status = new EMA2129Status();
@@ -322,6 +319,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             ADXValueToCANCELOrder = 18;
             ADXValueToENTEROrder = 22; 
+
+            DisplayIndicators = true;            
         }
 
         protected override void OnStateChange_DataLoaded()
@@ -338,10 +337,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             ADXandDI = ADXandDI(BarsArray[2], 14, ADXValueToENTEROrder, ADXValueToCANCELOrder);
 
-            AddChartIndicator(EMA29Indicator_1m);
-            AddChartIndicator(EMA21Indicator_1m);
+            if (DisplayIndicators)
+            {
+                AddChartIndicator(EMA29Indicator_1m);
+                AddChartIndicator(EMA21Indicator_1m);
 
-            AddChartIndicator(ADXandDI);
+                AddChartIndicator(ADXandDI);
+            }            
         }
 
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
@@ -399,7 +401,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Nếu giá trị ADX đang ở dưới [ADXValueToCancelOrder]           
             if (adxVal < ADXValueToENTEROrder)
             {
-                LocalPrint($"({adxVal:N2}) adxVal < ADXValueToENTEROrder  ({ADXValueToCANCELOrder})--> No Trade.");
+                LocalPrint($"{adxVal:N2} = [adxVal] < [ADXValueToENTEROrder]  = {ADXValueToENTEROrder}--> No Trade.");
                 // No trade
                 return answer;
             }

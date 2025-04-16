@@ -168,18 +168,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     if (EMA2129Status.Position == EMA2129Position.Unknown || EMA2129Status.Position == EMA2129Position.Above)
                     {
-                        EMA2129Status.SetPosition(EMA2129Position.Below);
-
-                        EMA2129Status.ResetCount();
+                        EMA2129Status.SetPosition(EMA2129Position.Below);                        
                     }
                 }
                 else if (low > maxValue)
                 {
                     if (EMA2129Status.Position == EMA2129Position.Unknown || EMA2129Status.Position == EMA2129Position.Below)
                     {
-                        EMA2129Status.SetPosition(EMA2129Position.Above);
-
-                        EMA2129Status.ResetCount();
+                        EMA2129Status.SetPosition(EMA2129Position.Above);                        
                     }
                 }
 

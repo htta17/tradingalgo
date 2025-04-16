@@ -371,46 +371,123 @@ namespace NinjaTrader.Custom.Strategies
     {
         public EMA2129Status()
         {
-            CountTouch_EMA21 = 0;
-            CountTouch_EMA29 = 0;
-            CountTouch_EMA10_5m = 0;
-
             Position = EMA2129Position.Unknown;
+
+            EnteredOrder = false;
+
+            ResetAll();
         }
         public EMA2129Position Position { get; private set; }
 
-        public void SetPosition(EMA2129Position position) { Position = position; }
+        /// <summary>
+        /// Dùng để đánh dấu đã enter order hay chưa
+        /// </summary>
+        public bool EnteredOrder { get; private set; }
+
+        public void SetPosition(EMA2129Position position, int? barIndex = null) 
+        { 
+            Position = position;
+
+            if (position == EMA2129Position.Crossing)
+            {
+                Touch(EMA2129OrderPostition.EMA21, barIndex);
+
+                Touch(EMA2129OrderPostition.EMA29, barIndex);
+
+                Touch(EMA2129OrderPostition.EMA10, barIndex);
+            }    
+            else if (position == EMA2129Position.Below || position == EMA2129Position.Above)
+            {
+                EnteredOrder = false;
+            }    
+        }
+
+        /// <summary>
+        /// Nếu đã vào lệnh rồi thì mark EnteredOrder = true
+        /// </summary>
+        public void SetEnteredOrder()
+        {
+            EnteredOrder = true;
+        }
+
+        private void ResetAll()
+        {
+            CountTouch_EMA21 = 0;
+            CountTouch_EMA29 = 0;
+            CountTouch_EMA10_5m = 0;
+        }
 
         public int CountTouch_EMA21 { get; private set; }
         public int CountTouch_EMA29 { get; private  set; }
         public int CountTouch_EMA10_5m { get; private set; }
 
-        public void ResetCount()
+        public int LastTouchIndex_EMA21 { get; private set; }
+        public int LastTouchIndex_EMA29 { get; private set; }
+        public int LastTouchIndex_EMA10 { get; private set; }
+
+        public void ResetCount(EMA2129OrderPostition position)
         {
-            CountTouch_EMA21 = 0;
-            CountTouch_EMA29 = 0;
-            CountTouch_EMA10_5m = 0;
-        }
+            if (position == EMA2129OrderPostition.EMA21)
+            {
+                CountTouch_EMA21 = 0;
+            }
+            else if (position == EMA2129OrderPostition.EMA29)
+            {
+                CountTouch_EMA29 = 0;
+            }
+            else if (position == EMA2129OrderPostition.EMA10)
+            {
+                CountTouch_EMA10_5m = 0;
+            }
+        }       
 
         /// <summary>
         /// Khi có cây nến chạm vào đường nào thì count touch lên 1
         /// </summary>
         /// <param name="position"></param>
-        public void Touch(EMA2129OrderPostition position)
+        public void Touch(EMA2129OrderPostition position, int? barIndex = null)
         {
             if (position == EMA2129OrderPostition.EMA21)
             {
-                CountTouch_EMA21++;
+                if (!barIndex.HasValue || barIndex.Value != LastTouchIndex_EMA21)
+                {
+                    CountTouch_EMA21++;
+
+                    if (barIndex.HasValue)
+                    {
+                        LastTouchIndex_EMA21 = barIndex.Value;
+                    }                    
+                }
             }
             else if (position == EMA2129OrderPostition.EMA29)
             {
-                CountTouch_EMA29++;
+                if (!barIndex.HasValue || barIndex.Value != LastTouchIndex_EMA29)
+                {
+                    CountTouch_EMA29++;
+
+                    if (barIndex.HasValue)
+                    {
+                        LastTouchIndex_EMA29 = barIndex.Value;
+                    }
+                }                    
             }
             else if (position == EMA2129OrderPostition.EMA10)
             {
-                CountTouch_EMA10_5m++;
+                if (!barIndex.HasValue || barIndex.Value != LastTouchIndex_EMA10)
+                {
+                    CountTouch_EMA10_5m++;
+
+                    if (barIndex.HasValue)
+                    {
+                        LastTouchIndex_EMA10 = barIndex.Value;
+                    }
+                }
             }
         }        
+    }
+
+    public class TouchInfo
+    { 
     }
 
     public enum EMA2129SizingEnum

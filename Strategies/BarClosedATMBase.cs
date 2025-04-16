@@ -396,7 +396,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            executionTime = DateTime.Now;
+            executionTime = DateTime.Now;            
 
             if (TradingStatus == TradingStatus.OrderExists)
             {

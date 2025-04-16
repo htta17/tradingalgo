@@ -384,7 +384,7 @@ namespace NinjaTrader.Custom.Strategies
         /// </summary>
         public bool EnteredOrder { get; private set; }
 
-        public void SetPosition(EMA2129Position position, int? barIndex = null) 
+        public void SetPosition(EMA2129Position position, int? barIndex = null, bool resetEnterOrder = false) 
         { 
             Position = position;
 
@@ -396,7 +396,7 @@ namespace NinjaTrader.Custom.Strategies
 
                 Touch(EMA2129OrderPostition.EMA10, barIndex);
             }    
-            else if (position == EMA2129Position.Below || position == EMA2129Position.Above)
+            else if (resetEnterOrder && (position == EMA2129Position.Below || position == EMA2129Position.Above))
             {
                 EnteredOrder = false;
             }    

@@ -60,10 +60,15 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected ADXandDI ADXandDI { get; set; }
         protected MACD MACD { get; set; }
         #endregion
-
         private EMA2129Status EMA2129Status { get; set; }
 
-        private bool EnteredOrder = false;
+        /// <summary>
+        /// Giá trị này chỉ nên lưu 2 giá trị là [Above] và [Below] <br/>
+        /// Khi giá trị [PreviousPosition] là [Above], và cây nến hiện tại là [Below] thì mới reset việc EnteredOrder <br/>
+        /// hoặc khi giá trị [PreviousPosition] là [Below], và cây nến hiện tại là [Above] thì mới reset việc EnteredOrder <br/>
+        /// Trong trường hợp giá trị [PreviousPosition] == vị trí cây nến hiện tại thì không cần reset order.
+        /// </summary>
+        private EMA2129Position PreviousPosition { get; set; } = EMA2129Position.Unknown; 
 
         [NinjaScriptProperty]
         [Display(Name = "Risky Strategy",
@@ -140,17 +145,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var low = Low[0];
                 var open = Open[0];
                 var close = Close[0];
-
-                /*
+                
                 var ema21Val = EMA21Indicator_1m.Value[0];
                 var ema29Val = EMA29Indicator_1m.Value[0];
-                var ema10Val = EMA10Indicator_5m.Value[0];
-                */
+                var ema10Val = EMA10Indicator_5m.Value[0];                
 
+                /*
                 // Remember these 3 variable are the same right now
                 var ema21Val = EMA21Indicator_1m.Value[0];
                 var ema29Val = EMA21Indicator_1m.Value[0];
                 var ema10Val = EMA21Indicator_1m.Value[0];
+                */                
 
                 var minValue = StrategiesUtilities.MinOfArray(ema21Val, ema29Val, ema10Val);
                 var maxValue = StrategiesUtilities.MaxOfArray(ema21Val, ema29Val, ema10Val);                
@@ -164,12 +169,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (high < minValue && minValue - high > 5 && EMA2129Status.Position != EMA2129Position.Below)
                 {
                     LocalPrint($"New status: BELOW");
-                    EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar);                    
+                    EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, PreviousPosition != EMA2129Position.Below);
+
+                    PreviousPosition = EMA2129Position.Below; 
                 }
                 else if (low > maxValue && low - maxValue > 5 && EMA2129Status.Position != EMA2129Position.Above)
                 {
                     LocalPrint($"New status: ABOVE");
-                    EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar);
+                    EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, PreviousPosition != EMA2129Position.Above);
+
+                    PreviousPosition = EMA2129Position.Above;
                 }
 
                 BasicActionForTrading(TimeFrameToTrade.OneMinute);
@@ -327,7 +336,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA51Indicator_5m = EMA(BarsArray[1], 51);
             EMA10Indicator_5m = EMA(BarsArray[1], 10);
 
-            ADXandDI = ADXandDI(BarsArray[2], 14, 25, 20);
+            ADXandDI = ADXandDI(BarsArray[2], 14, ADXValueToENTEROrder, ADXValueToCANCELOrder);
 
             AddChartIndicator(EMA29Indicator_1m);
             AddChartIndicator(EMA21Indicator_1m);
@@ -349,7 +358,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 LocalPrint($"Check trading condition, result: {shouldTrade.Action}");
                 
-                if (shouldTrade.Action != GeneralTradeAction.NoTrade)
+                if (shouldTrade.Action != GeneralTradeAction.NoTrade && !EMA2129Status.EnteredOrder) // Nếu chưa enter order thì mới enter order
                 {
                     EMA2129Status.SetEnteredOrder();
 
@@ -400,7 +409,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     : EMA2129Status.Position == EMA2129Position.Above ? GeneralTradeAction.Buy : 
                     GeneralTradeAction.NoTrade;
                 answer.Postition = EMA2129OrderPostition.EMA21;
-                answer.Sizing = EMA2129SizingEnum.Medium;
+                answer.Sizing = EMA2129SizingEnum.Big;
             }
             return answer;
         }
@@ -417,7 +426,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 return (FullSizeAtmStrategy, FullSizeATMName);
             }
-            else if (tradeAction.Sizing == EMA2129SizingEnum.Big)
+            else if (tradeAction.Sizing == EMA2129SizingEnum.Medium)
             {
                 return (HalfSizeAtmStrategy, HalfSizefATMName);
             }

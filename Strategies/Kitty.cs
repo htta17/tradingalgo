@@ -320,8 +320,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             AddPlot(Brushes.Red, "EMA46_5m");
             AddPlot(Brushes.Black, "EMA51_5m");
 
-            ADXValueToCANCELOrder = 20;
-            ADXValueToENTEROrder = 25; 
+            ADXValueToCANCELOrder = 18;
+            ADXValueToENTEROrder = 22; 
         }
 
         protected override void OnStateChange_DataLoaded()

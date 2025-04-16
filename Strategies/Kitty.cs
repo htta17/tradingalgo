@@ -500,7 +500,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-
         protected override double GetSetPrice(EMA2129OrderDetail tradeAction, AtmStrategy additionalInfo)
         {
             double ans = -1;
@@ -623,7 +622,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void AddCustomIndicators()
         {
-            throw new NotImplementedException();
+            
         }
     }
 

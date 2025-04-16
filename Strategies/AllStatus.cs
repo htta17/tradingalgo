@@ -371,29 +371,46 @@ namespace NinjaTrader.Custom.Strategies
     {
         public EMA2129Status()
         {
-            CountTouch = 0;
+            CountTouch_EMA21 = 0;
+            CountTouch_EMA29 = 0;
+            CountTouch_EMA10_5m = 0;
+
             Position = EMA2129Position.Unknown;
         }
         public EMA2129Position Position { get; private set; }
 
         public void SetPosition(EMA2129Position position) { Position = position; }
 
-        private int CountTouch { get; set; }
+        public int CountTouch_EMA21 { get; private set; }
+        public int CountTouch_EMA29 { get; private  set; }
+        public int CountTouch_EMA10_5m { get; private set; }
 
         public void ResetCount()
         {
-            CountTouch = 0;
+            CountTouch_EMA21 = 0;
+            CountTouch_EMA29 = 0;
+            CountTouch_EMA10_5m = 0;
         }
 
-        public void Touch()
+        /// <summary>
+        /// Khi có cây nến chạm vào đường nào thì count touch lên 1
+        /// </summary>
+        /// <param name="position"></param>
+        public void Touch(EMA2129OrderPostition position)
         {
-            CountTouch++;
-        }
-
-        public int GetTouchCount()
-        {
-            return CountTouch;
-        }
+            if (position == EMA2129OrderPostition.EMA21)
+            {
+                CountTouch_EMA21++;
+            }
+            else if (position == EMA2129OrderPostition.EMA29)
+            {
+                CountTouch_EMA29++;
+            }
+            else if (position == EMA2129OrderPostition.EMA10)
+            {
+                CountTouch_EMA10_5m++;
+            }
+        }        
     }
 
     public enum EMA2129SizingEnum

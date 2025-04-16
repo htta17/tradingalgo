@@ -168,8 +168,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         /// <summary>
         /// Sử dụng trong [OnStateChange] (State == State.DataLoaded)
-        /// </summary>
-        /// <exception cref="NotImplementedException"></exception>
+        /// </summary>        
         protected abstract void AddCustomIndicators();
 
         protected override void SetDefaultProperties()

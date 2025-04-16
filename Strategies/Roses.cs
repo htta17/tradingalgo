@@ -160,11 +160,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var ema21Val = EMA21Indicator_1m.Value[0];
                 var ema29Val = EMA29Indicator_1m.Value[0];
                 var ema10Val = EMA10Indicator_5m.Value[0];
-
                 
-                var minValue = Min(ema21Val, ema29Val, ema10Val);
-                var maxValue = Min(ema21Val, ema29Val, ema10Val);
-
+                var minValue = StrategiesUtilities.MinOfArray(ema21Val, ema29Val, ema10Val);
+                var maxValue = StrategiesUtilities.MaxOfArray(ema21Val, ema29Val, ema10Val);
 
                 if (high < minValue)
                 {
@@ -297,7 +295,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (EMA2129Status.Position == EMA2129Position.Above)
                 {
                     answer.Action = GeneralTradeAction.Buy;
-                    if (ADXandDI.Value[0] > ADXValueToEnterOrder && EMA2129Status.GetTouchCount() == 0)
+                    if (ADXandDI.Value[0] > ADXValueToEnterOrder && EMA2129Status.CountTouch_EMA21 == 0)
                     {
                         answer.Postition = EMA2129OrderPostition.EMA21;
                     }
@@ -308,7 +306,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 else if (EMA2129Status.Position == EMA2129Position.Below)
                 {
                     answer.Action = GeneralTradeAction.Sell;
-                    if (ADXandDI.Value[0] > ADXValueToEnterOrder && EMA2129Status.GetTouchCount() == 0)
+                    if (ADXandDI.Value[0] > ADXValueToEnterOrder && EMA2129Status.CountTouch_EMA21 == 0)
                     {
                         answer.Postition = EMA2129OrderPostition.EMA21;
                         answer.Sizing = EMA2129SizingEnum.Big;

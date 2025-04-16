@@ -466,6 +466,7 @@ namespace NinjaTrader.Custom.Strategies
             }
             else if (State == State.DataLoaded)
             { 
+                OnStateChange_DataLoaded();
             }
             else if (State == State.Realtime)
             {

@@ -60,6 +60,16 @@ namespace NinjaTrader.Custom.Strategies
         // Some default news time, being used for many places.
         public const string DefaultNewsTime = "0730,0830,1500,1700";
 
+        public static double MinOfArray(params double[] inputs)
+        {
+            return inputs.Min(x => x);
+        }
+
+        public static double MaxOfArray(params double[] inputs)
+        {
+            return inputs.Max(x => x);
+        }
+
         public static double RoundPrice(double price)
         {
             return Math.Round(price * 4, MidpointRounding.AwayFromZero) / 4.0;

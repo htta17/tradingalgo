@@ -721,16 +721,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         }
 
-        public double Min(params double[] inputs)
-        {
-            return inputs.Min(x => x);
-        }
-
-        public double Max(params double[] inputs)
-        {
-            return inputs.Max(x => x);
-        }
-
         protected virtual (AtmStrategy, string) GetAtmStrategyByPnL(T1 tradeAction)
         {
             var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);

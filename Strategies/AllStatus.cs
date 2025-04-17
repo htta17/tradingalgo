@@ -377,6 +377,11 @@ namespace NinjaTrader.Custom.Strategies
 
             ResetAll();
         }
+
+        public void ResetEnteredOrder()
+        {
+            EnteredOrder = false; 
+        }
         public EMA2129Position Position { get; private set; }
 
         /// <summary>
@@ -397,7 +402,7 @@ namespace NinjaTrader.Custom.Strategies
                 Touch(EMA2129OrderPostition.EMA10, barIndex);
             }    
             else if (resetEnterOrder && (position == EMA2129Position.Below || position == EMA2129Position.Above))
-            {
+            {                
                 EnteredOrder = false;
             }    
         }
@@ -406,7 +411,7 @@ namespace NinjaTrader.Custom.Strategies
         /// Nếu đã vào lệnh rồi thì mark EnteredOrder = true
         /// </summary>
         public void SetEnteredOrder()
-        {
+        {            
             EnteredOrder = true;
         }
 

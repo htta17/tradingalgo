@@ -17,6 +17,9 @@ namespace NinjaTrader.Custom.Strategies
     public class StrategiesUtilities
     {
         public const string Configuration_StopLossTarget_Name = "Stoploss/Profit";
+
+        public const string Configuration_Entry = "Entry Point";
+
         public const string Configuration_DailyPnL_Name = "Daily PnL";
         public const string Configuration_Sizing_Name = "How to set stoploss/gain";
         public const string Configuration_General_Name = "General Setting";

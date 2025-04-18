@@ -29,7 +29,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public class Kitty : BarClosedATMBase<EMA2129OrderDetail>, IATMStrategy
     {
-        protected TimeFrameToTrade Configured_TimeFrameToTrade { get; set; }
+        #region Configurations 
 
         /// <summary>
         /// ATM name for live trade.
@@ -42,16 +42,28 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected AtmStrategy RiskyAtmStrategy { get; set; }
 
-        
-
         /// <summary>
         /// Chốt lời khi cây nến lớn hơn giá trị này (points), current default value: 60 points.
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Adjustment Point:",
             Description = "Số điểm cộng (hoặc trừ) so với đường EMA21 để vào lệnh MUA (hoặc BÁN).",
-            Order = 2, GroupName = StrategiesUtilities.Configuration_Entry)]        
+            Order = 2, GroupName = StrategiesUtilities.Configuration_Entry)]
         public int AdjustmentPoint { get; set; }
+
+        #endregion
+        protected TimeFrameToTrade Configured_TimeFrameToTrade { get; set; }
+        protected override bool IsBuying
+        {
+            get { return CurrentTradeAction.Action == GeneralTradeAction.Buy; }
+        }
+
+        protected override bool IsSelling
+        {
+            get { return CurrentTradeAction.Action == GeneralTradeAction.Sell; }
+        }
+
+        private DateTime executionTime = DateTime.MinValue;
 
         #region Indicators
         protected EMA EMA29Indicator_1m { get; set; }
@@ -70,8 +82,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// hoặc khi giá trị [PreviousPosition] là [Below], và cây nến hiện tại là [Above] thì mới reset việc EnteredOrder <br/>
         /// Trong trường hợp giá trị [PreviousPosition] == vị trí cây nến hiện tại thì không cần reset order.
         /// </summary>
-        private EMA2129Position PreviousPosition { get; set; } = EMA2129Position.Unknown;         
+        private EMA2129Position PreviousPosition { get; set; } = EMA2129Position.Unknown;
 
+        #region ADX - Not in use now
         /*
         [NinjaScriptProperty]
         [Display(Name = "ADX Value to Enter Order:",
@@ -85,6 +98,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             Order = 3, GroupName = StrategiesUtilities.Configuration_General_Name)]
         public int ADXValueToCANCELOrder { get; set; }
         */
+        #endregion
 
         protected override void AddCustomDataSeries()
         {
@@ -186,18 +200,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Do nothing for now
             }
         }
-
-        protected override bool IsBuying
-        {
-            get { return CurrentTradeAction.Action == GeneralTradeAction.Buy; }
-        }
-
-        protected override bool IsSelling
-        {
-            get { return CurrentTradeAction.Action == GeneralTradeAction.Sell; }
-        }
-
-        private DateTime executionTime = DateTime.MinValue;
+        
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
             var updatedPrice = marketDataUpdate.Price;
@@ -304,7 +307,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
 
             Name = "Kitty";
-            Description = "[Kitty] là giải thuật [Rooster], được viết riêng cho my love, Phượng Phan.";
+            Description = "[Kitty] là giải thuật được viết riêng cho my love, Phượng Phan.";
 
             FullSizeATMName = "Kitty_Default_4cts";
             HalfSizefATMName = "Kitty_Default_2cts";
@@ -319,8 +322,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             AddPlot(Brushes.Green, "EMA9_5m");
             AddPlot(Brushes.Red, "EMA46_5m");
-            //AddPlot(Brushes.Black, "EMA51_5m");
 
+            //AddPlot(Brushes.Black, "EMA51_5m");
             //ADXValueToCANCELOrder = 20;
             //ADXValueToENTEROrder = 25; 
 
@@ -346,7 +349,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 //AddChartIndicator(EMA29Indicator_1m);
                 AddChartIndicator(EMA21Indicator_1m);
-
                 //AddChartIndicator(ADXandDI);
             }            
         }

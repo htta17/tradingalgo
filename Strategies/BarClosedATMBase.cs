@@ -305,9 +305,55 @@ namespace NinjaTrader.NinjaScript.Strategies
                 });
         }
 
+        protected virtual void EnterOrder_Historial(T1 tradeAction)
+        {
+            // Set global values
+            CurrentTradeAction = tradeAction;
+
+            EnteredBarIndex_5m = CurrentBarIndex_5m;
+
+            // Chưa cho move stop loss
+            StartMovingStoploss = false;
+
+            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
+
+            //double priceToSet = GetSetPrice(tradeAction, tradeAction);
+            //FilledPrice = priceToSet;
+
+            //var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet, tradeAction);
+
+            //LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}");
+
+            //var pnl = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
+            //var quantity = NumberOfContract;
+
+            //if (pnl >= -ReduceSizeIfProfit)
+            //{
+            //    quantity = quantity * 2;
+            //}
+
+            //try
+            //{
+            //    var signalHalf = IsTrendingTrade ? StrategiesUtilities.SignalEntry_TrendingHalf : StrategiesUtilities.SignalEntry_ReversalHalf;
+            //    EnterOrderPure(priceToSet, Target1InTicks, StopLossInTicks, signalHalf, quantity, IsBuying, IsSelling);
+
+            //    var signalFull = IsTrendingTrade ? StrategiesUtilities.SignalEntry_TrendingFull : StrategiesUtilities.SignalEntry_ReversalFull;
+            //    EnterOrderPure(priceToSet, Target2InTicks, StopLossInTicks, signalFull, quantity, IsBuying, IsSelling);
+            //}
+            //catch (Exception ex)
+            //{
+            //    LocalPrint($"[EnterOrder] - ERROR: " + ex.Message);
+            //}
+        }
+
         protected override void EnterOrder(T1 tradeAction)
         {
-            if (State != State.Realtime || DateTime.Now.Subtract(enterOrderTimed).TotalSeconds < 5)
+            if (State == State.Historical)
+            {
+                EnterOrder_Historial(tradeAction);
+                return; 
+            }
+            else if (State != State.Realtime || DateTime.Now.Subtract(enterOrderTimed).TotalSeconds < 5)
             {
                 return;
             }

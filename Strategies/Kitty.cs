@@ -29,6 +29,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public class Kitty : BarClosedATMBase<EMA2129OrderDetail>, IATMStrategy
     {
+        public Kitty() : base("KITTY")
+        {
+            FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyKitty.txt");
+            Configured_TimeFrameToTrade = TimeFrameToTrade.OneMinute;
+        }
+
         #region Configurations 
 
         /// <summary>
@@ -99,6 +105,73 @@ namespace NinjaTrader.NinjaScript.Strategies
         public int ADXValueToCANCELOrder { get; set; }
         */
         #endregion
+
+        /// <summary>
+        /// Display Volume Indicator
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Hiển thị các chỉ báo:",
+            Description = "Hiển thị chỉ báo trên chart",
+            Order = 1, GroupName = StrategiesUtilities.Configuration_DisplayIndicators)]
+        public bool DisplayIndicators { get; set; }
+
+        protected override void OnStateChange_Configure()
+        {
+            base.OnStateChange_Configure();
+
+            RiskyAtmStrategy = StrategiesUtilities.ReadStrategyData(RiskyAtmStrategyName, Print).AtmStrategy;
+        }
+
+        protected override void SetDefaultProperties()
+        {
+            base.SetDefaultProperties();
+
+            Name = "Kitty";
+            Description = "[Kitty] là giải thuật được viết riêng cho my love, Phượng Phan.";
+
+            FullSizeATMName = "Kitty_Default_4cts";
+            HalfSizefATMName = "Kitty_Default_2cts";
+            RiskyAtmStrategyName = "Kitty_Risky";
+
+            DailyTargetProfit = 500;
+            MaximumDailyLoss = 350;
+
+            StartDayTradeTime = new TimeSpan(2, 10, 0); // 9:10:00 am 
+            EndDayTradeTime = new TimeSpan(23, 50, 0); // 2:00:00 pm
+            EMA2129Status = new EMA2129Status();
+
+            AddPlot(Brushes.Green, "EMA9_5m");
+            AddPlot(Brushes.Red, "EMA46_5m");
+
+            //AddPlot(Brushes.Black, "EMA51_5m");
+            //ADXValueToCANCELOrder = 20;
+            //ADXValueToENTEROrder = 25; 
+
+            DisplayIndicators = true;
+            AdjustmentPoint = 7;
+        }
+
+        protected override void OnStateChange_DataLoaded()
+        {
+            EMA29Indicator_1m = EMA(BarsArray[2], 29);
+            EMA29Indicator_1m.Plots[0].Brush = Brushes.Red;
+
+            EMA21Indicator_1m = EMA(BarsArray[2], 21);
+            EMA21Indicator_1m.Plots[0].Brush = Brushes.Blue;
+
+            EMA46Indicator_5m = EMA(BarsArray[1], 46);
+            EMA51Indicator_5m = EMA(BarsArray[1], 51);
+            EMA10Indicator_5m = EMA(BarsArray[1], 10);
+
+            //ADXandDI = ADXandDI(BarsArray[2], 14, ADXValueToENTEROrder, ADXValueToCANCELOrder);
+
+            if (DisplayIndicators)
+            {
+                //AddChartIndicator(EMA29Indicator_1m);
+                AddChartIndicator(EMA21Indicator_1m);
+                //AddChartIndicator(ADXandDI);
+            }
+        }
 
         protected override void AddCustomDataSeries()
         {
@@ -279,78 +352,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             else if (TradingStatus == TradingStatus.WatingForCondition)
             {
             }
-        }
-
-        /// <summary>
-        /// Display Volume Indicator
-        /// </summary>
-        [NinjaScriptProperty]
-        [Display(Name = "Hiển thị các chỉ báo:",
-            Description = "Hiển thị chỉ báo trên chart",
-            Order = 1, GroupName = StrategiesUtilities.Configuration_DisplayIndicators)]
-        public bool DisplayIndicators { get; set; }
-
-        public Kitty() : base("KITTY")
-        {
-            FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyKitty.txt");            
-            Configured_TimeFrameToTrade = TimeFrameToTrade.OneMinute;
-        }
-        protected override void OnStateChange_Configure()
-        {
-            base.OnStateChange_Configure();
-
-            RiskyAtmStrategy = StrategiesUtilities.ReadStrategyData(RiskyAtmStrategyName, Print).AtmStrategy;
-        }
-
-        protected override void SetDefaultProperties()
-        {
-            base.SetDefaultProperties();
-
-            Name = "Kitty";
-            Description = "[Kitty] là giải thuật được viết riêng cho my love, Phượng Phan.";
-
-            FullSizeATMName = "Kitty_Default_4cts";
-            HalfSizefATMName = "Kitty_Default_2cts";
-            RiskyAtmStrategyName = "Kitty_Risky";
-
-            DailyTargetProfit = 500;
-            MaximumDailyLoss = 350;
-
-            StartDayTradeTime = new TimeSpan(2, 10, 0); // 9:10:00 am 
-            EndDayTradeTime = new TimeSpan(23, 50, 0); // 2:00:00 pm
-            EMA2129Status = new EMA2129Status();
-
-            AddPlot(Brushes.Green, "EMA9_5m");
-            AddPlot(Brushes.Red, "EMA46_5m");
-
-            //AddPlot(Brushes.Black, "EMA51_5m");
-            //ADXValueToCANCELOrder = 20;
-            //ADXValueToENTEROrder = 25; 
-
-            DisplayIndicators = true;
-            AdjustmentPoint = 7;
-        }
-
-        protected override void OnStateChange_DataLoaded()
-        {
-            EMA29Indicator_1m = EMA(BarsArray[2], 29);
-            EMA29Indicator_1m.Plots[0].Brush = Brushes.Red;
-
-            EMA21Indicator_1m = EMA(BarsArray[2], 21);
-            EMA21Indicator_1m.Plots[0].Brush = Brushes.Blue;
-
-            EMA46Indicator_5m = EMA(BarsArray[1], 46);
-            EMA51Indicator_5m = EMA(BarsArray[1], 51);
-            EMA10Indicator_5m = EMA(BarsArray[1], 10);
-
-            //ADXandDI = ADXandDI(BarsArray[2], 14, ADXValueToENTEROrder, ADXValueToCANCELOrder);
-
-            if (DisplayIndicators)
-            {
-                //AddChartIndicator(EMA29Indicator_1m);
-                AddChartIndicator(EMA21Indicator_1m);
-                //AddChartIndicator(ADXandDI);
-            }            
         }
 
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)

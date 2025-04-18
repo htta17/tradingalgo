@@ -9,6 +9,6 @@ namespace NinjaTrader.Custom.Strategies
     public interface IATMStrategy
     {
         string FullSizeATMName { get; }
-        string HalfSizefATMName { get; }        
+        string HalfSizefATMName { get; }   
     }
 }

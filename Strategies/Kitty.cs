@@ -167,7 +167,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (DisplayIndicators)
             {
-                //AddChartIndicator(EMA29Indicator_1m);
+                AddChartIndicator(EMA29Indicator_1m);
                 AddChartIndicator(EMA21Indicator_1m);
                 //AddChartIndicator(ADXandDI);
             }

@@ -487,6 +487,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             var cancelOrderDueByTime = ShouldCancelPendingOrdersByTimeCondition(FilledTime);
             if (cancelOrderDueByTime)
             {
+                // Cho phép trade trở lại
+                EMA2129Status.ResetEnteredOrder(); 
+
                 return;
             }
 

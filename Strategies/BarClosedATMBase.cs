@@ -94,6 +94,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double TargetPrice_Full = -1;
         protected double TargetPrice_Half = -1;
         protected string CurrentChosenStrategy = "";
+
+        
         #endregion
 
         protected override void CloseExistingOrders()
@@ -280,7 +282,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
-            FilledPrice = priceToSet;
+            FilledPrice = priceToSet;            
 
             // Enter a BUY/SELL order current price
             AtmStrategyCreate(
@@ -317,33 +319,28 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
 
-            //double priceToSet = GetSetPrice(tradeAction, tradeAction);
-            //FilledPrice = priceToSet;
+            var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(tradeAction);
 
-            //var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet, tradeAction);
+            double priceToSet = GetSetPrice(tradeAction, atmStrategy);
+            FilledPrice = priceToSet;
+            FilledTime = Time[0];
 
-            //LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}");
+            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet, atmStrategy);
 
-            //var pnl = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
-            //var quantity = NumberOfContract;
+            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}");
 
-            //if (pnl >= -ReduceSizeIfProfit)
-            //{
-            //    quantity = quantity * 2;
-            //}
+            try
+            {
+                //var signalHalf = StrategiesUtilities.SignalEntry_TrendingHalf;
+                //EnterOrderPureUsingPrice(priceToSet, Target1InTicks, StopLossInTicks, signalHalf, 2, IsBuying, IsSelling);
 
-            //try
-            //{
-            //    var signalHalf = IsTrendingTrade ? StrategiesUtilities.SignalEntry_TrendingHalf : StrategiesUtilities.SignalEntry_ReversalHalf;
-            //    EnterOrderPure(priceToSet, Target1InTicks, StopLossInTicks, signalHalf, quantity, IsBuying, IsSelling);
-
-            //    var signalFull = IsTrendingTrade ? StrategiesUtilities.SignalEntry_TrendingFull : StrategiesUtilities.SignalEntry_ReversalFull;
-            //    EnterOrderPure(priceToSet, Target2InTicks, StopLossInTicks, signalFull, quantity, IsBuying, IsSelling);
-            //}
-            //catch (Exception ex)
-            //{
-            //    LocalPrint($"[EnterOrder] - ERROR: " + ex.Message);
-            //}
+                var signalFull = StrategiesUtilities.SignalEntry_TrendingFull;
+                EnterOrderPureUsingPrice(priceToSet, Target2InTicks, StopLossInTicks, signalFull, 2, IsBuying, IsSelling);
+            }
+            catch (Exception ex)
+            {
+                LocalPrint($"[EnterOrder] - ERROR: " + ex.Message);
+            }
         }
 
         protected override void EnterOrder(T1 tradeAction)
@@ -382,6 +379,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             FilledPrice = priceToSet;
 
+            FilledTime = Time[0];
+ 
             StopLossPrice = stopLoss;
 
             TargetPrice_Half = targetHalf;

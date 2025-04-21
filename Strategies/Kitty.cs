@@ -409,11 +409,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             var ema10_5mVal = EMA10Indicator_5m.Value[0];
             var ema46Val = EMA46Indicator_5m.Value[0];
 
-            if (EMA2129Status.Position == EMA2129Position.Above && ema21Val > ema46Val && ema21Val > ema10_5mVal)
+            if (EMA2129Status.Position == EMA2129Position.Above && (ema21Val > ema46Val || (ema21Val < ema46Val && ema46Val - ema21Val < 7)) && ema21Val > ema10_5mVal)
             {
                 answer.Action = GeneralTradeAction.Buy; 
             }
-            else if (EMA2129Status.Position == EMA2129Position.Below && ema21Val < ema46Val && ema21Val < ema10_5mVal)
+            else if (EMA2129Status.Position == EMA2129Position.Below && (ema21Val < ema46Val || (ema21Val > ema46Val && ema21Val - ema46Val < 7))  && ema21Val < ema10_5mVal)
             {
                 answer.Action = GeneralTradeAction.Sell;
             }

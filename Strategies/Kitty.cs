@@ -77,8 +77,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected EMA EMA46Indicator_5m { get; set; }
         protected EMA EMA51Indicator_5m { get; set; }
         protected EMA EMA10Indicator_5m { get; set; }
-        protected ADXandDI ADXandDI { get; set; }
-        protected MACD MACD { get; set; }
+        // protected ADXandDI ADXandDI { get; set; }
+        // protected MACD MACD { get; set; }
         #endregion
         private EMA2129Status EMA2129Status { get; set; }
         
@@ -206,7 +206,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            base.OnBarUpdate();
+            // base.OnBarUpdate();
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
@@ -235,15 +235,21 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (high < minValue && minValue - high > 5 && EMA2129Status.Position != EMA2129Position.Below)
                 {
-                    LocalPrint($"New status: BELOW - Current status: {PreviousPosition}, Reset order: {PreviousPosition != EMA2129Position.Below}");
-                    EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, PreviousPosition != EMA2129Position.Below);
+                    var resetOrder = PreviousPosition != EMA2129Position.Below; 
+
+                    LocalPrint($"New status: BELOW - Current status: {PreviousPosition}, Reset order: {resetOrder}");
+
+                    EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, resetOrder);
 
                     PreviousPosition = EMA2129Position.Below; 
                 }
                 else if (low > maxValue && low - maxValue > 5 && EMA2129Status.Position != EMA2129Position.Above)
                 {
-                    LocalPrint($"New status: ABOVE - Current status: {PreviousPosition}, Reset order: {PreviousPosition != EMA2129Position.Above}");
-                    EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, PreviousPosition != EMA2129Position.Above);
+                    var resetOrder = PreviousPosition != EMA2129Position.Above;
+
+                    LocalPrint($"New status: ABOVE - Current status: {PreviousPosition}, Reset order: {resetOrder}");
+
+                    EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, resetOrder);
 
                     PreviousPosition = EMA2129Position.Above;
                 }

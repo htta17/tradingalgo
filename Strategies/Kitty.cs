@@ -196,7 +196,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 catch (Exception ex)
                 {
-                    LocalPrint("OnBarUpdate: ERROR:" + ex.Message);
+                    LocalPrint("[OnBarUpdate]: ERROR:" + ex.Message);
                 }
             }
             
@@ -210,49 +210,56 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
-                StrategiesUtilities.CalculatePnL(this, Account, Print);       
+                StrategiesUtilities.CalculatePnL(this, Account, Print);
 
-                var high = High[0];
-                var low = Low[0];
-                var open = Open[0];
-                var close = Close[0];
-                
-                var ema21Val = EMA21Indicator_1m.Value[0];
-                var ema29Val = EMA29Indicator_1m.Value[0];
-                var ema10Val = EMA10Indicator_5m.Value[0]; 
-
-                var minValue = StrategiesUtilities.MinOfArray(ema21Val, ema29Val, ema10Val);
-                var maxValue = StrategiesUtilities.MaxOfArray(ema21Val, ema29Val, ema10Val);
-
-                // Trạng thái
-                LocalPrint($"Checking status...");
-                if (high > maxValue && low < minValue) // Cross EMA lines
+                try
                 {
-                    LocalPrint($"New status: CROSSING");
-                    EMA2129Status.SetPosition(EMA2129Position.Crossing, CurrentBar);
+                    var high = High[0];
+                    var low = Low[0];
+                    var open = Open[0];
+                    var close = Close[0];
+
+                    var ema21Val = EMA21Indicator_1m.Value[0];
+                    var ema29Val = EMA29Indicator_1m.Value[0];
+                    var ema10Val = EMA10Indicator_5m.Value[0];
+
+                    var minValue = StrategiesUtilities.MinOfArray(ema21Val, ema29Val, ema10Val);
+                    var maxValue = StrategiesUtilities.MaxOfArray(ema21Val, ema29Val, ema10Val);
+
+                    // Trạng thái
+                    LocalPrint($"Checking status...");
+                    if (high > maxValue && low < minValue) // Cross EMA lines
+                    {
+                        LocalPrint($"New status: CROSSING");
+                        EMA2129Status.SetPosition(EMA2129Position.Crossing, CurrentBar);
+                    }
+                    else if (high < minValue && minValue - high > 5 && EMA2129Status.Position != EMA2129Position.Below)
+                    {
+                        var resetOrder = PreviousPosition != EMA2129Position.Below;
+
+                        LocalPrint($"New status: BELOW - Current status: {PreviousPosition}, Reset order: {resetOrder}");
+
+                        EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, resetOrder);
+
+                        PreviousPosition = EMA2129Position.Below;
+                    }
+                    else if (low > maxValue && low - maxValue > 5 && EMA2129Status.Position != EMA2129Position.Above)
+                    {
+                        var resetOrder = PreviousPosition != EMA2129Position.Above;
+
+                        LocalPrint($"New status: ABOVE - Current status: {PreviousPosition}, Reset order: {resetOrder}");
+
+                        EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, resetOrder);
+
+                        PreviousPosition = EMA2129Position.Above;
+                    }
+
+                    BasicActionForTrading(TimeFrameToTrade.OneMinute);
                 }
-                else if (high < minValue && minValue - high > 5 && EMA2129Status.Position != EMA2129Position.Below)
+                catch (Exception ex)
                 {
-                    var resetOrder = PreviousPosition != EMA2129Position.Below; 
-
-                    LocalPrint($"New status: BELOW - Current status: {PreviousPosition}, Reset order: {resetOrder}");
-
-                    EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, resetOrder);
-
-                    PreviousPosition = EMA2129Position.Below; 
-                }
-                else if (low > maxValue && low - maxValue > 5 && EMA2129Status.Position != EMA2129Position.Above)
-                {
-                    var resetOrder = PreviousPosition != EMA2129Position.Above;
-
-                    LocalPrint($"New status: ABOVE - Current status: {PreviousPosition}, Reset order: {resetOrder}");
-
-                    EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, resetOrder);
-
-                    PreviousPosition = EMA2129Position.Above;
-                }
-
-                BasicActionForTrading(TimeFrameToTrade.OneMinute);
+                    LocalPrint("[OnBarUpdate]: ERROR:" + ex.Message);
+                }                
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {

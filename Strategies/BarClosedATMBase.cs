@@ -117,7 +117,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void TransitionOrdersToLive()
         {
+            tradingStatus = CheckCurrentStatusBasedOnOrders();
+
             LocalPrint($"[TransitionOrdersToLive] - {TradingStatus}");
+            
             if (TradingStatus == TradingStatus.OrderExists)
             {
                 LocalPrint($"Transition to live, close all existing orders");

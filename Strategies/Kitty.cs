@@ -651,6 +651,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        protected override void TransitionOrdersToLive()
+        {
+            base.TransitionOrdersToLive();
+
+            // Reset
+            EMA2129Status.ResetEnteredOrder();
+        }
+
         protected override void AddCustomIndicators()
         {
             

@@ -331,17 +331,69 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var ema21Val = EMA21Indicator_1m.Value[0];
             var ema10_5mVal = EMA10Indicator_5m.Value[0];
-            var ema46Val = EMA46Indicator_5m.Value[0];
+            var ema46_5mVal = EMA46Indicator_5m.Value[0];
 
-            if (EMA2129Status.Position == EMA2129Position.Above && (ema21Val > ema46Val || (ema21Val < ema46Val && ema46Val - ema21Val < 7)) && ema21Val > ema10_5mVal)
+            const int MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 = 11;
+            const int MAX_DISTANCE_BETWEEN_EMA10_5m_AND_EMA21 = 9;
+
+            // EMA21 (khung 1 phút) ở trên EMA10 (5 phút) hoặc ở dưới nhưng rất gần. 
+            var ema21_Above_EMA10_5m = ema21Val >= ema10_5mVal; 
+            var ema21_Below_EMA10_5m = ema21Val <= ema10_5mVal;
+
+            var ema21_BelowAndNear_EM10_5m = ema21Val < ema10_5mVal && ema10_5mVal - ema21Val < MAX_DISTANCE_BETWEEN_EMA10_5m_AND_EMA21;
+            var ema21_AboveAndNear_EM10_5m = ema21Val > ema10_5mVal && ema21Val - ema10_5mVal < MAX_DISTANCE_BETWEEN_EMA10_5m_AND_EMA21;
+
+            var ema21_Above_EMA46_5m = ema21Val >= ema46_5mVal;
+            var ema21_Below_EMA46_5m = ema21Val <= ema46_5mVal;
+
+            var ema21_BelowAndNear_EM46_5m = ema21Val < ema46_5mVal && ema46_5mVal - ema21Val < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21;
+            var ema21_AboveAndNear_EM46_5m = ema21Val > ema46_5mVal && ema21Val - ema46_5mVal < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21;
+
+            if (EMA2129Status.Position == EMA2129Position.Above)
             {
-                answer.Action = GeneralTradeAction.Buy; 
+                // EMA 21 nằm trên cả EMA10 và EMA46 khung 5 phút
+                if (ema21_Above_EMA10_5m && ema21_Above_EMA46_5m)
+                {
+                    answer.Action = GeneralTradeAction.Buy;
+                    answer.Postition = EMA2129OrderPostition.EMA21;
+                }
+                // EMA 21 nằm trên EMA10 nhưng dưới EMA46
+                else if (ema21_Above_EMA10_5m && ema21_BelowAndNear_EM46_5m)
+                {
+                    answer.Action = GeneralTradeAction.Buy;
+                    answer.Postition = EMA2129OrderPostition.EMA29;
+                }
+                // EMA 21 nằm dưới EMA10 và dưới EMA46
+                else if (ema21_BelowAndNear_EM10_5m && ema21_BelowAndNear_EM46_5m)
+                {
+                    answer.Action = GeneralTradeAction.Buy;
+                    answer.Postition = EMA2129OrderPostition.EMA29;
+                }
+                // Không có trường hợp EMA21 nằm dưới EMA46 nhưng lại nằm trên EMA10
             }
-            else if (EMA2129Status.Position == EMA2129Position.Below && (ema21Val < ema46Val || (ema21Val > ema46Val && ema21Val - ema46Val < 7))  && ema21Val < ema10_5mVal)
+            else if (EMA2129Status.Position == EMA2129Position.Below)
             {
-                answer.Action = GeneralTradeAction.Sell;
+                // EMA 21 nằm dưới cả EMA10 và EMA46 khung 5 phút
+                if (ema21_Below_EMA10_5m && ema21_Below_EMA46_5m)
+                {
+                    answer.Action = GeneralTradeAction.Sell;
+                    answer.Postition = EMA2129OrderPostition.EMA21;
+                }
+                // EMA 21 nằm dưới EMA10 nhưng trên EMA46
+                else if (ema21_Below_EMA10_5m && ema21_AboveAndNear_EM46_5m)
+                {
+                    answer.Action = GeneralTradeAction.Sell;
+                    answer.Postition = EMA2129OrderPostition.EMA29;
+                }
+                // EMA 21 nằm trên EMA10 và trên EMA46
+                else if (ema21_AboveAndNear_EM10_5m && ema21_AboveAndNear_EM46_5m)
+                {
+                    answer.Action = GeneralTradeAction.Buy;
+                    answer.Postition = EMA2129OrderPostition.EMA29;
+                }
+                // Không có trường hợp EMA21 nằm trên EMA46 nhưng lại nằm dưới EMA10
             }
-            answer.Postition = EMA2129OrderPostition.EMA21;
+
             answer.Sizing = EMA2129SizingEnum.Big;
 
             /*
@@ -477,6 +529,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        private const int AJUST_POINT_WHEN_EMA21_NEAR_EMA46 = 4;
+
         protected override double GetSetPrice(EMA2129OrderDetail tradeAction, AtmStrategy additionalInfo)
         {
             double ans = -1;
@@ -485,10 +539,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             switch (tradeAction.Postition)
             {
                 case EMA2129OrderPostition.EMA21:
-                    ans = tradeAction.Action == GeneralTradeAction.Buy ? EMA21Indicator_1m.Value[0] + AdjustmentPoint : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
+                    ans = tradeAction.Action == GeneralTradeAction.Buy 
+                        ? EMA21Indicator_1m.Value[0] + AdjustmentPoint 
+                        : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
                     break;
                 case EMA2129OrderPostition.EMA29:
-                    ans = EMA29Indicator_1m.Value[0];
+                    ans = tradeAction.Action == GeneralTradeAction.Buy 
+                        ? EMA21Indicator_1m.Value[0] + AJUST_POINT_WHEN_EMA21_NEAR_EMA46 
+                        : EMA21Indicator_1m.Value[0] - AJUST_POINT_WHEN_EMA21_NEAR_EMA46;
                     break;
                 case EMA2129OrderPostition.MiddlePoint:
                     ans = (EMA29Indicator_1m.Value[0] + EMA10Indicator_5m.Value[0]) / 2.0;

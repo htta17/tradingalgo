@@ -210,10 +210,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
-                StrategiesUtilities.CalculatePnL(this, Account, Print);                       
-
-                // Cập nhật lại giá trị cây nến
-                var index = GetBarIndex(BarsPeriod.Value);
+                StrategiesUtilities.CalculatePnL(this, Account, Print);       
 
                 var high = High[0];
                 var low = Low[0];
@@ -225,9 +222,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var ema10Val = EMA10Indicator_5m.Value[0]; 
 
                 var minValue = StrategiesUtilities.MinOfArray(ema21Val, ema29Val, ema10Val);
-                var maxValue = StrategiesUtilities.MaxOfArray(ema21Val, ema29Val, ema10Val);                
+                var maxValue = StrategiesUtilities.MaxOfArray(ema21Val, ema29Val, ema10Val);
 
                 // Trạng thái
+                LocalPrint($"Checking status...");
                 if (high > maxValue && low < minValue) // Cross EMA lines
                 {
                     LocalPrint($"New status: CROSSING");
@@ -266,6 +264,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
         {
+            LocalPrint("[BasicActionForTrading] - Begin");
             // Make sure each stratergy have each own time frame to trade
             if (timeFrameToTrade != Configured_TimeFrameToTrade)
             {
@@ -279,6 +278,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     return;
                 }
+
+                LocalPrint("[BasicActionForTrading] - [Idle]");
 
                 var shouldTrade = ShouldTrade();
 

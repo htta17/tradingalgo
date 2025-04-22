@@ -791,6 +791,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var cancelOrderDueByTime = ShouldCancelPendingOrdersByTimeCondition(FilledTime);
             if (cancelOrderDueByTime)
             {
+                CancelAllPendingOrder();
                 return;
             }
 

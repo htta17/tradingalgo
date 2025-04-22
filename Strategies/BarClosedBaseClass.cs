@@ -945,17 +945,13 @@ namespace NinjaTrader.Custom.Strategies
         {               
             if ((Time[0] - filledOrderTime).TotalMinutes > 60)
             {
-                //Account.CancelAllOrders(Instrument);
-                CancelAllPendingOrder();
                 LocalPrint($"Cancel lệnh do đợi quá lâu, Time[0]: {Time[0]}, filledTime: {filledOrderTime}");
                 return true;
             }
 
             // Cancel lệnh hết giờ trade
             if (ToTime(Time[0]) >= 150000 && ToTime(filledOrderTime) < 150000)
-            {
-                //Account.CancelAllOrders(Instrument);
-                CancelAllPendingOrder();
+            {   
                 LocalPrint($"Cancel lệnh hết giờ trade");
                 return true;
             }

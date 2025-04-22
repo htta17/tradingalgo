@@ -188,25 +188,18 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Hiển thị các đường indicators
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
-                // Hiển thị indicators khung 5 phút
+                // Hiển thị indicators khung 5 phút 
                 try
-                {
-                    // Print(EMA9Indicator_5m.Value[0]);
+                {   
                     Values[0][0] = EMA10Indicator_5m.Value[0];
                     Values[1][0] = EMA46Indicator_5m.Value[0];
-                    //Values[2][0] = EMA51Indicator_5m.Value[0];
                 }
                 catch (Exception ex)
                 {
                     LocalPrint("OnBarUpdate: ERROR:" + ex.Message);
                 }
             }
-
-            var passTradeCondition = CheckingTradeCondition();
-            if (!passTradeCondition)
-            {
-                return;
-            }
+            
             if (BarsInProgress == 0)
             {
                 // Current View --> Do nothing
@@ -229,14 +222,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 
                 var ema21Val = EMA21Indicator_1m.Value[0];
                 var ema29Val = EMA29Indicator_1m.Value[0];
-                var ema10Val = EMA10Indicator_5m.Value[0];                
-
-                /*
-                // Remember these 3 variable are the same right now
-                var ema21Val = EMA21Indicator_1m.Value[0];
-                var ema29Val = EMA21Indicator_1m.Value[0];
-                var ema10Val = EMA21Indicator_1m.Value[0];
-                */                
+                var ema10Val = EMA10Indicator_5m.Value[0]; 
 
                 var minValue = StrategiesUtilities.MinOfArray(ema21Val, ema29Val, ema10Val);
                 var maxValue = StrategiesUtilities.MaxOfArray(ema21Val, ema29Val, ema10Val);                
@@ -356,10 +342,16 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (timeFrameToTrade != Configured_TimeFrameToTrade)
             {
                 return;
-            }
+            }            
 
             if (TradingStatus == TradingStatus.Idle)
             {
+                var passTradeCondition = CheckingTradeCondition();
+                if (!passTradeCondition)
+                {
+                    return;
+                }
+
                 var shouldTrade = ShouldTrade();
 
                 LocalPrint($"Check trading condition, result: {shouldTrade.Action}, EnteredOrder: {EMA2129Status.EnteredOrder}");
@@ -465,6 +457,18 @@ namespace NinjaTrader.NinjaScript.Strategies
             return (HalfSizeAtmStrategy, HalfSizefATMName);
         }
 
+        protected override bool ShouldCancelPendingOrdersByTimeCondition(DateTime filledOrderTime)
+        {
+            // Cancel lệnh hết giờ trade
+            if (ToTime(Time[0]) >= 15_00_00 && ToTime(filledOrderTime) < 15_00_00)
+            {   
+                LocalPrint($"Cancel lệnh hết giờ trade");
+                return true;
+            }
+
+            return false;
+        }
+
         protected override void UpdatePendingOrder()
         {
             if (TradingStatus != TradingStatus.PendingFill)
@@ -481,8 +485,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             var cancelOrderDueByTime = ShouldCancelPendingOrdersByTimeCondition(FilledTime);
+
             if (cancelOrderDueByTime)
             {
+                CancelAllPendingOrder();
+
                 // Cho phép trade trở lại
                 EMA2129Status.ResetEnteredOrder(); 
 

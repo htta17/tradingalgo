@@ -73,8 +73,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         #region Indicators
         
-        protected EMA EMA46Indicator_5m { get; set; }
-        protected EMA EMA51Indicator_5m { get; set; }
+        protected EMA EMA20Indicator_5m { get; set; }
+        protected EMA EMA50Indicator_5m { get; set; }
         protected EMA EMA100Indicator_5m { get; set; }        
         #endregion
         private EMA2129Status EMA2129Status { get; set; }
@@ -127,8 +127,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var open = Open[0];
                 var close = Close[0];
 
-                var ema46Val = EMA46Indicator_5m.Value[0];
-                var ema51Val = EMA51Indicator_5m.Value[0];                
+                var ema20Val = EMA20Indicator_5m.Value[0];
+                var ema50Val = EMA50Indicator_5m.Value[0];
+                var ema100Val = EMA100Indicator_5m.Value[0];
 
                 /*
                 // Remember these 3 variable are the same right now
@@ -137,8 +138,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var ema10Val = EMA21Indicator_1m.Value[0];
                 */
 
-                var minValue = StrategiesUtilities.MinOfArray(ema46Val, ema51Val);
-                var maxValue = StrategiesUtilities.MaxOfArray(ema46Val, ema51Val);
+                var minValue = ema20Val; //StrategiesUtilities.MinOfArray(ema20Val, ema20Val);
+                var maxValue = ema20Val; // StrategiesUtilities.MaxOfArray(ema20Val, ema20Val);
 
                 // Trạng thái
                 if (high > maxValue && low < minValue) // Cross EMA lines
@@ -267,7 +268,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
 
             Name = "Rooster";
-            Description = "[Rooster] trade ở khung 5 phút, dùng EMA100 và EMA46/50.";
+            Description = "[Rooster] trade ở khung 5 phút, dùng EMA20/50/100.";
 
             FullSizeATMName = "Rooster_Default_4cts";
             HalfSizefATMName = "Rooster_Default_2cts";
@@ -276,16 +277,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             DailyTargetProfit = 500;
             MaximumDailyLoss = 350;
 
-            StartDayTradeTime = new TimeSpan(2, 10, 0); // 9:10:00 am 
-            EndDayTradeTime = new TimeSpan(23, 50, 0); // 2:00:00 pm
-            EMA2129Status = new EMA2129Status();
-
-            AddPlot(Brushes.Green, "EMA9_5m");
-            AddPlot(Brushes.Red, "EMA46_5m");
-
-            //AddPlot(Brushes.Black, "EMA51_5m");
-            //ADXValueToCANCELOrder = 20;
-            //ADXValueToENTEROrder = 25; 
+            StartDayTradeTime = new TimeSpan(8, 40, 0); // 8:40:00 am 
+            EndDayTradeTime = new TimeSpan(15, 50, 0); // 3:50:00 pm
+            EMA2129Status = new EMA2129Status();          
 
             DisplayIndicators = true;
             AdjustmentPoint = 7;
@@ -293,23 +287,20 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnStateChange_DataLoaded()
         {
-            
-            EMA46Indicator_5m = EMA(BarsArray[1], 46);
-            EMA46Indicator_5m.Plots[0].Brush = Brushes.Black;
+            EMA20Indicator_5m = EMA(BarsArray[1], 20);
+            EMA20Indicator_5m.Plots[0].Brush = Brushes.Red;
 
-            EMA51Indicator_5m = EMA(BarsArray[1], 51);
-            EMA51Indicator_5m.Plots[0].Brush = Brushes.Red;
+            EMA50Indicator_5m = EMA(BarsArray[1], 50);
+            EMA50Indicator_5m.Plots[0].Brush = Brushes.DarkOrange;
 
             EMA100Indicator_5m = EMA(BarsArray[1], 100);
-            EMA100Indicator_5m.Plots[0].Brush = Brushes.DarkCyan;
-
-            //ADXandDI = ADXandDI(BarsArray[2], 14, ADXValueToENTEROrder, ADXValueToCANCELOrder);
+            EMA100Indicator_5m.Plots[0].Brush = Brushes.DarkCyan;            
 
             if (DisplayIndicators)
             {
-                AddChartIndicator(EMA46Indicator_5m);
-                AddChartIndicator(EMA51Indicator_5m);
                 AddChartIndicator(EMA100Indicator_5m);
+                AddChartIndicator(EMA50Indicator_5m);
+                AddChartIndicator(EMA20Indicator_5m);
             }
         }
 
@@ -364,15 +355,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return answer;
             }
 
-            var ema51Val = EMA51Indicator_5m.Value[0];
+            var ema50Val = EMA50Indicator_5m.Value[0];
             var ema100_5mVal = EMA100Indicator_5m.Value[0];
-            var ema46Val = EMA46Indicator_5m.Value[0];
+            var ema20Val = EMA20Indicator_5m.Value[0];
 
-            if (EMA2129Status.Position == EMA2129Position.Above && ema46Val > ema51Val && ema46Val > ema100_5mVal)
+            if (EMA2129Status.Position == EMA2129Position.Above && ema20Val > ema50Val && ema50Val > ema100_5mVal)
             {
                 answer.Action = GeneralTradeAction.Buy;
             }
-            else if (EMA2129Status.Position == EMA2129Position.Below && ema46Val < ema51Val && ema46Val < ema100_5mVal)
+            else if (EMA2129Status.Position == EMA2129Position.Below && ema20Val < ema50Val && ema50Val < ema100_5mVal)
             {
                 answer.Action = GeneralTradeAction.Sell;
             }
@@ -445,6 +436,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var cancelOrderDueByTime = ShouldCancelPendingOrdersByTimeCondition(FilledTime);
             if (cancelOrderDueByTime)
             {
+                CancelAllPendingOrder();
                 return;
             }
 
@@ -495,10 +487,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetSetPrice(EMA2129OrderDetail tradeAction, AtmStrategy additionalInfo)
         {
-            var ans =
-                tradeAction.Action == GeneralTradeAction.Buy ? Math.Max(EMA46Indicator_5m.Value[0], EMA51Indicator_5m.Value[0]) + AdjustmentPoint :
-                tradeAction.Action == GeneralTradeAction.Sell ? Math.Min(EMA46Indicator_5m.Value[0], EMA51Indicator_5m.Value[0]) - AdjustmentPoint :
-                (EMA46Indicator_5m.Value[0] + EMA51Indicator_5m.Value[0]) / 2;
+            var ans = EMA20Indicator_5m.Value[0];
 
             return StrategiesUtilities.RoundPrice(ans);
         }

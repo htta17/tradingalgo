@@ -32,7 +32,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         public Rooster() : base("ROOSTER")
         {
             FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyRooster.txt");
-            Configured_TimeFrameToTrade = TimeFrameToTrade.OneMinute;
+            Configured_TimeFrameToTrade = TimeFrameToTrade.FiveMinutes;
         }
 
         #region Configurations 
@@ -100,22 +100,15 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void OnBarUpdate()
         {
             // Cập nhật lại status 
-            tradingStatus = CheckCurrentStatusBasedOnOrders();            
-
-            var passTradeCondition = CheckingTradeCondition();
-            if (!passTradeCondition)
-            {
-                return;
-            }
+            tradingStatus = CheckCurrentStatusBasedOnOrders(); 
+           
             if (BarsInProgress == 0)
             {
                 // Current View --> Do nothing
                 return;
             }
 
-            base.OnBarUpdate();
-
-            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) //1 minute
+            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
                 StrategiesUtilities.CalculatePnL(this, Account, Print);
 
@@ -129,121 +122,38 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 var ema20Val = EMA20Indicator_5m.Value[0];
                 var ema50Val = EMA50Indicator_5m.Value[0];
-                var ema100Val = EMA100Indicator_5m.Value[0];
-
-                /*
-                // Remember these 3 variable are the same right now
-                var ema21Val = EMA21Indicator_1m.Value[0];
-                var ema29Val = EMA21Indicator_1m.Value[0];
-                var ema10Val = EMA21Indicator_1m.Value[0];
-                */
+                var ema100Val = EMA100Indicator_5m.Value[0];               
 
                 var minValue = ema20Val; //StrategiesUtilities.MinOfArray(ema20Val, ema20Val);
                 var maxValue = ema20Val; // StrategiesUtilities.MaxOfArray(ema20Val, ema20Val);
 
                 // Trạng thái
-                if (high > maxValue && low < minValue) // Cross EMA lines
+                if (high > maxValue && low < minValue) // Cross EMA20
                 {
                     LocalPrint($"New status: CROSSING");
                     EMA2129Status.SetPosition(EMA2129Position.Crossing, CurrentBar);
                 }
                 else if (high < minValue && minValue - high > 5 && EMA2129Status.Position != EMA2129Position.Below)
                 {
-                    LocalPrint($"New status: BELOW - Current status: {PreviousPosition}, Reset order: {PreviousPosition != EMA2129Position.Below}");
-                    EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, PreviousPosition != EMA2129Position.Below);
+                    var resetOrder = PreviousPosition != EMA2129Position.Below;
+
+                    LocalPrint($"New status: BELOW - Current status: {PreviousPosition}, Reset order: {resetOrder}");
+                    EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, resetOrder);
 
                     PreviousPosition = EMA2129Position.Below;
                 }
                 else if (low > maxValue && low - maxValue > 5 && EMA2129Status.Position != EMA2129Position.Above)
                 {
-                    LocalPrint($"New status: ABOVE - Current status: {PreviousPosition}, Reset order: {PreviousPosition != EMA2129Position.Above}");
-                    EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, PreviousPosition != EMA2129Position.Above);
+                    var resetOrder = PreviousPosition != EMA2129Position.Above;
+
+                    LocalPrint($"New status: ABOVE - Current status: {PreviousPosition}, Reset order: {resetOrder}");
+                    EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, resetOrder);
 
                     PreviousPosition = EMA2129Position.Above;
                 }
 
-                BasicActionForTrading(TimeFrameToTrade.OneMinute);
+                BasicActionForTrading(TimeFrameToTrade.FiveMinutes);
             }            
-        }
-
-        protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
-        {
-            var updatedPrice = marketDataUpdate.Price;
-
-            if (updatedPrice < 100)
-            {
-                return;
-            }
-
-            if (DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
-            {
-                return;
-            }
-
-            executionTime = DateTime.Now;
-
-            if (TradingStatus == TradingStatus.OrderExists)
-            {
-                var buyPriceIsOutOfRange = IsBuying && (updatedPrice < StopLossPrice || updatedPrice > TargetPrice_Full);
-                var sellPriceIsOutOfRange = IsSelling && (updatedPrice > StopLossPrice || updatedPrice < TargetPrice_Full);
-
-                // Khi giá đã ở ngoài range (stoploss, target)
-                if (buyPriceIsOutOfRange || sellPriceIsOutOfRange)
-                {
-                    tradingStatus = CheckCurrentStatusBasedOnOrders();
-
-                    LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}. TargetPrice: {TargetPrice_Full:N2}, " +
-                        $"updatedPrice:{updatedPrice:N2}, StopLossPrice: {StopLossPrice:N2}, " +
-                        $"buyPriceIsOutOfRange: {buyPriceIsOutOfRange}, :sellPriceIsOutOfRange: {sellPriceIsOutOfRange}. ");
-
-                    OnMarketData_OrderExists(updatedPrice);
-                }
-                else
-                {
-                    var stopOrders = Account.Orders.Where(order => order.OrderState == OrderState.Accepted && order.Name.Contains(OrderStopName)).ToList();
-                    var targetOrders = Account.Orders.Where(order => order.OrderState == OrderState.Working && order.Name.Contains(OrderTargetName)).ToList();
-
-                    var countStopOrder = stopOrders.Count;
-                    var countTargetOrder = targetOrders.Count;
-
-                    if (countStopOrder == 0 || countTargetOrder == 0)
-                    {
-                        tradingStatus = TradingStatus.Idle;
-                        return;
-                    }
-                    else if (countStopOrder == 1 && countTargetOrder == 1)
-                    {
-                        var targetOrder = targetOrders.LastOrDefault();
-                        var stopLossOrder = stopOrders.LastOrDefault();
-
-                        if (targetOrder != null)
-                        {
-                            TargetPrice_Full = targetOrder.LimitPrice;
-                            MoveTargetOrder(targetOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
-                        }
-
-                        if (stopLossOrder != null)
-                        {
-                            StopLossPrice = stopLossOrder.StopPrice;
-                            MoveStopOrder(stopLossOrder, updatedPrice, FilledPrice, IsBuying, IsSelling);
-                        }
-                    }
-                }
-            }
-            else if (TradingStatus == TradingStatus.PendingFill)
-            {
-                if ((IsBuying && updatedPrice < FilledPrice) || (IsSelling && updatedPrice > FilledPrice))
-                {
-                    tradingStatus = CheckCurrentStatusBasedOnOrders();
-
-                    LocalPrint($"Last TradingStatus: PendingFill, new TradingStatus: {TradingStatus}");
-                }
-
-                OnMarketData_PendingFill(updatedPrice);
-            }
-            else if (TradingStatus == TradingStatus.WatingForCondition)
-            {
-            }
         }
 
         /// <summary>
@@ -254,7 +164,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             Description = "Hiển thị chỉ báo trên chart",
             Order = 1, GroupName = StrategiesUtilities.Configuration_DisplayIndicators)]
         public bool DisplayIndicators { get; set; }
-
         
         protected override void OnStateChange_Configure()
         {
@@ -277,9 +186,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             DailyTargetProfit = 500;
             MaximumDailyLoss = 350;
 
-            StartDayTradeTime = new TimeSpan(8, 40, 0); // 8:40:00 am 
-            EndDayTradeTime = new TimeSpan(15, 50, 0); // 3:50:00 pm
-            EMA2129Status = new EMA2129Status();          
+            // Run whole day
+            StartDayTradeTime = new TimeSpan(0, 0, 0); // 0:00 am
+            EndDayTradeTime = new TimeSpan(23, 59, 59); // 3:50:00 pm
+
+            EMA2129Status = new EMA2129Status();
 
             DisplayIndicators = true;
             AdjustmentPoint = 7;
@@ -314,6 +225,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (TradingStatus == TradingStatus.Idle)
             {
+                var passTradeCondition = CheckingTradeCondition();
+                if (!passTradeCondition)
+                {
+                    return;
+                }
+
                 var shouldTrade = ShouldTrade();
 
                 LocalPrint($"Check trading condition, result: {shouldTrade.Action}, EnteredOrder: {EMA2129Status.EnteredOrder}");
@@ -420,6 +337,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void UpdatePendingOrder()
         {
+            base.UpdatePendingOrder();
             if (TradingStatus != TradingStatus.PendingFill)
             {
                 return;

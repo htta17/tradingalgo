@@ -425,7 +425,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected virtual void OnMarketData_WatingForConfirmation(double updatedPrice)
         {
 
-        }
+        }       
 
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
@@ -506,6 +506,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             { 
             }
         }
+
 
         protected override bool IsFullPriceOrder(Order order)
         {

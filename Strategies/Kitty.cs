@@ -226,8 +226,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var minValue = StrategiesUtilities.MinOfArray(ema21Val, ema29Val, ema10Val);
                     var maxValue = StrategiesUtilities.MaxOfArray(ema21Val, ema29Val, ema10Val);
 
-                    // Trạng thái
-                    LocalPrint($"Checking status...");
+                    // Trạng thái                    
                     if (high > maxValue && low < minValue) // Cross EMA lines
                     {
                         LocalPrint($"New status: CROSSING");
@@ -270,8 +269,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         
 
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
-        {
-            LocalPrint("[BasicActionForTrading] - Begin");
+        {   
             // Make sure each stratergy have each own time frame to trade
             if (timeFrameToTrade != Configured_TimeFrameToTrade)
             {
@@ -284,9 +282,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (!passTradeCondition)
                 {
                     return;
-                }
-
-                LocalPrint("[BasicActionForTrading] - [Idle]");
+                }                
 
                 var shouldTrade = ShouldTrade();
 

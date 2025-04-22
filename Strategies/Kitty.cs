@@ -130,25 +130,21 @@ namespace NinjaTrader.NinjaScript.Strategies
             Description = "[Kitty] là giải thuật được viết riêng cho my love, Phượng Phan.";
 
             FullSizeATMName = "Kitty_Default_4cts";
-            HalfSizefATMName = "Kitty_Default_2cts";
-            RiskyAtmStrategyName = "Kitty_Risky";
+            HalfSizefATMName = "Kitty_Default_4cts"; // Kitty_Default_2cts
+            RiskyAtmStrategyName = "Kitty_Default_4cts"; // Kitty_Risky
 
             DailyTargetProfit = 500;
             MaximumDailyLoss = 350;
 
-            StartDayTradeTime = new TimeSpan(2, 10, 0); // 9:10:00 am 
-            EndDayTradeTime = new TimeSpan(23, 50, 0); // 2:00:00 pm
+            StartDayTradeTime = new TimeSpan(8, 40, 0); // 8:40:00 am 
+            EndDayTradeTime = new TimeSpan(14, 30, 0); // 2:30:00 pm
             EMA2129Status = new EMA2129Status();
 
             AddPlot(Brushes.Green, "EMA9_5m");
-            AddPlot(Brushes.Red, "EMA46_5m");
-
-            //AddPlot(Brushes.Black, "EMA51_5m");
-            //ADXValueToCANCELOrder = 20;
-            //ADXValueToENTEROrder = 25; 
+            AddPlot(Brushes.Red, "EMA46_5m");            
 
             DisplayIndicators = true;
-            AdjustmentPoint = 7;
+            AdjustmentPoint = 9;
         }
 
         protected override void OnStateChange_DataLoaded()

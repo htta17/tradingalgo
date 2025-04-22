@@ -489,11 +489,7 @@ namespace NinjaTrader.Custom.Strategies
                 }
             }
         }        
-    }
-
-    public class TouchInfo
-    { 
-    }
+    }    
 
     public enum EMA2129SizingEnum
     { 

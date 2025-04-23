@@ -290,7 +290,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 
                 if (shouldTrade.Action != GeneralTradeAction.NoTrade && !EMA2129Status.EnteredOrder) // Nếu chưa enter order thì mới enter order
                 {
-                    EMA2129Status.SetEnteredOrder();
+                    EMA2129Status.SetEnteredOrder(shouldTrade.Postition);
 
                     EnterOrder(shouldTrade);
                 }

@@ -119,7 +119,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             tradingStatus = CheckCurrentStatusBasedOnOrders();
 
-            LocalPrint($"[TransitionOrdersToLive] - {TradingStatus}");
+            LocalPrint($"[TransitionOrdersToLive] - current status: {TradingStatus}");
             
             if (TradingStatus == TradingStatus.OrderExists)
             {

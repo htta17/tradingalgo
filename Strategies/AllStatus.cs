@@ -373,21 +373,30 @@ namespace NinjaTrader.Custom.Strategies
         {
             Position = EMA2129Position.Unknown;
 
-            EnteredOrder = false;
+            ResetEnteredOrder();
 
             ResetAll();
         }
 
         public void ResetEnteredOrder()
         {
-            EnteredOrder = false; 
+            SetAt_EMA21 = false;
+            SetAt_EMA29 = false;
         }
         public EMA2129Position Position { get; private set; }
 
         /// <summary>
-        /// Dùng để đánh dấu đã enter order hay chưa
+        /// Dùng để đánh dấu đã enter order hay chưa <br/>
+        /// Có 2 điểm đặt lệnh (EMA21/29) <br/>
+        /// Chỉ tính cho EMA21
         /// </summary>
-        public bool EnteredOrder { get; private set; }
+        public bool EnteredOrder 
+        { 
+            get 
+            {
+                return SetAt_EMA21;
+            } 
+        }
 
         public void SetPosition(EMA2129Position position, int? barIndex = null, bool resetEnterOrder = false) 
         { 
@@ -398,53 +407,48 @@ namespace NinjaTrader.Custom.Strategies
                 Touch(EMA2129OrderPostition.EMA21, barIndex);
 
                 Touch(EMA2129OrderPostition.EMA29, barIndex);
-
-                Touch(EMA2129OrderPostition.EMA10, barIndex);
             }    
             else if (resetEnterOrder && (position == EMA2129Position.Below || position == EMA2129Position.Above))
-            {                
-                EnteredOrder = false;
+            {
+                ResetEnteredOrder();
             }    
         }
 
         /// <summary>
         /// Nếu đã vào lệnh rồi thì mark EnteredOrder = true
         /// </summary>
-        public void SetEnteredOrder()
-        {            
-            EnteredOrder = true;
+        public void SetEnteredOrder(EMA2129OrderPostition postition = EMA2129OrderPostition.EMA21)
+        {
+            //EnteredOrder = true;
+            if (postition == EMA2129OrderPostition.EMA21)
+            {
+                SetAt_EMA21 = true;
+            }
+            else if (postition == EMA2129OrderPostition.EMA29)
+            {
+                SetAt_EMA29 = true;
+            }
         }
 
         private void ResetAll()
         {
             CountTouch_EMA21 = 0;
-            CountTouch_EMA29 = 0;
-            CountTouch_EMA10_5m = 0;
+            CountTouch_EMA29 = 0;            
         }
 
-        public int CountTouch_EMA21 { get; private set; }
-        public int CountTouch_EMA29 { get; private  set; }
-        public int CountTouch_EMA10_5m { get; private set; }
+        public int CountTouch_EMA21 { get; set; }
+        public int CountTouch_EMA29 { get; set; }
 
-        public int LastTouchIndex_EMA21 { get; private set; }
-        public int LastTouchIndex_EMA29 { get; private set; }
-        public int LastTouchIndex_EMA10 { get; private set; }
+        /// <summary>
+        /// Set order ở EMA21 +/- Adjust
+        /// </summary>
+        private bool SetAt_EMA21 { get; set; }
 
-        public void ResetCount(EMA2129OrderPostition position)
-        {
-            if (position == EMA2129OrderPostition.EMA21)
-            {
-                CountTouch_EMA21 = 0;
-            }
-            else if (position == EMA2129OrderPostition.EMA29)
-            {
-                CountTouch_EMA29 = 0;
-            }
-            else if (position == EMA2129OrderPostition.EMA10)
-            {
-                CountTouch_EMA10_5m = 0;
-            }
-        }       
+        /// <summary>
+        /// Set order ở EMA29 +/- Adjust
+        /// </summary>
+        private bool SetAt_EMA29 { get; set; }
+       
 
         /// <summary>
         /// Khi có cây nến chạm vào đường nào thì count touch lên 1
@@ -454,39 +458,11 @@ namespace NinjaTrader.Custom.Strategies
         {
             if (position == EMA2129OrderPostition.EMA21)
             {
-                if (!barIndex.HasValue || barIndex.Value != LastTouchIndex_EMA21)
-                {
-                    CountTouch_EMA21++;
-
-                    if (barIndex.HasValue)
-                    {
-                        LastTouchIndex_EMA21 = barIndex.Value;
-                    }                    
-                }
+                CountTouch_EMA21++;
             }
             else if (position == EMA2129OrderPostition.EMA29)
             {
-                if (!barIndex.HasValue || barIndex.Value != LastTouchIndex_EMA29)
-                {
-                    CountTouch_EMA29++;
-
-                    if (barIndex.HasValue)
-                    {
-                        LastTouchIndex_EMA29 = barIndex.Value;
-                    }
-                }                    
-            }
-            else if (position == EMA2129OrderPostition.EMA10)
-            {
-                if (!barIndex.HasValue || barIndex.Value != LastTouchIndex_EMA10)
-                {
-                    CountTouch_EMA10_5m++;
-
-                    if (barIndex.HasValue)
-                    {
-                        LastTouchIndex_EMA10 = barIndex.Value;
-                    }
-                }
+                CountTouch_EMA29++;  
             }
         }        
     }    

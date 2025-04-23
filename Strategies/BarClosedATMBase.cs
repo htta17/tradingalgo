@@ -329,7 +329,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             FilledPrice = priceToSet;
             FilledTime = Time[0];
 
-            var stopLossPrice = GetStopLossPrice(CurrentTradeAction, priceToSet, atmStrategy);
+            StopLossPrice = GetStopLossPrice(tradeAction, priceToSet, atmStrategy);
+            TargetPrice_Full = GetTargetPrice_Full(tradeAction, priceToSet, atmStrategy);
+            TargetPrice_Half = GetTargetPrice_Half(tradeAction, priceToSet, atmStrategy);
 
             LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}");
 

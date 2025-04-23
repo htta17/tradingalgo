@@ -461,7 +461,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     LocalPrint($"Last TradingStatus: OrderExists, new TradingStatus: {TradingStatus}. TargetPrice: {TargetPrice_Full:N2}, " +
                         $"updatedPrice:{updatedPrice:N2}, StopLossPrice: {StopLossPrice:N2}, " +
-                        $"buyPriceIsOutOfRange: {buyPriceIsOutOfRange}, :sellPriceIsOutOfRange: {sellPriceIsOutOfRange}. ");
+                        $"{(buyPriceIsOutOfRange ? "out of BUY range" : "")}," +
+                        $"{(sellPriceIsOutOfRange ? "out of SELL range" : "")}. ");
 
                     OnMarketData_OrderExists(updatedPrice);
                 }

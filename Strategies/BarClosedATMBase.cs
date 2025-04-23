@@ -119,9 +119,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override Order GetPendingOrder()
         {
-            var order = Account.Orders.FirstOrDefault(c => c.Name.Contains(OrderEntryName) && (c.OrderState == OrderState.Working || c.OrderState == OrderState.Accepted));
+            if (State == State.Realtime)
+            {
+                var order = Account.Orders.FirstOrDefault(c => c.Name.Contains(OrderEntryName) && (c.OrderState == OrderState.Working || c.OrderState == OrderState.Accepted));
 
-            return order;
+                return order;
+            }
+            else if (State == State.Historical)
+            {
+                return base.GetPendingOrder();
+            }
+            
+            return null;            
         }
 
         protected override void TransitionOrdersToLive()
@@ -418,7 +427,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void CancelAllPendingOrder()
         {
-            AtmStrategyCancelEntryOrder(OrderId);
+            if (State == State.Realtime)
+            {
+                AtmStrategyCancelEntryOrder(OrderId);
+            }
+            else if (State == State.Historical)
+            {
+                base.CancelAllPendingOrder();
+            }            
 
             tradingStatus = TradingStatus.Idle;
         }

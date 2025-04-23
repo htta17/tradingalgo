@@ -28,6 +28,23 @@ namespace NinjaTrader.Custom.Strategies
         public BarClosedBaseClass(string logPrefix)
         {
             LogPrefix = logPrefix;
+
+            CountOrder = 0;
+            CountEntrySignal = 0;
+
+            HalfPriceSignals = new HashSet<string>
+            {
+                StrategiesUtilities.SignalEntry_ReversalHalf,
+                StrategiesUtilities.SignalEntry_TrendingHalf,
+            };
+
+            EntrySignals = new HashSet<string>
+            {
+                StrategiesUtilities.SignalEntry_ReversalHalf,
+                StrategiesUtilities.SignalEntry_TrendingHalf,                
+                StrategiesUtilities.SignalEntry_ReversalFull,
+                StrategiesUtilities.SignalEntry_TrendingFull,
+            };
         }
 
         public BarClosedBaseClass() : this("[BASED]")

@@ -30,10 +30,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             EntrySignals = new HashSet<string>
             {
-                StrategiesUtilities.SignalEntry_ReversalHalf,
                 StrategiesUtilities.SignalEntry_TrendingHalf,
+                StrategiesUtilities.SignalEntry_ReversalHalf,                
                 StrategiesUtilities.SignalEntry_TrendingFull,
-                StrategiesUtilities.SignalEntry_ReversalHalf,
+                StrategiesUtilities.SignalEntry_ReversalFull,
             };
         }
 

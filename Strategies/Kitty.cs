@@ -69,16 +69,19 @@ namespace NinjaTrader.NinjaScript.Strategies
             get { return CurrentTradeAction.Action == GeneralTradeAction.Sell; }
         }
 
-        private DateTime executionTime = DateTime.MinValue;
-
         #region Indicators
         protected EMA EMA29Indicator_1m { get; set; }
         protected EMA EMA21Indicator_1m { get; set; }
         protected EMA EMA46Indicator_5m { get; set; }
         protected EMA EMA51Indicator_5m { get; set; }
         protected EMA EMA10Indicator_5m { get; set; }
-        // protected ADXandDI ADXandDI { get; set; }
+
+        #if USE_ADX_TO_TRADE
+        protected ADXandDI ADXandDI { get; set; }
+        #endif
+
         // protected MACD MACD { get; set; }
+
         #endregion
         private EMA2129Status EMA2129Status { get; set; }
         
@@ -89,9 +92,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// Trong trường hợp giá trị [PreviousPosition] == vị trí cây nến hiện tại thì không cần reset order.
         /// </summary>
         private EMA2129Position PreviousPosition { get; set; } = EMA2129Position.Unknown;
-
-        #region ADX - Not in use now
-        /*
+        
+        #if USE_ADX_TO_TRADE        
         [NinjaScriptProperty]
         [Display(Name = "ADX Value to Enter Order:",
             Description = "Nếu ADX value > [giá trị]: Enter order",
@@ -102,9 +104,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         [Display(Name = "ADX Value to cancel Order:",
             Description = "Nếu ADX value < [giá trị]: Cancel order",
             Order = 3, GroupName = StrategiesUtilities.Configuration_General_Name)]
-        public int ADXValueToCANCELOrder { get; set; }
-        */
-        #endregion
+        public int ADXValueToCANCELOrder { get; set; }        
+        #endif
 
         /// <summary>
         /// Display Volume Indicator
@@ -150,7 +151,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void OnStateChange_DataLoaded()
         {
             EMA29Indicator_1m = EMA(BarsArray[2], 29);
-            EMA29Indicator_1m.Plots[0].Brush = Brushes.Red;
+            EMA29Indicator_1m.Plots[0].Brush = Brushes.Orange;
 
             EMA21Indicator_1m = EMA(BarsArray[2], 21);
             EMA21Indicator_1m.Plots[0].Brush = Brushes.Blue;
@@ -159,13 +160,18 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA51Indicator_5m = EMA(BarsArray[1], 51);
             EMA10Indicator_5m = EMA(BarsArray[1], 10);
 
-            //ADXandDI = ADXandDI(BarsArray[2], 14, ADXValueToENTEROrder, ADXValueToCANCELOrder);
+            #if USE_ADX_TO_TRADE
+            ADXandDI = ADXandDI(BarsArray[2], 14, ADXValueToENTEROrder, ADXValueToCANCELOrder);
+            #endif
 
             if (DisplayIndicators)
             {
                 AddChartIndicator(EMA29Indicator_1m);
                 AddChartIndicator(EMA21Indicator_1m);
-                //AddChartIndicator(ADXandDI);
+
+                #if USE_ADX_TO_TRADE
+                AddChartIndicator(ADXandDI);
+                #endif
             }
         }
 
@@ -265,13 +271,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Do nothing for now
             }
         }
-        
-        
 
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
         {
-            LocalPrint($"[BasicActionForTrading] - {TradingStatus}");
-
             // Make sure each stratergy have each own time frame to trade
             if (timeFrameToTrade != Configured_TimeFrameToTrade)
             {
@@ -391,7 +393,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // EMA 21 nằm trên EMA10 và trên EMA46
                 else if (ema21_AboveAndNear_EM10_5m && ema21_AboveAndNear_EM46_5m)
                 {
-                    answer.Action = GeneralTradeAction.Buy;
+                    answer.Action = GeneralTradeAction.Sell;
                     answer.Postition = EMA2129OrderPostition.EMA29;
                 }
                 // Không có trường hợp EMA21 nằm trên EMA46 nhưng lại nằm dưới EMA10
@@ -516,6 +518,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Nếu ngược trend hoặc backtest thì vào cancel lệnh cũ và vào lệnh mới
                 if (State == State.Historical || (CurrentTradeAction.Action != checkShouldTradeAgain.Action))
                 {
+
                     #region Cancel current order and enter new one
                     CancelAllPendingOrder();
 
@@ -525,6 +528,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Ngược lại thì update điểm vào lệnh
                 else if (State == State.Realtime)
                 {
+                    EMA2129Status.SetEnteredOrder(checkShouldTradeAgain.Postition);
+
                     #region Begin of move pending order
                     UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
                     #endregion
@@ -548,8 +553,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     break;
                 case EMA2129OrderPostition.EMA29:
                     ans = tradeAction.Action == GeneralTradeAction.Buy 
-                        ? EMA21Indicator_1m.Value[0] + AJUST_POINT_WHEN_EMA21_NEAR_EMA46 
-                        : EMA21Indicator_1m.Value[0] - AJUST_POINT_WHEN_EMA21_NEAR_EMA46;
+                        ? EMA21Indicator_1m.Value[0] + AdjustmentPoint
+                        : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
                     break;
                 case EMA2129OrderPostition.MiddlePoint:
                     ans = (EMA29Indicator_1m.Value[0] + EMA10Indicator_5m.Value[0]) / 2.0;
@@ -606,7 +611,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         newPrice = TargetPrice_Half;                        
                     }
                     */
-                    #endregion                    
+                    #endregion
                 }
             }
             else if (isSelling)

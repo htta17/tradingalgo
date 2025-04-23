@@ -233,9 +233,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 var shouldTrade = ShouldTrade();
 
-                LocalPrint($"Check trading condition, result: {shouldTrade.Action}, EnteredOrder: {EMA2129Status.EnteredOrder}");
+                LocalPrint($"Check trading condition, result: {shouldTrade.Action}, EnteredOrder: {EMA2129Status.EnteredOrder21}");
 
-                if (shouldTrade.Action != GeneralTradeAction.NoTrade && !EMA2129Status.EnteredOrder) // Nếu chưa enter order thì mới enter order
+                if (shouldTrade.Action != GeneralTradeAction.NoTrade && !EMA2129Status.EnteredOrder21) // Nếu chưa enter order thì mới enter order
                 {
                     EMA2129Status.SetEnteredOrder(shouldTrade.Postition);
 

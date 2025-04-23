@@ -36,7 +36,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         public BarClosedATMBase() : this("BASED ATM")
         {
+            HalfPriceSignals = new HashSet<string>
+            {                
+                StrategiesUtilities.SignalEntry_TrendingHalf
+            };
 
+            EntrySignals = new HashSet<string>
+            {                
+                StrategiesUtilities.SignalEntry_TrendingHalf,
+                StrategiesUtilities.SignalEntry_TrendingFull,                
+            };
         }
 
         #region Constants         
@@ -81,7 +90,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             get
             {
-                return tradingStatus;
+                return State == State.Realtime ? tradingStatus : base.TradingStatus;
             }
         }
 

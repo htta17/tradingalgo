@@ -269,7 +269,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         
 
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
-        {   
+        {
+            LocalPrint($"[BasicActionForTrading] - {TradingStatus}");
+
             // Make sure each stratergy have each own time frame to trade
             if (timeFrameToTrade != Configured_TimeFrameToTrade)
             {
@@ -286,13 +288,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 var shouldTrade = ShouldTrade();
 
-                LocalPrint($"Check trading condition, result: {shouldTrade.Action}, EnteredOrder: {EMA2129Status.EnteredOrder}");
+                //LocalPrint($"Check trading condition, result: {shouldTrade.Action}, EnteredOrder: {EMA2129Status.EnteredOrder}");
                 
-                if (shouldTrade.Action != GeneralTradeAction.NoTrade && !EMA2129Status.EnteredOrder) // Nếu chưa enter order thì mới enter order
+                if (shouldTrade.Action != GeneralTradeAction.NoTrade) // Nếu chưa enter order thì mới enter order
                 {
-                    EMA2129Status.SetEnteredOrder(shouldTrade.Postition);
+                   
+                    if ((shouldTrade.Postition == EMA2129OrderPostition.EMA21 && !EMA2129Status.EnteredOrder21) || 
+                        (shouldTrade.Postition == EMA2129OrderPostition.EMA29 && !EMA2129Status.EnteredOrder29)) 
+                    {
+                        EMA2129Status.SetEnteredOrder(shouldTrade.Postition);
 
-                    EnterOrder(shouldTrade);
+                        EnterOrder(shouldTrade);
+                    }
                 }
             }
             else if (TradingStatus == TradingStatus.PendingFill)
@@ -329,8 +336,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             var ema10_5mVal = EMA10Indicator_5m.Value[0];
             var ema46_5mVal = EMA46Indicator_5m.Value[0];
 
-            const int MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 = 11;
-            const int MAX_DISTANCE_BETWEEN_EMA10_5m_AND_EMA21 = 9;
+            const int MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 = 10;
+            const int MAX_DISTANCE_BETWEEN_EMA10_5m_AND_EMA21 = 7;
 
             // EMA21 (khung 1 phút) ở trên EMA10 (5 phút) hoặc ở dưới nhưng rất gần. 
             var ema21_Above_EMA10_5m = ema21Val >= ema10_5mVal; 

@@ -390,12 +390,25 @@ namespace NinjaTrader.Custom.Strategies
         /// Có 2 điểm đặt lệnh (EMA21/29) <br/>
         /// Chỉ tính cho EMA21
         /// </summary>
-        public bool EnteredOrder 
+        public bool EnteredOrder21
         { 
             get 
             {
                 return SetAt_EMA21;
             } 
+        }
+
+        /// <summary>
+        /// Dùng để đánh dấu đã enter order hay chưa <br/>
+        /// Có 2 điểm đặt lệnh (EMA21/29) <br/>
+        /// Chỉ tính cho EMA21
+        /// </summary>
+        public bool EnteredOrder29
+        {
+            get
+            {
+                return SetAt_EMA29;
+            }
         }
 
         public void SetPosition(EMA2129Position position, int? barIndex = null, bool resetEnterOrder = false) 

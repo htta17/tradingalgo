@@ -1,4 +1,5 @@
-﻿#region Using declarations
+﻿#define USE_ADX_TO_TRADE
+#region Using declarations
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -74,13 +75,9 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected EMA EMA21Indicator_1m { get; set; }
         protected EMA EMA46Indicator_5m { get; set; }
         protected EMA EMA51Indicator_5m { get; set; }
-        protected EMA EMA10Indicator_5m { get; set; }
+        protected EMA EMA10Indicator_5m { get; set; }       
 
-        #if USE_ADX_TO_TRADE
-        protected ADXandDI ADXandDI { get; set; }
-        #endif
-
-        // protected MACD MACD { get; set; }
+        protected WaddahAttarExplosion WaddahAttarExplosion_5m { get; set; }
 
         #endregion
         private EMA2129Status EMA2129Status { get; set; }
@@ -93,19 +90,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         private EMA2129Position PreviousPosition { get; set; } = EMA2129Position.Unknown;
         
-        #if USE_ADX_TO_TRADE        
-        [NinjaScriptProperty]
-        [Display(Name = "ADX Value to Enter Order:",
-            Description = "Nếu ADX value > [giá trị]: Enter order",
-            Order = 2, GroupName = StrategiesUtilities.Configuration_General_Name)]
-        public int ADXValueToENTEROrder { get; set; }
-
-        [NinjaScriptProperty]
-        [Display(Name = "ADX Value to cancel Order:",
-            Description = "Nếu ADX value < [giá trị]: Cancel order",
-            Order = 3, GroupName = StrategiesUtilities.Configuration_General_Name)]
-        public int ADXValueToCANCELOrder { get; set; }        
-        #endif
+        
 
         /// <summary>
         /// Display Volume Indicator
@@ -159,19 +144,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA46Indicator_5m = EMA(BarsArray[1], 46);
             EMA51Indicator_5m = EMA(BarsArray[1], 51);
             EMA10Indicator_5m = EMA(BarsArray[1], 10);
-
-            #if USE_ADX_TO_TRADE
-            ADXandDI = ADXandDI(BarsArray[2], 14, ADXValueToENTEROrder, ADXValueToCANCELOrder);
-            #endif
+            WaddahAttarExplosion_5m = WaddahAttarExplosion(BarsArray[1]);
 
             if (DisplayIndicators)
             {
                 AddChartIndicator(EMA29Indicator_1m);
                 AddChartIndicator(EMA21Indicator_1m);
-
-                #if USE_ADX_TO_TRADE
-                AddChartIndicator(ADXandDI);
-                #endif
             }
         }
 
@@ -337,6 +315,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             var ema21Val = EMA21Indicator_1m.Value[0];
             var ema10_5mVal = EMA10Indicator_5m.Value[0];
             var ema46_5mVal = EMA46Indicator_5m.Value[0];
+            var volume = new WAE_ValueSet(ImplementedAlgorithm.Kitty)
+            {
+                DeadZoneVal = WaddahAttarExplosion_5m.Values[3][0],
+                DownTrendVal = WaddahAttarExplosion_5m.Values[1][0],
+                ExplosionVal = WaddahAttarExplosion_5m.Values[2][0],
+                UpTrendVal = WaddahAttarExplosion_5m.Values[0][0]
+            };
+
+            LocalPrint($"Has RED volume: [{volume.HasBEARVolume}], Has GREEN volume: [{volume.HasBULLVolume}]");
 
             const int MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 = 10;
             const int MAX_DISTANCE_BETWEEN_EMA10_5m_AND_EMA21 = 7;
@@ -353,8 +340,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var ema21_BelowAndNear_EM46_5m = ema21Val < ema46_5mVal && ema46_5mVal - ema21Val < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21;
             var ema21_AboveAndNear_EM46_5m = ema21Val > ema46_5mVal && ema21Val - ema46_5mVal < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21;
-
-            if (EMA2129Status.Position == EMA2129Position.Above)
+            
+            if (EMA2129Status.Position == EMA2129Position.Above && volume.HasBULLVolume)
             {
                 // EMA 21 nằm trên cả EMA10 và EMA46 khung 5 phút
                 if (ema21_Above_EMA10_5m && ema21_Above_EMA46_5m)
@@ -376,7 +363,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 // Không có trường hợp EMA21 nằm dưới EMA46 nhưng lại nằm trên EMA10
             }
-            else if (EMA2129Status.Position == EMA2129Position.Below)
+            else if (EMA2129Status.Position == EMA2129Position.Below && volume.HasBEARVolume)
             {
                 // EMA 21 nằm dưới cả EMA10 và EMA46 khung 5 phút
                 if (ema21_Below_EMA10_5m && ema21_Below_EMA46_5m)
@@ -535,9 +522,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     #endregion
                 }
             }
-        }
-
-        private const int AJUST_POINT_WHEN_EMA21_NEAR_EMA46 = 4;
+        }        
 
         protected override double GetSetPrice(EMA2129OrderDetail tradeAction, AtmStrategy additionalInfo)
         {
@@ -551,6 +536,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         ? EMA21Indicator_1m.Value[0] + AdjustmentPoint 
                         : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
                     break;
+                // Note: Vẫn dùng EMA21 +/- AdjustmentPoint để vào lệnh
                 case EMA2129OrderPostition.EMA29:
                     ans = tradeAction.Action == GeneralTradeAction.Buy 
                         ? EMA21Indicator_1m.Value[0] + AdjustmentPoint

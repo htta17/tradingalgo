@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media.Media3D;
 
 namespace NinjaTrader.Custom.Strategies
 {
@@ -138,13 +139,38 @@ namespace NinjaTrader.Custom.Strategies
         SuperStrong
     }
 
+    public enum ImplementedAlgorithm
+    { 
+        FVG, 
+        Kitty, 
+        Rooster
+    }
+
     /// <summary>
     /// Waddah Attar Explosion
     /// </summary>
     public class WAE_ValueSet
     {
+        public WAE_ValueSet() : this(ImplementedAlgorithm.Rooster)
+        { 
+        }
+        /// <summary>
+        /// Khởi tạo theo các Algorithm khác nhau để có [SafetyRatio] khác nhau
+        /// </summary>
+        /// <param name="algorithm">Mặc định là Rooster</param>
+        public WAE_ValueSet(ImplementedAlgorithm algorithm) 
+        {
+            if (algorithm == ImplementedAlgorithm.Kitty)
+            {
+                SafetyRatio = 1.0;
+            }
+            else
+            {
+                SafetyRatio = 1.4;
+            }
+        }
         // Là hệ số đảm bảo cho UpTrendVal hoặc DownTrendVal phải lớn hơn [DeadZoneVal] *  [SafetyRatio]
-        public const double SafetyRatio = 1.4;
+        private double SafetyRatio { get; set; }
 
         /// <summary>
         /// Volume ≤ [WeakRange]: Weak

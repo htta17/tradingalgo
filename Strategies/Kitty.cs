@@ -144,7 +144,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             AddPlot(Brushes.Red, "EMA46_5m");            
 
             DisplayIndicators = true;
-            AdjustmentPoint = 9;
+            AdjustmentPoint = 10;
         }
 
         protected override void OnStateChange_DataLoaded()

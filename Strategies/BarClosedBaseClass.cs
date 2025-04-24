@@ -45,12 +45,16 @@ namespace NinjaTrader.Custom.Strategies
                 StrategiesUtilities.SignalEntry_ReversalFull,
                 StrategiesUtilities.SignalEntry_TrendingFull,
             };
+
+            BackTestDailyPnL = 0;
         }
 
         public BarClosedBaseClass() : this("[BASED]")
         {
             
         }
+
+        protected double BackTestDailyPnL { get; set; }
 
         #region Configuration 
         /// <summary>
@@ -61,6 +65,8 @@ namespace NinjaTrader.Custom.Strategies
             Order = 1,
             GroupName = StrategiesUtilities.Configuration_General_Name)]
         public bool AllowWriteLog { get; set; }
+
+        protected const int AlgQuantity = 4;
 
         #region Allow Trade Parameters
 
@@ -297,7 +303,7 @@ namespace NinjaTrader.Custom.Strategies
             AllowToMoveStopLossGain = true;
 
             StopLossInTicks = 120;
-            Target1InTicks = 60;
+            Target1InTicks = 100;
             Target2InTicks = 120;            
             AllowWriteLog = true;           
 
@@ -344,7 +350,7 @@ namespace NinjaTrader.Custom.Strategies
             if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
             {
                 #region Getting and draw some key levels
-                var time = ToTime(Time[0]); 
+                var time = ToTime(Time[0]);
 
                 // Define Asian session time range (9:00 PM to 7:00 AM CST)
                 if (time >= 21_00_00 || time < 07_00_00 )
@@ -557,10 +563,28 @@ namespace NinjaTrader.Custom.Strategies
                 */
             }
 
+
             // Đủ target loss/gain trong ngày
-            if ((validateType & ValidateType.MaxDayGainLoss) == ValidateType.MaxDayGainLoss && 
-                StrategiesUtilities.ReachMaxDayLossOrDayTarget(this, Account, MaximumDailyLoss, DailyTargetProfit))
+            var reachMaxDayLossOrDayTarget = false;
+            if (State == State.Realtime)
             {
+                reachMaxDayLossOrDayTarget = StrategiesUtilities.ReachMaxDayLossOrDayTarget(this, Account, MaximumDailyLoss, DailyTargetProfit);
+            }
+            else if (State == State.Historical)
+            {
+                double todaysPnL = BackTestDailyPnL;
+
+                reachMaxDayLossOrDayTarget = todaysPnL <= -MaximumDailyLoss || todaysPnL >= DailyTargetProfit;
+
+                if (reachMaxDayLossOrDayTarget)
+                {
+                    LocalPrint($"DONE FOR TODAY - PnL: {todaysPnL}");
+                }
+            }
+
+            if ((validateType & ValidateType.MaxDayGainLoss) == ValidateType.MaxDayGainLoss && reachMaxDayLossOrDayTarget)
+            {
+
                 return false;
             }
 
@@ -599,6 +623,19 @@ namespace NinjaTrader.Custom.Strategies
                     if (EntrySignals.Contains(key))
                     {
                         CountEntrySignal--; 
+                    }
+
+                    if (orderState == OrderState.Filled)
+                    {
+                        if (order.OrderType == OrderType.StopMarket) // Filled Stop --> Loss
+                        {
+                            BackTestDailyPnL -= AlgQuantity * TickSize * StopLossInTicks;
+                        }
+                        else if (order.OrderType == OrderType.StopMarket) // Filled Stop --> Win
+                        {
+                            BackTestDailyPnL += AlgQuantity * TickSize * Target2InTicks;
+                        }
+                        LocalPrint($"New daily PnL: {BackTestDailyPnL:N2}");
                     }
                 }
                 else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
@@ -654,33 +691,24 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
         
-        protected void EnterOrderPureUsingPrice(double priceToSet, double target, double stoploss, string signal, int quantity, bool isBuying, bool isSelling)
+        protected void EnterOrderPureUsingPrice(double priceToSet, double targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
         {
             var text = isBuying ? "LONG" : "SHORT";
-
-            var allowTrade = (isBuying && priceToSet < target) || (isSelling && priceToSet > target);
-
-            if (allowTrade)
-            {
-                if (isBuying)
-                {
-                    EnterLongLimit(0, true, quantity, priceToSet, signal);
-                    //EnterLongStopLimit(quantity, priceToSet, stoploss, signal);
-
-                }
-                else
-                {
-                    EnterShortLimit(0, true, quantity, priceToSet, signal);
-                    //EnterShortStopLimit(quantity, priceToSet, stoploss, signal);
-                }
-
-                //SetStopLoss(signal, CalculationMode.Ticks, StopLossInTicks, false);
-                SetStopLoss(signal, CalculationMode.Price, stoploss, false);
-
-                SetProfitTarget(signal, CalculationMode.Price, target);
-
-                LocalPrint($"Enter {text} for {quantity} contracts with signal [{signal}] at {priceToSet:N2}, stop loss: {stoploss:N2}, target: {target:N2}");
+            
+            if (isBuying)
+            {                
+                EnterLongLimit(0, true, quantity, priceToSet, signal);
             }
+            else
+            {             
+                EnterShortLimit(0, true, quantity, priceToSet, signal);
+            }
+                
+            SetStopLoss(signal, CalculationMode.Ticks, stoplossInTicks, false);
+
+            SetProfitTarget(signal, CalculationMode.Ticks, targetInTicks);
+
+            LocalPrint($"Enter {text} for {quantity} contracts with signal [{signal}] at {priceToSet:N2}, stop loss ticks: {stoplossInTicks:N2}, target ticks: {targetInTicks:N2}");            
         }
 
         protected virtual void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)

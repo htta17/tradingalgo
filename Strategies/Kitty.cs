@@ -131,6 +131,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             DisplayIndicators = true;
             AdjustmentPoint = 10;
+
+            BarsRequiredToTrade = 500;
+            BarsRequiredToPlot = 500;
         }
 
         protected override void OnStateChange_DataLoaded()
@@ -196,6 +199,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 StrategiesUtilities.CalculatePnL(this, Account, Print);
 
+                var time = ToTime(Time[0]);
+
+                if (time == 16_00_00 && State == State.Historical)
+                {
+                    LocalPrint($"Reset daily PnL for back test");
+                    BackTestDailyPnL = 0;
+                }
+
                 try
                 {
                     var high = High[0];
@@ -259,16 +270,18 @@ namespace NinjaTrader.NinjaScript.Strategies
             }            
 
             if (TradingStatus == TradingStatus.Idle)
-            {
+            {                
                 var passTradeCondition = CheckingTradeCondition();
                 if (!passTradeCondition)
                 {
+                    LocalPrint($"[BasicActionForTrading] Not Pass Condition to trade");
                     return;
-                }                
+                }
+                LocalPrint($"[BasicActionForTrading] Start Should Trade");
 
                 var shouldTrade = ShouldTrade();
 
-                //LocalPrint($"Check trading condition, result: {shouldTrade.Action}, EnteredOrder: {EMA2129Status.EnteredOrder}");
+                LocalPrint($"Check trading condition, result: {shouldTrade.Action}, EnteredOrder21: {EMA2129Status.EnteredOrder21}, EnteredOrder29: {EMA2129Status.EnteredOrder29}");
                 
                 if (shouldTrade.Action != GeneralTradeAction.NoTrade) // Nếu chưa enter order thì mới enter order
                 {
@@ -323,7 +336,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 UpTrendVal = WaddahAttarExplosion_5m.Values[0][0]
             };
 
-            LocalPrint($"Has RED volume: [{volume.HasBEARVolume}], Has GREEN volume: [{volume.HasBULLVolume}]");
+            LocalPrint($"Has RED volume: [{volume.HasBEARVolume}], Has GREEN volume: [{volume.HasBULLVolume}], ema21Val: {ema21Val:N2}, ema10_5mVal: {ema10_5mVal:N2}, ema46_5mVal: {ema46_5mVal:n2}");
 
             const int MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 = 10;
             const int MAX_DISTANCE_BETWEEN_EMA10_5m_AND_EMA21 = 7;
@@ -349,6 +362,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     answer.Action = GeneralTradeAction.Buy;
                     answer.Postition = EMA2129OrderPostition.EMA21;
                 }
+                
                 // EMA 21 nằm trên EMA10 nhưng dưới EMA46
                 else if (ema21_Above_EMA10_5m && ema21_BelowAndNear_EM46_5m)
                 {
@@ -362,6 +376,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     answer.Postition = EMA2129OrderPostition.EMA29;
                 }
                 // Không có trường hợp EMA21 nằm dưới EMA46 nhưng lại nằm trên EMA10
+                
             }
             else if (EMA2129Status.Position == EMA2129Position.Below && volume.HasBEARVolume)
             {
@@ -371,6 +386,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     answer.Action = GeneralTradeAction.Sell;
                     answer.Postition = EMA2129OrderPostition.EMA21;
                 }
+                
                 // EMA 21 nằm dưới EMA10 nhưng trên EMA46
                 else if (ema21_Below_EMA10_5m && ema21_AboveAndNear_EM46_5m)
                 {
@@ -384,6 +400,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     answer.Postition = EMA2129OrderPostition.EMA29;
                 }
                 // Không có trường hợp EMA21 nằm trên EMA46 nhưng lại nằm dưới EMA10
+                
             }
 
             answer.Sizing = EMA2129SizingEnum.Big;
@@ -503,7 +520,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Số lượng contracts hiện tại
 
                 // Nếu ngược trend hoặc backtest thì vào cancel lệnh cũ và vào lệnh mới
-                if (State == State.Historical || (CurrentTradeAction.Action != checkShouldTradeAgain.Action))
+                if (CurrentTradeAction.Action != checkShouldTradeAgain.Action)
                 {
 
                     #region Cancel current order and enter new one
@@ -513,13 +530,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     #endregion
                 }
                 // Ngược lại thì update điểm vào lệnh
-                else if (State == State.Realtime)
+                else 
                 {
                     EMA2129Status.SetEnteredOrder(checkShouldTradeAgain.Postition);
 
-                    #region Begin of move pending order
-                    UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
-                    #endregion
+                    UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);                    
                 }
             }
         }        
@@ -527,6 +542,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override double GetSetPrice(EMA2129OrderDetail tradeAction, AtmStrategy additionalInfo)
         {
             double ans = -1;
+            LocalPrint($"EMA21: {EMA21Indicator_1m.Value[0]:N2}, AdjustmentPoint: {AdjustmentPoint}, tradeAction: {tradeAction.Action}");
             /*
              */
             switch (tradeAction.Postition)

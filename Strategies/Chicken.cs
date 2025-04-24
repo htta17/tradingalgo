@@ -222,7 +222,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             DefaultQuantity = 2;
 
             // Stop loss/Target profit properties
-            Target1InTicks = 40;
+            Target1InTicks = 100;
 
             ReduceSizeIfProfit = 100;
 

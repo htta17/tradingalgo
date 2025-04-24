@@ -173,7 +173,26 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     LocalPrint($"Trying to modify pending order, new Price: {newPrice:N2}, new stop loss: {stopLossPrice:N2}, new target: {target:N2}");
 
-                    AtmStrategyChangeEntryOrder(newPrice, stopLossPrice, OrderId);
+                    if (State == State.Realtime)
+                    {
+                        AtmStrategyChangeEntryOrder(newPrice, stopLossPrice, OrderId);
+                    }
+                    else if (State == State.Historical)
+                    {
+                        var clonedList = ActiveOrders.Values.ToList();
+                        var len = clonedList.Count;
+
+                        for (var i = 0; i < len; i++)
+                        {
+                            var order = clonedList[i];
+                            
+                            LocalPrint($"Trying to modify waiting order [{order.Name}], " +
+                                $"current Price: {order.LimitPrice}, current stop: {order.StopPrice}, " +
+                                $"new Price: {newPrice:N2}, new stop loss: {stopLossPrice}, newTarget: {target:N2}");
+
+                            ChangeOrder(order, order.Quantity, newPrice, 0);                            
+                        }
+                    }                    
                 }
                 catch (Exception ex)
                 {
@@ -344,13 +363,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             var (atmStrategy, atmStrategyName) = GetAtmStrategyByPnL(tradeAction);
 
             double priceToSet = GetSetPrice(tradeAction, atmStrategy);
+            
             FilledPrice = priceToSet;
             FilledTime = Time[0];
-
-            StopLossPrice = GetStopLossPrice(tradeAction, priceToSet, atmStrategy);
-            TargetPrice_Full = GetTargetPrice_Full(tradeAction, priceToSet, atmStrategy);
-            TargetPrice_Half = GetTargetPrice_Half(tradeAction, priceToSet, atmStrategy);
-
             LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}");
 
             try
@@ -359,7 +374,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 //EnterOrderPureUsingPrice(priceToSet, Target1InTicks, StopLossInTicks, signalHalf, 2, IsBuying, IsSelling);
 
                 var signalFull = StrategiesUtilities.SignalEntry_TrendingFull;
-                EnterOrderPureUsingPrice(priceToSet, Target2InTicks, StopLossInTicks, signalFull, 2, IsBuying, IsSelling);
+                EnterOrderPureUsingPrice(priceToSet, Target2InTicks, StopLossInTicks, signalFull, AlgQuantity, IsBuying, IsSelling);
             }
             catch (Exception ex)
             {
@@ -594,7 +609,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetStopLossPrice(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
-            var stopLossTick = atmStrategy.Brackets[0].StopLoss;
+            var stopLossTick = State == State.Historical 
+                ? StopLossInTicks 
+                : atmStrategy.Brackets[0].StopLoss;
 
             return IsBuying ?
                 setPrice - stopLossTick * TickSize :
@@ -603,7 +620,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetTargetPrice_Half(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
-            var targetTick_Half = IsBuying ? atmStrategy.Brackets.Min(c => c.Target) : atmStrategy.Brackets.Max(c => c.Target);
+            var targetTick_Half = State == State.Historical 
+                ? Target1InTicks 
+                : (IsBuying ? atmStrategy.Brackets.Min(c => c.Target) : atmStrategy.Brackets.Max(c => c.Target));
 
             return IsBuying ?
                 setPrice + targetTick_Half * TickSize :
@@ -612,7 +631,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetTargetPrice_Full(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
-            var targetTick_Full = IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target);
+            var targetTick_Full = State == State.Historical
+                ? Target2InTicks
+                : (IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target));
 
             return IsBuying ?
                 setPrice + targetTick_Full * TickSize :

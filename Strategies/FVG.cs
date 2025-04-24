@@ -95,7 +95,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             WayToSetStopLoss = FVGWayToSetStopLoss.BasedOnFVGGap;
 
             StopLossInTicks = 120;
-            Target1InTicks = 40;
+            Target1InTicks = 100;
             Target2InTicks = 120;
 
             SetOrderQuantity = SetOrderQuantity.Strategy;

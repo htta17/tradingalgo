@@ -516,6 +516,12 @@ namespace NinjaTrader.Custom.Strategies
     public enum EMA2129OrderPostition
     {
         NoTrade = 0,
+
+        /// <summary>
+        /// EMA21 có +/- Adjustment
+        /// </summary>
+        AdjustedEMA21,
+
         /// <summary>
         /// EMA 21 khung 1 phút
         /// </summary>
@@ -524,17 +530,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// EMA 29 khung 1 phút
         /// </summary>        
-        EMA29,
-
-        /// <summary>
-        /// Điểm giữa của EMA 29 khung 1 phút và EMA10 khung 5 phút 
-        /// </summary>
-        MiddlePoint, 
-
-        /// <summary>
-        /// EMA 10 khung 5 phút
-        /// </summary>
-        EMA10
+        EMA29,        
     }
 
     public class EMA2129OrderDetail

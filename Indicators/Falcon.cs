@@ -57,7 +57,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ema21 = EMA(21);
                 //AddDataSeries(Data.BarsPeriodType.Minute, 1); // Optional, keep it if working with multiple timeframes
             }
-		}
+		}		
 
 		protected override void OnBarUpdate()
 		{
@@ -96,19 +96,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			var absolutedAngle = Math.Abs(angle);
 
-			Values[0][0] = absolutedAngle;
+			Values[0][0] = -angle;
 
-			if (absolutedAngle < 30)
+			if (absolutedAngle < 20)
+			{
+				PlotBrushes[0][0] = Brushes.Black;
+			}
+			else if (absolutedAngle >= 20 && absolutedAngle < 45)
 			{
 				PlotBrushes[0][0] = Brushes.Green;
 			}
-			else if (absolutedAngle >= 30 && absolutedAngle < 60)
+			else if (absolutedAngle >= 45 && absolutedAngle < 60)
 			{
 				PlotBrushes[0][0] = Brushes.Orange;
 			}
-			else 
+			else if (absolutedAngle >= 60 && absolutedAngle < 70)
 			{
 				PlotBrushes[0][0] = Brushes.Blue;
+			}
+			else 
+			{
+                PlotBrushes[0][0] = Brushes.DeepPink;
             }
 		}
 	}

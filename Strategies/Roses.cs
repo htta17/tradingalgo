@@ -376,13 +376,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     break;
                 case EMA2129OrderPostition.EMA29:
                     ans = EMA29Indicator_1m.Value[0];
-                    break;
-                case EMA2129OrderPostition.MiddlePoint:
-                    ans = (EMA29Indicator_1m.Value[0] + EMA10Indicator_5m.Value[0]) / 2.0;
-                    break;
-                case EMA2129OrderPostition.EMA10:
-                    ans = EMA21Indicator_1m.Value[0];
-                    break;
+                    break;                
             }    
 
             return StrategiesUtilities.RoundPrice(ans);

@@ -74,10 +74,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected EMA EMA29Indicator_1m { get; set; }
         protected EMA EMA21Indicator_1m { get; set; }
         protected EMA EMA46Indicator_5m { get; set; }
-        protected EMA EMA51Indicator_5m { get; set; }
+        protected EMA EMA20Indicator_5m { get; set; }
         protected EMA EMA10Indicator_5m { get; set; }       
 
-        protected WaddahAttarExplosion WaddahAttarExplosion_5m { get; set; }
+        protected Falcon Falcon_1m { get; set; }
+
+        // protected WaddahAttarExplosion WaddahAttarExplosion_5m { get; set; }
 
         #endregion
         private EMA2129Status EMA2129Status { get; set; }
@@ -127,7 +129,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA2129Status = new EMA2129Status();
 
             AddPlot(Brushes.Green, "EMA9_5m");
-            AddPlot(Brushes.Red, "EMA46_5m");            
+            AddPlot(Brushes.Red, "EMA46_5m");
+
+            //AddPlot(Brushes.Pink, "EMA20_5m");
 
             DisplayIndicators = true;
             AdjustmentPoint = 10;
@@ -145,14 +149,18 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA21Indicator_1m.Plots[0].Brush = Brushes.Blue;
 
             EMA46Indicator_5m = EMA(BarsArray[1], 46);
-            EMA51Indicator_5m = EMA(BarsArray[1], 51);
+            EMA20Indicator_5m = EMA(BarsArray[1], 20);
             EMA10Indicator_5m = EMA(BarsArray[1], 10);
-            WaddahAttarExplosion_5m = WaddahAttarExplosion(BarsArray[1]);
+            // WaddahAttarExplosion_5m = WaddahAttarExplosion(BarsArray[1]);
+
+            Falcon_1m = Falcon(BarsArray[2], 20);
 
             if (DisplayIndicators)
             {
                 AddChartIndicator(EMA29Indicator_1m);
                 AddChartIndicator(EMA21Indicator_1m);
+
+                AddChartIndicator(Falcon_1m);
             }
         }
 
@@ -180,6 +188,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {   
                     Values[0][0] = EMA10Indicator_5m.Value[0];
                     Values[1][0] = EMA46Indicator_5m.Value[0];
+
+                    //Values[2][0] = EMA20Indicator_5m.Value[0];
                 }
                 catch (Exception ex)
                 {
@@ -263,6 +273,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        const int MINIMUM_ANGLE_TO_TRADE = 45;
+
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
         {
             // Make sure each stratergy have each own time frame to trade
@@ -307,6 +319,26 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        
+        private EMA2129OrderPostition GetPostitionBasedOnAngleValue(double absolutedAngle)
+        {
+            if (absolutedAngle < MINIMUM_ANGLE_TO_TRADE)
+            {
+                return EMA2129OrderPostition.NoTrade; 
+            }
+            else if (absolutedAngle >= MINIMUM_ANGLE_TO_TRADE && absolutedAngle < 60)
+            {
+                return EMA2129OrderPostition.EMA29;
+            }
+            else if (absolutedAngle >= 60 && absolutedAngle < 70)
+            {
+                return EMA2129OrderPostition.EMA21;
+            }
+
+            return EMA2129OrderPostition.AdjustedEMA21;
+        }
+        
+
         protected override EMA2129OrderDetail ShouldTrade()
         {
             var answer = new EMA2129OrderDetail
@@ -330,6 +362,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             var ema21Val = EMA21Indicator_1m.Value[0];
             var ema10_5mVal = EMA10Indicator_5m.Value[0];
             var ema46_5mVal = EMA46Indicator_5m.Value[0];
+
+            /*
             var volume = new WAE_ValueSet(ImplementedAlgorithm.Kitty)
             {
                 DeadZoneVal = WaddahAttarExplosion_5m.Values[3][0],
@@ -337,8 +371,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ExplosionVal = WaddahAttarExplosion_5m.Values[2][0],
                 UpTrendVal = WaddahAttarExplosion_5m.Values[0][0]
             };
+            */
 
-            LocalPrint($"Has RED volume: [{volume.HasBEARVolume}], Has GREEN volume: [{volume.HasBULLVolume}], ema21Val: {ema21Val:N2}, ema10_5mVal: {ema10_5mVal:N2}, ema46_5mVal: {ema46_5mVal:n2}");
+            // LocalPrint($"Has RED volume: [{volume.HasBEARVolume}], Has GREEN volume: [{volume.HasBULLVolume}], ema21Val: {ema21Val:N2}, ema10_5mVal: {ema10_5mVal:N2}, ema46_5mVal: {ema46_5mVal:n2}");
 
             const int MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 = 10;
             const int MAX_DISTANCE_BETWEEN_EMA10_5m_AND_EMA21 = 7;
@@ -355,51 +390,57 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var ema21_BelowAndNear_EM46_5m = ema21Val < ema46_5mVal && ema46_5mVal - ema21Val < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21;
             var ema21_AboveAndNear_EM46_5m = ema21Val > ema46_5mVal && ema21Val - ema46_5mVal < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21;
+
+            var absolutedAngle = Math.Abs(Falcon_1m.Value[0]);            
             
-            if (EMA2129Status.Position == EMA2129Position.Above)// && volume.HasBULLVolume)
+            if (EMA2129Status.Position == EMA2129Position.Above && absolutedAngle >= MINIMUM_ANGLE_TO_TRADE)// && volume.HasBULLVolume)
             {
+                answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
+
                 // EMA 21 nằm trên cả EMA10 và EMA46 khung 5 phút
                 if (ema21_Above_EMA10_5m && ema21_Above_EMA46_5m)
                 {
                     answer.Action = GeneralTradeAction.Buy;
-                    answer.Postition = EMA2129OrderPostition.EMA21;
+                    //answer.Postition = EMA2129OrderPostition.EMA21;
                 }
                 
                 // EMA 21 nằm trên EMA10 nhưng dưới EMA46
                 else if (ema21_Above_EMA10_5m && ema21_BelowAndNear_EM46_5m)
                 {
                     answer.Action = GeneralTradeAction.Buy;
-                    answer.Postition = EMA2129OrderPostition.EMA29;
+                    //answer.Postition = EMA2129OrderPostition.EMA29;
                 }
                 // EMA 21 nằm dưới EMA10 và dưới EMA46
                 else if (ema21_BelowAndNear_EM10_5m && ema21_BelowAndNear_EM46_5m)
                 {
                     answer.Action = GeneralTradeAction.Buy;
-                    answer.Postition = EMA2129OrderPostition.EMA29;
+                    //answer.Postition = EMA2129OrderPostition.EMA29;
                 }
                 // Không có trường hợp EMA21 nằm dưới EMA46 nhưng lại nằm trên EMA10
                 
             }
-            else if (EMA2129Status.Position == EMA2129Position.Below)// && volume.HasBEARVolume)
+            else if (EMA2129Status.Position == EMA2129Position.Below && absolutedAngle >= MINIMUM_ANGLE_TO_TRADE)// && volume.HasBEARVolume)
             {
+                answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
+
                 // EMA 21 nằm dưới cả EMA10 và EMA46 khung 5 phút
                 if (ema21_Below_EMA10_5m && ema21_Below_EMA46_5m)
                 {
                     answer.Action = GeneralTradeAction.Sell;
-                    answer.Postition = EMA2129OrderPostition.EMA21;
+                    //answer.Postition = EMA2129OrderPostition.EMA21;
                 }
                 
                 // EMA 21 nằm dưới EMA10 nhưng trên EMA46
                 else if (ema21_Below_EMA10_5m && ema21_AboveAndNear_EM46_5m)
                 {
                     answer.Action = GeneralTradeAction.Sell;
-                    answer.Postition = EMA2129OrderPostition.EMA29;
+                    //answer.Postition = EMA2129OrderPostition.EMA29;
                 }
                 // EMA 21 nằm trên EMA10 và trên EMA46
                 else if (ema21_AboveAndNear_EM10_5m && ema21_AboveAndNear_EM46_5m)
                 {
                     answer.Action = GeneralTradeAction.Sell;
-                    answer.Postition = EMA2129OrderPostition.EMA29;
+                    //answer.Postition = EMA2129OrderPostition.EMA29;
                 }
                 // Không có trường hợp EMA21 nằm trên EMA46 nhưng lại nằm dưới EMA10
                 
@@ -549,23 +590,19 @@ namespace NinjaTrader.NinjaScript.Strategies
              */
             switch (tradeAction.Postition)
             {
-                case EMA2129OrderPostition.EMA21:
-                    ans = tradeAction.Action == GeneralTradeAction.Buy 
-                        ? EMA21Indicator_1m.Value[0] + AdjustmentPoint 
-                        : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
-                    break;
-                // Note: Vẫn dùng EMA21 +/- AdjustmentPoint để vào lệnh
-                case EMA2129OrderPostition.EMA29:
-                    ans = tradeAction.Action == GeneralTradeAction.Buy 
+                case EMA2129OrderPostition.AdjustedEMA21:
+                    ans = tradeAction.Action == GeneralTradeAction.Buy
                         ? EMA21Indicator_1m.Value[0] + AdjustmentPoint
                         : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
                     break;
-                case EMA2129OrderPostition.MiddlePoint:
-                    ans = (EMA29Indicator_1m.Value[0] + EMA10Indicator_5m.Value[0]) / 2.0;
-                    break;
-                case EMA2129OrderPostition.EMA10:
+
+                case EMA2129OrderPostition.EMA21:
                     ans = EMA21Indicator_1m.Value[0];
                     break;
+                // Note: Vẫn dùng EMA21 +/- AdjustmentPoint để vào lệnh
+                case EMA2129OrderPostition.EMA29:
+                    ans = EMA29Indicator_1m.Value[0];
+                    break;               
             }
 
             return StrategiesUtilities.RoundPrice(ans);

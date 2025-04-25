@@ -24,7 +24,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 //This namespace holds Indicators in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-	public class Fancon : Indicator
+	public class Falcon : Indicator
 	{
 		private EMA ema21;
         private double angle;
@@ -37,7 +37,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			if (State == State.SetDefaults)
 			{
 				Description									= @"Enter the description for your new custom Indicator here.";
-				Name										= "Fancon";
+				Name										= "Falcon";
 				Calculate									= Calculate.OnBarClose;
 				IsOverlay									= false;
 				DisplayInDataBox							= true;
@@ -120,19 +120,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private Fancon[] cacheFancon;
-		public Fancon Fancon(int lookbackBars)
+		private Falcon[] cacheFalcon;
+		public Falcon Falcon(int lookbackBars)
 		{
-			return Fancon(Input, lookbackBars);
+			return Falcon(Input, lookbackBars);
 		}
 
-		public Fancon Fancon(ISeries<double> input, int lookbackBars)
+		public Falcon Falcon(ISeries<double> input, int lookbackBars)
 		{
-			if (cacheFancon != null)
-				for (int idx = 0; idx < cacheFancon.Length; idx++)
-					if (cacheFancon[idx] != null && cacheFancon[idx].LookbackBars == lookbackBars && cacheFancon[idx].EqualsInput(input))
-						return cacheFancon[idx];
-			return CacheIndicator<Fancon>(new Fancon(){ LookbackBars = lookbackBars }, input, ref cacheFancon);
+			if (cacheFalcon != null)
+				for (int idx = 0; idx < cacheFalcon.Length; idx++)
+					if (cacheFalcon[idx] != null && cacheFalcon[idx].LookbackBars == lookbackBars && cacheFalcon[idx].EqualsInput(input))
+						return cacheFalcon[idx];
+			return CacheIndicator<Falcon>(new Falcon(){ LookbackBars = lookbackBars }, input, ref cacheFalcon);
 		}
 	}
 }
@@ -141,14 +141,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.Fancon Fancon(int lookbackBars)
+		public Indicators.Falcon Falcon(int lookbackBars)
 		{
-			return indicator.Fancon(Input, lookbackBars);
+			return indicator.Falcon(Input, lookbackBars);
 		}
 
-		public Indicators.Fancon Fancon(ISeries<double> input , int lookbackBars)
+		public Indicators.Falcon Falcon(ISeries<double> input , int lookbackBars)
 		{
-			return indicator.Fancon(input, lookbackBars);
+			return indicator.Falcon(input, lookbackBars);
 		}
 	}
 }
@@ -157,14 +157,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.Fancon Fancon(int lookbackBars)
+		public Indicators.Falcon Falcon(int lookbackBars)
 		{
-			return indicator.Fancon(Input, lookbackBars);
+			return indicator.Falcon(Input, lookbackBars);
 		}
 
-		public Indicators.Fancon Fancon(ISeries<double> input , int lookbackBars)
+		public Indicators.Falcon Falcon(ISeries<double> input , int lookbackBars)
 		{
-			return indicator.Fancon(input, lookbackBars);
+			return indicator.Falcon(input, lookbackBars);
 		}
 	}
 }

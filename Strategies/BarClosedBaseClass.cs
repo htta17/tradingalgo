@@ -305,9 +305,7 @@ namespace NinjaTrader.Custom.Strategies
             StopLossInTicks = 120;
             Target1InTicks = 100;
             Target2InTicks = 120;            
-            AllowWriteLog = true;           
-
-            //FiveMinutes_Trends = Trends.Unknown;
+            AllowWriteLog = true;
 
             CountOrder = 0;
             CountEntrySignal = 0;
@@ -324,6 +322,12 @@ namespace NinjaTrader.Custom.Strategies
             if (newTime != 0)
             {
                 LocalPrint($"News at {newTime} --> Not trading hour");
+                Draw.TextFixed(this, "ImportantAlert", $"News at {newTime / 100:D2}:{newTime % 100:D2}", TextPosition.TopRight,
+                     Brushes.DarkBlue,            // Text color
+                    new SimpleFont("Arial", 12), // Font and size
+                    Brushes.DarkBlue,      // Background color
+                    Brushes.Transparent,      // Outline color
+                    0);                        // Opacity (0 is fully transparent));
                 return false;
             }
 
@@ -526,6 +530,7 @@ namespace NinjaTrader.Custom.Strategies
             {
                 if (TradingStatus == TradingStatus.Idle)
                 {
+                    // No trading hour, return false
                     return false;
                 }
                 else if (TradingStatus == TradingStatus.PendingFill)

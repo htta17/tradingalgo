@@ -127,13 +127,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var minValue = ema20Val; //StrategiesUtilities.MinOfArray(ema20Val, ema20Val);
                 var maxValue = ema20Val; // StrategiesUtilities.MaxOfArray(ema20Val, ema20Val);
 
-                // Trạng thái
-                if (high > maxValue && low < minValue) // Cross EMA20
-                {
-                    LocalPrint($"New status: CROSSING");
-                    EMA2129Status.SetPosition(EMA2129Position.Crossing, CurrentBar);
-                }
-                else if (high < minValue && minValue - high > 5 && EMA2129Status.Position != EMA2129Position.Below)
+                if (high < minValue && minValue - high > 5 && EMA2129Status.Position != EMA2129Position.Below)
                 {
                     var resetOrder = PreviousPosition != EMA2129Position.Below;
 

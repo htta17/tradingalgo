@@ -31,8 +31,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         [Range(1, int.MaxValue), NinjaScriptProperty]
         public int LookbackBars { get; set; } = 20;
-		
-		protected override void OnStateChange()
+
+        public readonly int RANGE_20_NO_TRD = 20;
+        public readonly int RANGE_45_NO_TRD = 45;
+        public readonly int RANGE_55_YES_TRD = 55;
+        public readonly int RANGE_70_YES_TRD = 70;
+
+        protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
 			{
@@ -57,9 +62,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ema21 = EMA(21);
                 //AddDataSeries(Data.BarsPeriodType.Minute, 1); // Optional, keep it if working with multiple timeframes
             }
-		}		
+		}
 
-		protected override void OnBarUpdate()
+        protected override void OnBarUpdate()
 		{
 			//Add your custom indicator logic here.
 
@@ -98,19 +103,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			Values[0][0] = -angle;
 
-			if (absolutedAngle < 20)
+			if (absolutedAngle < RANGE_20_NO_TRD)
 			{
 				PlotBrushes[0][0] = Brushes.Black;
 			}
-			else if (absolutedAngle >= 20 && absolutedAngle < 45)
+			else if (absolutedAngle >= RANGE_20_NO_TRD && absolutedAngle < RANGE_45_NO_TRD)
 			{
 				PlotBrushes[0][0] = Brushes.Green;
 			}
-			else if (absolutedAngle >= 45 && absolutedAngle < 55)
+			else if (absolutedAngle >= RANGE_45_NO_TRD && absolutedAngle < RANGE_55_YES_TRD)
 			{
 				PlotBrushes[0][0] = Brushes.Orange;
 			}
-			else if (absolutedAngle >= 55 && absolutedAngle < 70)
+			else if (absolutedAngle >= RANGE_55_YES_TRD && absolutedAngle < RANGE_70_YES_TRD)
 			{
 				PlotBrushes[0][0] = Brushes.Blue;
 			}

@@ -389,9 +389,7 @@ namespace NinjaTrader.Custom.Strategies
     {
         Unknown,
         Above,
-        Below,
-        Crossing
-
+        Below
     }
     public class EMA2129Status
     {
@@ -441,13 +439,7 @@ namespace NinjaTrader.Custom.Strategies
         { 
             Position = position;
 
-            if (position == EMA2129Position.Crossing)
-            {
-                Touch(EMA2129OrderPostition.EMA21, barIndex);
-
-                Touch(EMA2129OrderPostition.EMA29, barIndex);
-            }    
-            else if (resetEnterOrder && (position == EMA2129Position.Below || position == EMA2129Position.Above))
+            if (resetEnterOrder && (position == EMA2129Position.Below || position == EMA2129Position.Above))
             {
                 ResetEnteredOrder();
             }    
@@ -487,15 +479,21 @@ namespace NinjaTrader.Custom.Strategies
         /// Set order ở EMA29 +/- Adjust
         /// </summary>
         private bool SetAt_EMA29 { get; set; }
-       
+
+        private bool SetAt_Adjusted_EMA29 { get; set; }
+
 
         /// <summary>
         /// Khi có cây nến chạm vào đường nào thì count touch lên 1
         /// </summary>
         /// <param name="position"></param>
         public void Touch(EMA2129OrderPostition position, int? barIndex = null)
-        {
-            if (position == EMA2129OrderPostition.EMA21)
+        {            
+            if (position == EMA2129OrderPostition.AdjustedEMA21)
+            {
+                // Vị trí này không có touch LoL
+            }    
+            else if (position == EMA2129OrderPostition.EMA21)
             {
                 CountTouch_EMA21++;
             }
@@ -530,7 +528,12 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// EMA 29 khung 1 phút
         /// </summary>        
-        EMA29,        
+        EMA29,       
+        
+        /// <summary>
+        /// EMA 10 khung 5 phút
+        /// </summary>
+        EMA10_5m
     }
 
     public class EMA2129OrderDetail

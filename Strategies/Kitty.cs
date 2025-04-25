@@ -326,11 +326,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 return EMA2129OrderPostition.NoTrade; 
             }
-            else if (absolutedAngle >= MINIMUM_ANGLE_TO_TRADE && absolutedAngle < 60)
+            else if (absolutedAngle >= MINIMUM_ANGLE_TO_TRADE && absolutedAngle < 55)
             {
                 return EMA2129OrderPostition.EMA29;
             }
-            else if (absolutedAngle >= 60 && absolutedAngle < 70)
+            else if (absolutedAngle >= 55 && absolutedAngle < 70)
             {
                 return EMA2129OrderPostition.EMA21;
             }

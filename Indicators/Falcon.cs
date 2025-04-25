@@ -106,11 +106,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				PlotBrushes[0][0] = Brushes.Green;
 			}
-			else if (absolutedAngle >= 45 && absolutedAngle < 60)
+			else if (absolutedAngle >= 45 && absolutedAngle < 55)
 			{
 				PlotBrushes[0][0] = Brushes.Orange;
 			}
-			else if (absolutedAngle >= 60 && absolutedAngle < 70)
+			else if (absolutedAngle >= 55 && absolutedAngle < 70)
 			{
 				PlotBrushes[0][0] = Brushes.Blue;
 			}

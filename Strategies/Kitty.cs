@@ -205,6 +205,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     LocalPrint($"Reset daily PnL for back test");
                     BackTestDailyPnL = 0;
+
+                    // Draw.Text(this, $"{Time[0]:MM-dd}", $"{Time[0]:MM-dd}", 0, 10);
                 }
 
                 try
@@ -354,7 +356,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var ema21_BelowAndNear_EM46_5m = ema21Val < ema46_5mVal && ema46_5mVal - ema21Val < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21;
             var ema21_AboveAndNear_EM46_5m = ema21Val > ema46_5mVal && ema21Val - ema46_5mVal < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21;
             
-            if (EMA2129Status.Position == EMA2129Position.Above && volume.HasBULLVolume)
+            if (EMA2129Status.Position == EMA2129Position.Above)// && volume.HasBULLVolume)
             {
                 // EMA 21 nằm trên cả EMA10 và EMA46 khung 5 phút
                 if (ema21_Above_EMA10_5m && ema21_Above_EMA46_5m)
@@ -378,7 +380,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Không có trường hợp EMA21 nằm dưới EMA46 nhưng lại nằm trên EMA10
                 
             }
-            else if (EMA2129Status.Position == EMA2129Position.Below && volume.HasBEARVolume)
+            else if (EMA2129Status.Position == EMA2129Position.Below)// && volume.HasBEARVolume)
             {
                 // EMA 21 nằm dưới cả EMA10 và EMA46 khung 5 phút
                 if (ema21_Below_EMA10_5m && ema21_Below_EMA46_5m)
@@ -583,14 +585,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     newPrice = updatedPrice - PointToMoveLoss;
                     allowMoving = true;
                 }
-                else if (updatedPrice - filledPrice >= 60 && stopOrderPrice - filledPrice < 40)
+                //else if (updatedPrice - filledPrice >= 60 && stopOrderPrice - filledPrice < 40)
+                //{
+                //    newPrice = filledPrice + 40; 
+                //    allowMoving = true;
+                //}
+                else if (updatedPrice - filledPrice >= 30 && stopOrderPrice - filledPrice < 25)
                 {
-                    newPrice = filledPrice + 40; 
-                    allowMoving = true;
-                }
-                else if (updatedPrice - filledPrice >= 30 && stopOrderPrice - filledPrice < 10)
-                {
-                    newPrice = filledPrice + 10;
+                    newPrice = filledPrice + 25;
                     allowMoving = true;
                 }
                 else
@@ -624,14 +626,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     newPrice = updatedPrice + PointToMoveLoss;
                     allowMoving = true;
                 }
-                else if (filledPrice - updatedPrice>= 60 && filledPrice - stopOrderPrice < 40)
+                //else if (filledPrice - updatedPrice>= 60 && filledPrice - stopOrderPrice < 40)
+                //{
+                //    newPrice = filledPrice - 40;
+                //    allowMoving = true;
+                //}
+                else if (filledPrice - updatedPrice >= 30 && filledPrice - stopOrderPrice < 25)
                 {
-                    newPrice = filledPrice - 40;
-                    allowMoving = true;
-                }
-                else if (filledPrice - updatedPrice >= 30 && filledPrice - stopOrderPrice < 10)
-                {
-                    newPrice = filledPrice - 10;
+                    newPrice = filledPrice - 25;
                     allowMoving = true;
                 }
                 else

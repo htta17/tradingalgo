@@ -402,6 +402,7 @@
     <Compile Include="Strategies\Swan.cs" />
     <Compile Include="Strategies\Roses.cs" />
     <Compile Include="Strategies\GeneralUtilities.cs" />
+    <Compile Include="Indicators\Fancon.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

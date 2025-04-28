@@ -54,6 +54,9 @@ namespace NinjaTrader.Custom.Strategies
             
         }
 
+        /// <summary>
+        /// Tính day Profit/Loss cho việc back test 
+        /// </summary>
         protected double BackTestDailyPnL { get; set; }
 
         #region Configuration 
@@ -577,7 +580,7 @@ namespace NinjaTrader.Custom.Strategies
             }
             else if (State == State.Historical)
             {
-                double todaysPnL = 0; // BackTestDailyPnL;
+                double todaysPnL = BackTestDailyPnL;
 
                 reachMaxDayLossOrDayTarget = todaysPnL <= -MaximumDailyLoss || todaysPnL >= DailyTargetProfit;
 

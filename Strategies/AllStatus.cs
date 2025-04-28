@@ -469,7 +469,7 @@ namespace NinjaTrader.Custom.Strategies
             }    
         }
 
-        private void ResetCounters()
+        public void ResetCounters()
         {
             CountTouch_EMA21 = 0;
             CountTouch_EMA29 = 0;

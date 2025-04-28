@@ -32,6 +32,9 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Range(1, int.MaxValue), NinjaScriptProperty]
         public int LookbackBars { get; set; } = 20;
 
+		[Range(1, int.MaxValue), NinjaScriptProperty]
+		public int MinimumRangeToTrade { get; set; } = 45;
+
         public readonly int RANGE_20_NO_TRD = 20;
         public readonly int RANGE_45_NO_TRD = 45;
         public readonly int RANGE_55_YES_TRD = 55;
@@ -103,6 +106,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			Values[0][0] = -angle;
 
+			/*
 			if (absolutedAngle < RANGE_20_NO_TRD)
 			{
 				PlotBrushes[0][0] = Brushes.Black;
@@ -111,7 +115,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				PlotBrushes[0][0] = Brushes.Green;
 			}
-			else if (absolutedAngle >= RANGE_45_NO_TRD && absolutedAngle < RANGE_55_YES_TRD)
+			*/
+			if (absolutedAngle < MinimumRangeToTrade)
+			{
+                PlotBrushes[0][0] = Brushes.DarkGray;
+            }
+			else if (absolutedAngle >= MinimumRangeToTrade && absolutedAngle < RANGE_55_YES_TRD)
 			{
 				PlotBrushes[0][0] = Brushes.Orange;
 			}
@@ -119,10 +128,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 			{
 				PlotBrushes[0][0] = Brushes.Blue;
 			}
-			else 
+			else
 			{
-                PlotBrushes[0][0] = Brushes.DeepPink;
-            }
+				PlotBrushes[0][0] = Brushes.DeepPink;
+			}
 		}
 	}
 }
@@ -134,18 +143,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private Falcon[] cacheFalcon;
-		public Falcon Falcon(int lookbackBars)
+		public Falcon Falcon(int lookbackBars, int minimumRangeToTrade)
 		{
-			return Falcon(Input, lookbackBars);
+			return Falcon(Input, lookbackBars, minimumRangeToTrade);
 		}
 
-		public Falcon Falcon(ISeries<double> input, int lookbackBars)
+		public Falcon Falcon(ISeries<double> input, int lookbackBars, int minimumRangeToTrade)
 		{
 			if (cacheFalcon != null)
 				for (int idx = 0; idx < cacheFalcon.Length; idx++)
-					if (cacheFalcon[idx] != null && cacheFalcon[idx].LookbackBars == lookbackBars && cacheFalcon[idx].EqualsInput(input))
+					if (cacheFalcon[idx] != null && cacheFalcon[idx].LookbackBars == lookbackBars && cacheFalcon[idx].MinimumRangeToTrade == minimumRangeToTrade && cacheFalcon[idx].EqualsInput(input))
 						return cacheFalcon[idx];
-			return CacheIndicator<Falcon>(new Falcon(){ LookbackBars = lookbackBars }, input, ref cacheFalcon);
+			return CacheIndicator<Falcon>(new Falcon(){ LookbackBars = lookbackBars, MinimumRangeToTrade = minimumRangeToTrade }, input, ref cacheFalcon);
 		}
 	}
 }
@@ -154,14 +163,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.Falcon Falcon(int lookbackBars)
+		public Indicators.Falcon Falcon(int lookbackBars, int minimumRangeToTrade)
 		{
-			return indicator.Falcon(Input, lookbackBars);
+			return indicator.Falcon(Input, lookbackBars, minimumRangeToTrade);
 		}
 
-		public Indicators.Falcon Falcon(ISeries<double> input , int lookbackBars)
+		public Indicators.Falcon Falcon(ISeries<double> input , int lookbackBars, int minimumRangeToTrade)
 		{
-			return indicator.Falcon(input, lookbackBars);
+			return indicator.Falcon(input, lookbackBars, minimumRangeToTrade);
 		}
 	}
 }
@@ -170,14 +179,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.Falcon Falcon(int lookbackBars)
+		public Indicators.Falcon Falcon(int lookbackBars, int minimumRangeToTrade)
 		{
-			return indicator.Falcon(Input, lookbackBars);
+			return indicator.Falcon(Input, lookbackBars, minimumRangeToTrade);
 		}
 
-		public Indicators.Falcon Falcon(ISeries<double> input , int lookbackBars)
+		public Indicators.Falcon Falcon(ISeries<double> input , int lookbackBars, int minimumRangeToTrade)
 		{
-			return indicator.Falcon(input, lookbackBars);
+			return indicator.Falcon(input, lookbackBars, minimumRangeToTrade);
 		}
 	}
 }

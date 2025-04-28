@@ -23,6 +23,8 @@ using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
 using System.IO;
+using NinjaTrader.NinjaScript.SuperDomColumns;
+using System.Xml.Linq;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -67,6 +69,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             Order = 2, GroupName = StrategiesUtilities.Configuration_Entry)]
         protected int MaximumOrderForEachTrend { get; set; }
 
+        /// <summary>
+        /// Số lần vào lệnh tối đa cho mỗi xu hướng
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Số lần tối đa vào lệnh: ",
+            Description = "Số lần tối đa vào lệnh cho mỗi xu hướng.",
+            Order = 2, GroupName = StrategiesUtilities.Configuration_Entry)]
+        protected int MinimumAngleToTrade { get; set; }
+
         #endregion
         protected TimeFrameToTrade Configured_TimeFrameToTrade { get; set; }
         protected override bool IsBuying
@@ -90,6 +101,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         #endregion
         private EMA2129Status EMA2129Status { get; set; }
+
+
+        protected double CurrentHigh { get; set; }
+
+
+        protected double CurrentLow { get; set; }
+
 
         /// <summary>
         /// Giá trị này chỉ nên lưu 2 giá trị là [Above] và [Below] <br/>
@@ -144,8 +162,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             AddPlot(Brushes.Green, "EMA9_5m");
             AddPlot(Brushes.Red, "EMA46_5m");
-
-            //AddPlot(Brushes.Pink, "EMA20_5m");
+            AddPlot(Brushes.DeepPink, "EMA20_5m");
 
             DisplayIndicators = true;
             DisplayEMA20_5m = false;
@@ -153,6 +170,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             // Tạm thời cho 2 lệnh trade 
             MaximumOrderForEachTrend = 2;
+            MinimumAngleToTrade = 35;
         }
 
         protected override void OnStateChange_DataLoaded()
@@ -168,7 +186,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA10Indicator_5m = EMA(BarsArray[1], 10);
             // WaddahAttarExplosion_5m = WaddahAttarExplosion(BarsArray[1]);
 
-            Falcon_1m = Falcon(BarsArray[2], 20);
+            Falcon_1m = Falcon(BarsArray[2], 20, MinimumAngleToTrade);
 
             if (DisplayIndicators)
             {
@@ -203,8 +221,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     Values[0][0] = EMA10Indicator_5m.Value[0];
                     Values[1][0] = EMA46Indicator_5m.Value[0];
-
-                    //Values[2][0] = EMA20Indicator_5m.Value[0];
+                    Values[2][0] = EMA20Indicator_5m.Value[0];
                 }
                 catch (Exception ex)
                 {
@@ -228,6 +245,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     LocalPrint($"Reset daily PnL for back test");
                     BackTestDailyPnL = 0;
+                    Draw.Text(this, "NewDay_" + CurrentBar, $"{Time[0]:MM/dd}", 0, High[0] + 120 * TickSize, Brushes.Blue);
+                    Draw.VerticalLine(this, $"Day {Time[0]:yyyy-MM-dd}", Time[0], Brushes.Red, DashStyleHelper.Dot, 2);
+
+                    EMA2129Status.ResetEnteredOrder();
+
+                    EMA2129Status.ResetCounters();
                 }
 
                 try
@@ -255,6 +278,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                         EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, resetOrder);
 
                         PreviousPosition = EMA2129Position.Below;
+
+                        CurrentLow = Low[0];
                     }
                     else if (low > maxValue && low - maxValue > 5 && EMA2129Status.Position != EMA2129Position.Above)
                     {
@@ -265,9 +290,20 @@ namespace NinjaTrader.NinjaScript.Strategies
                         EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, resetOrder);
 
                         PreviousPosition = EMA2129Position.Above;
+
+                        CurrentHigh = High[0];
                     }
                     else
                     {
+                        if (EMA2129Status.Position == EMA2129Position.Above)
+                        {
+                            CurrentHigh = Math.Max(CurrentHigh, High[0]);
+                        }
+                        else if (EMA2129Status.Position == EMA2129Position.Below)
+                        {
+                            CurrentLow = Math.Max(CurrentLow, Low[0]);
+                        }
+
                         if (high >= ema21Val && low <= ema21Val)
                         {
                             LocalPrint($"Touch EMA21");
@@ -296,9 +332,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 // Do nothing for now
             }
-        }
-
-        const int MINIMUM_ANGLE_TO_TRADE = 45;
+        }        
 
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
         {
@@ -338,30 +372,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         private EMA2129OrderPostition GetPostitionBasedOnAngleValue(double absolutedAngle)
         {
-            if (absolutedAngle < MINIMUM_ANGLE_TO_TRADE)
+            if (absolutedAngle < MinimumAngleToTrade)
             {
                 return EMA2129OrderPostition.NoTrade;
             }
-            else if (absolutedAngle >= MINIMUM_ANGLE_TO_TRADE && absolutedAngle < Falcon_1m.RANGE_45_NO_TRD)
-            {
-                return EMA2129OrderPostition.EMA29;
-            }
-            else if (absolutedAngle >= Falcon_1m.RANGE_45_NO_TRD && absolutedAngle < Falcon_1m.RANGE_70_YES_TRD)
-            {
-                // Đã touch EMA21 rồi
-                if (EMA2129Status.EnteredOrder21)
-                {
-                    return EMA2129OrderPostition.EMA29;
-                }
-                else
-                {
-                    return EMA2129OrderPostition.EMA21;
-                }
-            }
             else
             {
-                return EMA2129OrderPostition.AdjustedEMA21;
-            }
+                return EMA2129OrderPostition.EMA29;
+            }            
         }
 
         protected override EMA2129OrderDetail ShouldTrade()
@@ -388,33 +406,36 @@ namespace NinjaTrader.NinjaScript.Strategies
             var ema21Val = EMA21Indicator_1m.Value[0];
             var ema29Val = EMA29Indicator_1m.Value[0];
             var ema10_5mVal = EMA10Indicator_5m.Value[0];
-            var ema46_5mVal = EMA46Indicator_5m.Value[0];           
+            var ema46_5mVal = EMA46Indicator_5m.Value[0];
 
             var absolutedAngle = Math.Abs(Falcon_1m.Value[0]);
+            var postionAngle = GetPostitionBasedOnAngleValue(absolutedAngle);
 
             var high = High[0];
             var low = Low[0];
-            var allowTrade = false; 
-
-            if (high >= ema21Val && low <= ema21Val)
-            {
-                allowTrade = true;
-                LocalPrint($"allowTrade = true, {EMA2129Status.CountTouch_EMA10_5m} {EMA2129Status.CountTouch_EMA21} {EMA2129Status.CountTouch_EMA29}");
-            }
-            else if (high >= ema29Val && low <= ema29Val)
-            {
-                allowTrade = true;
-                LocalPrint($"allowTrade = true, {EMA2129Status.CountTouch_EMA10_5m} {EMA2129Status.CountTouch_EMA21} {EMA2129Status.CountTouch_EMA29}");
-            }
-            else if (high >= ema10_5mVal && low <= ema10_5mVal)
-            {
-                allowTrade = true;
-                LocalPrint($"allowTrade = true, {EMA2129Status.CountTouch_EMA10_5m} {EMA2129Status.CountTouch_EMA21} {EMA2129Status.CountTouch_EMA29}");
-            }
-
+            var allowTrade = false;
             var previousTouch = EMA2129Status.CountTouch_EMA10_5m + EMA2129Status.CountTouch_EMA21 + EMA2129Status.CountTouch_EMA29;
 
-            if (allowTrade && previousTouch == 0)
+            if (postionAngle != EMA2129OrderPostition.NoTrade && previousTouch == 0)
+            {
+                if (high >= ema21Val && low <= ema21Val)
+                {
+                    allowTrade = true;
+                    LocalPrint($"allowTrade = true, {EMA2129Status.CountTouch_EMA10_5m} {EMA2129Status.CountTouch_EMA21} {EMA2129Status.CountTouch_EMA29}");
+                }
+                else if (high >= ema29Val && low <= ema29Val)
+                {
+                    allowTrade = true;
+                    LocalPrint($"allowTrade = true, {EMA2129Status.CountTouch_EMA10_5m} {EMA2129Status.CountTouch_EMA21} {EMA2129Status.CountTouch_EMA29}");
+                }
+                else if (high >= ema10_5mVal && low <= ema10_5mVal)
+                {
+                    allowTrade = true;
+                    LocalPrint($"allowTrade = true, {EMA2129Status.CountTouch_EMA10_5m} {EMA2129Status.CountTouch_EMA21} {EMA2129Status.CountTouch_EMA29}");
+                }
+            }
+
+            if (allowTrade)
             {
                 if (EMA2129Status.Position == EMA2129Position.Above)
                 {

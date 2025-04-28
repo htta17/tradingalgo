@@ -1,4 +1,5 @@
-﻿#region Using declarations
+﻿#define USE_ADX_TO_TRADE
+#region Using declarations
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -32,7 +33,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         public Rooster() : base("ROOSTER")
         {
             FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyRooster.txt");
-            Configured_TimeFrameToTrade = TimeFrameToTrade.FiveMinutes;
+            Configured_TimeFrameToTrade = TimeFrameToTrade.OneMinute;
         }
 
         #region Configurations 
@@ -49,13 +50,22 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected AtmStrategy RiskyAtmStrategy { get; set; }
 
         /// <summary>
-        /// Chốt lời khi cây nến lớn hơn giá trị này (points), current default value: 60 points.
+        /// Số điểm cộng (hoặc trừ) so với đường EMA21 để vào lệnh MUA (hoặc BÁN).
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Adjustment Point:",
             Description = "Số điểm cộng (hoặc trừ) so với đường EMA21 để vào lệnh MUA (hoặc BÁN).",
             Order = 2, GroupName = StrategiesUtilities.Configuration_Entry)]
         public int AdjustmentPoint { get; set; }
+
+        /// <summary>
+        /// Số lần vào lệnh tối đa cho mỗi xu hướng
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Số lần tối đa vào lệnh: ",
+            Description = "Số lần tối đa vào lệnh cho mỗi xu hướng.",
+            Order = 2, GroupName = StrategiesUtilities.Configuration_Entry)]
+        protected int MaximumOrderForEachTrend { get; set; }
 
         #endregion
         protected TimeFrameToTrade Configured_TimeFrameToTrade { get; set; }
@@ -69,13 +79,15 @@ namespace NinjaTrader.NinjaScript.Strategies
             get { return CurrentTradeAction.Action == GeneralTradeAction.Sell; }
         }
 
-        private DateTime executionTime = DateTime.MinValue;
-
         #region Indicators
-        
+        protected EMA EMA29Indicator_1m { get; set; }
+        protected EMA EMA21Indicator_1m { get; set; }
+        protected EMA EMA46Indicator_5m { get; set; }
         protected EMA EMA20Indicator_5m { get; set; }
-        protected EMA EMA50Indicator_5m { get; set; }
-        protected EMA EMA100Indicator_5m { get; set; }        
+        protected EMA EMA10Indicator_5m { get; set; }
+
+        protected Falcon Falcon_1m { get; set; }
+
         #endregion
         private EMA2129Status EMA2129Status { get; set; }
 
@@ -85,80 +97,26 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// hoặc khi giá trị [PreviousPosition] là [Below], và cây nến hiện tại là [Above] thì mới reset việc EnteredOrder <br/>
         /// Trong trường hợp giá trị [PreviousPosition] == vị trí cây nến hiện tại thì không cần reset order.
         /// </summary>
-        private EMA2129Position PreviousPosition { get; set; } = EMA2129Position.Unknown;        
-
-        protected override void AddCustomDataSeries()
-        {
-            AddDataSeries(BarsPeriodType.Minute, 5);            
-        }
-
-        protected int GetBarIndex(int barsPeriod)
-        {
-            return 1;
-        }
-
-        protected override void OnBarUpdate()
-        {
-            // Cập nhật lại status 
-            tradingStatus = CheckCurrentStatusBasedOnOrders(); 
-           
-            if (BarsInProgress == 0)
-            {
-                // Current View --> Do nothing
-                return;
-            }
-
-            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
-            {
-                StrategiesUtilities.CalculatePnL(this, Account, Print);
-
-                // Cập nhật lại giá trị cây nến
-                var index = GetBarIndex(BarsPeriod.Value);
-
-                var high = High[0];
-                var low = Low[0];
-                var open = Open[0];
-                var close = Close[0];
-
-                var ema20Val = EMA20Indicator_5m.Value[0];
-                var ema50Val = EMA50Indicator_5m.Value[0];
-                var ema100Val = EMA100Indicator_5m.Value[0];               
-
-                var minValue = ema20Val; //StrategiesUtilities.MinOfArray(ema20Val, ema20Val);
-                var maxValue = ema20Val; // StrategiesUtilities.MaxOfArray(ema20Val, ema20Val);
-
-                if (high < minValue && minValue - high > 5 && EMA2129Status.Position != EMA2129Position.Below)
-                {
-                    var resetOrder = PreviousPosition != EMA2129Position.Below;
-
-                    LocalPrint($"New status: BELOW - Current status: {PreviousPosition}, Reset order: {resetOrder}");
-                    EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, resetOrder);
-
-                    PreviousPosition = EMA2129Position.Below;
-                }
-                else if (low > maxValue && low - maxValue > 5 && EMA2129Status.Position != EMA2129Position.Above)
-                {
-                    var resetOrder = PreviousPosition != EMA2129Position.Above;
-
-                    LocalPrint($"New status: ABOVE - Current status: {PreviousPosition}, Reset order: {resetOrder}");
-                    EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, resetOrder);
-
-                    PreviousPosition = EMA2129Position.Above;
-                }
-
-                BasicActionForTrading(TimeFrameToTrade.FiveMinutes);
-            }            
-        }
+        private EMA2129Position PreviousPosition { get; set; } = EMA2129Position.Unknown;
 
         /// <summary>
-        /// Display Volume Indicator
+        /// Display Indicators
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Hiển thị các chỉ báo:",
             Description = "Hiển thị chỉ báo trên chart",
             Order = 1, GroupName = StrategiesUtilities.Configuration_DisplayIndicators)]
         public bool DisplayIndicators { get; set; }
-        
+
+        /// <summary>
+        /// Display Indicators
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Hiển thị EMA20 khung 5 phút (Tham khảo):",
+            Description = "Hiển thị chỉ báo trên chart",
+            Order = 2, GroupName = StrategiesUtilities.Configuration_DisplayIndicators)]
+        public bool DisplayEMA20_5m { get; set; }
+
         protected override void OnStateChange_Configure()
         {
             base.OnStateChange_Configure();
@@ -171,43 +129,176 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
 
             Name = "Rooster";
-            Description = "[Rooster] trade ở khung 5 phút, dùng EMA20/50/100.";
+            Description = "[Rooster] là giải thuật trade on First touch";
 
-            FullSizeATMName = "Rooster_Default_4cts";
-            HalfSizefATMName = "Rooster_Default_2cts";
-            RiskyAtmStrategyName = "Rooster_Risky";
+            FullSizeATMName = "Kitty_Default_4cts";
+            HalfSizefATMName = "Kitty_Default_2cts";
+            RiskyAtmStrategyName = "Kitty_Risky";
 
             DailyTargetProfit = 500;
             MaximumDailyLoss = 350;
 
-            // Run whole day
-            StartDayTradeTime = new TimeSpan(0, 0, 0); // 0:00 am
-            EndDayTradeTime = new TimeSpan(23, 59, 59); // 3:50:00 pm
-
+            StartDayTradeTime = new TimeSpan(8, 40, 0); // 8:40:00 am 
+            EndDayTradeTime = new TimeSpan(14, 30, 0); // 2:30:00 pm
             EMA2129Status = new EMA2129Status();
 
+            AddPlot(Brushes.Green, "EMA9_5m");
+            AddPlot(Brushes.Red, "EMA46_5m");
+
+            //AddPlot(Brushes.Pink, "EMA20_5m");
+
             DisplayIndicators = true;
-            AdjustmentPoint = 7;
+            DisplayEMA20_5m = false;
+            AdjustmentPoint = 10;
+
+            // Tạm thời cho 2 lệnh trade 
+            MaximumOrderForEachTrend = 2;
         }
 
         protected override void OnStateChange_DataLoaded()
         {
+            EMA29Indicator_1m = EMA(BarsArray[2], 29);
+            EMA29Indicator_1m.Plots[0].Brush = Brushes.Orange;
+
+            EMA21Indicator_1m = EMA(BarsArray[2], 21);
+            EMA21Indicator_1m.Plots[0].Brush = Brushes.Blue;
+
+            EMA46Indicator_5m = EMA(BarsArray[1], 46);
             EMA20Indicator_5m = EMA(BarsArray[1], 20);
-            EMA20Indicator_5m.Plots[0].Brush = Brushes.Red;
+            EMA10Indicator_5m = EMA(BarsArray[1], 10);
+            // WaddahAttarExplosion_5m = WaddahAttarExplosion(BarsArray[1]);
 
-            EMA50Indicator_5m = EMA(BarsArray[1], 50);
-            EMA50Indicator_5m.Plots[0].Brush = Brushes.DarkOrange;
-
-            EMA100Indicator_5m = EMA(BarsArray[1], 100);
-            EMA100Indicator_5m.Plots[0].Brush = Brushes.DarkCyan;            
+            Falcon_1m = Falcon(BarsArray[2], 20);
 
             if (DisplayIndicators)
             {
-                AddChartIndicator(EMA100Indicator_5m);
-                AddChartIndicator(EMA50Indicator_5m);
-                AddChartIndicator(EMA20Indicator_5m);
+                AddChartIndicator(EMA29Indicator_1m);
+                AddChartIndicator(EMA21Indicator_1m);
+
+                AddChartIndicator(Falcon_1m);
             }
         }
+
+        protected override void AddCustomDataSeries()
+        {
+            AddDataSeries(BarsPeriodType.Minute, 5);
+            AddDataSeries(BarsPeriodType.Minute, 1);
+        }
+
+        protected int GetBarIndex(int barsPeriod)
+        {
+            return barsPeriod == 5 ? 1 : 2;
+        }
+
+        protected override void OnBarUpdate()
+        {
+            // Cập nhật lại status 
+            tradingStatus = CheckCurrentStatusBasedOnOrders();
+
+            // Hiển thị các đường indicators
+            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
+            {
+                // Hiển thị indicators khung 5 phút 
+                try
+                {
+                    Values[0][0] = EMA10Indicator_5m.Value[0];
+                    Values[1][0] = EMA46Indicator_5m.Value[0];
+
+                    //Values[2][0] = EMA20Indicator_5m.Value[0];
+                }
+                catch (Exception ex)
+                {
+                    LocalPrint("[OnBarUpdate]: ERROR:" + ex.Message);
+                }
+            }
+
+            if (BarsInProgress == 0)
+            {
+                // Current View --> Do nothing
+                return;
+            }
+
+            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
+            {
+                StrategiesUtilities.CalculatePnL(this, Account, Print);
+
+                var time = ToTime(Time[0]);
+
+                if (time == 16_00_00 && State == State.Historical)
+                {
+                    LocalPrint($"Reset daily PnL for back test");
+                    BackTestDailyPnL = 0;
+                }
+
+                try
+                {
+                    BasicActionForTrading(TimeFrameToTrade.OneMinute);
+
+                    var high = High[0];
+                    var low = Low[0];
+                    var open = Open[0];
+                    var close = Close[0];
+
+                    var ema21Val = EMA21Indicator_1m.Value[0];
+                    var ema29Val = EMA29Indicator_1m.Value[0];
+                    var ema10_5m_Val = EMA10Indicator_5m.Value[0];
+
+                    var minValue = StrategiesUtilities.MinOfArray(ema21Val, ema29Val, ema10_5m_Val);
+                    var maxValue = StrategiesUtilities.MaxOfArray(ema21Val, ema29Val, ema10_5m_Val);
+
+                    if (high < minValue && minValue - high > 5 && EMA2129Status.Position != EMA2129Position.Below)
+                    {
+                        var resetOrder = PreviousPosition != EMA2129Position.Below;
+
+                        LocalPrint($"New status: BELOW - Current status: {PreviousPosition}, Reset order: {resetOrder}");
+
+                        EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, resetOrder);
+
+                        PreviousPosition = EMA2129Position.Below;
+                    }
+                    else if (low > maxValue && low - maxValue > 5 && EMA2129Status.Position != EMA2129Position.Above)
+                    {
+                        var resetOrder = PreviousPosition != EMA2129Position.Above;
+
+                        LocalPrint($"New status: ABOVE - Current status: {PreviousPosition}, Reset order: {resetOrder}");
+
+                        EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, resetOrder);
+
+                        PreviousPosition = EMA2129Position.Above;
+                    }
+                    else
+                    {
+                        if (high >= ema21Val && low <= ema21Val)
+                        {
+                            LocalPrint($"Touch EMA21");
+                            EMA2129Status.Touch(EMA2129OrderPostition.EMA21);
+                        }
+
+                        if (high >= ema29Val && low <= ema29Val)
+                        {
+                            LocalPrint($"Touch EMA29");
+                            EMA2129Status.Touch(EMA2129OrderPostition.EMA29);
+                        }
+
+                        if (high >= ema10_5m_Val && low <= ema10_5m_Val)
+                        {
+                            LocalPrint($"Touch EMA10 (khung 5 phút)");
+                            EMA2129Status.Touch(EMA2129OrderPostition.EMA10_5m);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LocalPrint("[OnBarUpdate]: ERROR:" + ex.Message);
+                }
+            }
+            else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
+            {
+                // Do nothing for now
+            }
+        }
+
+        const int MINIMUM_ANGLE_TO_TRADE = 45;
 
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
         {
@@ -222,17 +313,16 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var passTradeCondition = CheckingTradeCondition();
                 if (!passTradeCondition)
                 {
+                    LocalPrint($"[BasicActionForTrading] Not Pass Condition to trade");
                     return;
                 }
 
                 var shouldTrade = ShouldTrade();
 
-                LocalPrint($"Check trading condition, result: {shouldTrade.Action}, EnteredOrder: {EMA2129Status.EnteredOrder21}");
+                LocalPrint($"Check trading condition, result: {shouldTrade.Action}, EnteredOrder21: {EMA2129Status.EnteredOrder21}, EnteredOrder29: {EMA2129Status.EnteredOrder29}");
 
-                if (shouldTrade.Action != GeneralTradeAction.NoTrade && !EMA2129Status.EnteredOrder21) // Nếu chưa enter order thì mới enter order
+                if (shouldTrade.Action != GeneralTradeAction.NoTrade) // Nếu chưa enter order thì mới enter order
                 {
-                    EMA2129Status.SetEnteredOrder(shouldTrade.Postition);
-
                     EnterOrder(shouldTrade);
                 }
             }
@@ -246,8 +336,37 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
+        private EMA2129OrderPostition GetPostitionBasedOnAngleValue(double absolutedAngle)
+        {
+            if (absolutedAngle < MINIMUM_ANGLE_TO_TRADE)
+            {
+                return EMA2129OrderPostition.NoTrade;
+            }
+            else if (absolutedAngle >= MINIMUM_ANGLE_TO_TRADE && absolutedAngle < Falcon_1m.RANGE_45_NO_TRD)
+            {
+                return EMA2129OrderPostition.EMA29;
+            }
+            else if (absolutedAngle >= Falcon_1m.RANGE_45_NO_TRD && absolutedAngle < Falcon_1m.RANGE_70_YES_TRD)
+            {
+                // Đã touch EMA21 rồi
+                if (EMA2129Status.EnteredOrder21)
+                {
+                    return EMA2129OrderPostition.EMA29;
+                }
+                else
+                {
+                    return EMA2129OrderPostition.EMA21;
+                }
+            }
+            else
+            {
+                return EMA2129OrderPostition.AdjustedEMA21;
+            }
+        }
+
         protected override EMA2129OrderDetail ShouldTrade()
         {
+            LocalPrint("[ShouldTrade]");
             var answer = new EMA2129OrderDetail
             {
                 Action = GeneralTradeAction.NoTrade,
@@ -266,53 +385,66 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return answer;
             }
 
-            var ema50Val = EMA50Indicator_5m.Value[0];
-            var ema100_5mVal = EMA100Indicator_5m.Value[0];
-            var ema20Val = EMA20Indicator_5m.Value[0];
+            var ema21Val = EMA21Indicator_1m.Value[0];
+            var ema29Val = EMA29Indicator_1m.Value[0];
+            var ema10_5mVal = EMA10Indicator_5m.Value[0];
+            var ema46_5mVal = EMA46Indicator_5m.Value[0];           
 
-            if (EMA2129Status.Position == EMA2129Position.Above && ema20Val > ema50Val && ema50Val > ema100_5mVal)
-            {
-                answer.Action = GeneralTradeAction.Buy;
-            }
-            else if (EMA2129Status.Position == EMA2129Position.Below && ema20Val < ema50Val && ema50Val < ema100_5mVal)
-            {
-                answer.Action = GeneralTradeAction.Sell;
-            }
-            answer.Postition = EMA2129OrderPostition.EMA21;
-            answer.Sizing = EMA2129SizingEnum.Big;
+            var absolutedAngle = Math.Abs(Falcon_1m.Value[0]);
 
-            /*
-            var adxVal = ADXandDI.Value[0];
-            // Nếu giá trị ADX đang ở dưới [ADXValueToCancelOrder]           
-            if (adxVal < ADXValueToENTEROrder)
-            {
-                LocalPrint($"{adxVal:N2} = [adxVal] < [ADXValueToENTEROrder]  = {ADXValueToENTEROrder}--> No Trade.");
-                // No trade
-                return answer;
-            }
-            else 
-            {
-                answer.Action = EMA2129Status.Position == EMA2129Position.Below ? GeneralTradeAction.Sell 
-                    : EMA2129Status.Position == EMA2129Position.Above ? GeneralTradeAction.Buy : 
-                    GeneralTradeAction.NoTrade;
-                answer.Postition = EMA2129OrderPostition.EMA21;
-                answer.Sizing = EMA2129SizingEnum.Big;
+            var high = High[0];
+            var low = Low[0];
+            var allowTrade = false; 
 
-                FilledTime = Time[0];
+            if (high >= ema21Val && low <= ema21Val)
+            {
+                allowTrade = true;
+                LocalPrint($"allowTrade = true, {EMA2129Status.CountTouch_EMA10_5m} {EMA2129Status.CountTouch_EMA21} {EMA2129Status.CountTouch_EMA29}");
             }
-            */
+            else if (high >= ema29Val && low <= ema29Val)
+            {
+                allowTrade = true;
+                LocalPrint($"allowTrade = true, {EMA2129Status.CountTouch_EMA10_5m} {EMA2129Status.CountTouch_EMA21} {EMA2129Status.CountTouch_EMA29}");
+            }
+            else if (high >= ema10_5mVal && low <= ema10_5mVal)
+            {
+                allowTrade = true;
+                LocalPrint($"allowTrade = true, {EMA2129Status.CountTouch_EMA10_5m} {EMA2129Status.CountTouch_EMA21} {EMA2129Status.CountTouch_EMA29}");
+            }
 
+            var previousTouch = EMA2129Status.CountTouch_EMA10_5m + EMA2129Status.CountTouch_EMA21 + EMA2129Status.CountTouch_EMA29;
+
+            if (allowTrade && previousTouch == 0)
+            {
+                if (EMA2129Status.Position == EMA2129Position.Above)
+                {
+                    answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
+                    answer.Sizing = EMA2129SizingEnum.Big;
+                    answer.Action = GeneralTradeAction.Buy;
+                }
+                else if (EMA2129Status.Position == EMA2129Position.Below )
+                {
+                    answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
+                    answer.Sizing = EMA2129SizingEnum.Big;
+                    answer.Action = GeneralTradeAction.Sell;
+                }
+            }
+            
             return answer;
         }
 
         protected override (AtmStrategy, string) GetAtmStrategyByPnL(EMA2129OrderDetail tradeAction)
         {
-            /*
             var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
 
             var reachHalf =
                 (todaysPnL <= (-MaximumDailyLoss / 2)) || (todaysPnL >= (DailyTargetProfit / 2));
-            */
+
+            if (reachHalf)
+            {
+                return (HalfSizeAtmStrategy, HalfSizefATMName);
+            }
+
             if (tradeAction.Sizing == EMA2129SizingEnum.Big)
             {
                 return (FullSizeAtmStrategy, FullSizeATMName);
@@ -329,9 +461,20 @@ namespace NinjaTrader.NinjaScript.Strategies
             return (HalfSizeAtmStrategy, HalfSizefATMName);
         }
 
+        protected override bool ShouldCancelPendingOrdersByTimeCondition(DateTime filledOrderTime)
+        {
+            // Cancel lệnh hết giờ trade
+            if (ToTime(Time[0]) >= 15_00_00 && ToTime(filledOrderTime) < 15_00_00)
+            {
+                LocalPrint($"Cancel lệnh hết giờ trade");
+                return true;
+            }
+
+            return false;
+        }
+
         protected override void UpdatePendingOrder()
         {
-            base.UpdatePendingOrder();
             if (TradingStatus != TradingStatus.PendingFill)
             {
                 return;
@@ -346,9 +489,14 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             var cancelOrderDueByTime = ShouldCancelPendingOrdersByTimeCondition(FilledTime);
+
             if (cancelOrderDueByTime)
             {
                 CancelAllPendingOrder();
+
+                // Cho phép trade trở lại
+                EMA2129Status.ResetEnteredOrder();
+
                 return;
             }
 
@@ -379,8 +527,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Số lượng contracts hiện tại
 
                 // Nếu ngược trend hoặc backtest thì vào cancel lệnh cũ và vào lệnh mới
-                if (State == State.Historical || (CurrentTradeAction.Action != checkShouldTradeAgain.Action))
+                if (CurrentTradeAction.Action != checkShouldTradeAgain.Action)
                 {
+
                     #region Cancel current order and enter new one
                     CancelAllPendingOrder();
 
@@ -388,18 +537,93 @@ namespace NinjaTrader.NinjaScript.Strategies
                     #endregion
                 }
                 // Ngược lại thì update điểm vào lệnh
-                else if (State == State.Realtime)
+                else
                 {
-                    #region Begin of move pending order
+                    EMA2129Status.SetEnteredOrder(checkShouldTradeAgain.Postition);
+
                     UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);
-                    #endregion
                 }
             }
         }
 
+        protected override void EnterOrderPureUsingPrice(double priceToSet, double targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
+        {
+            var text = isBuying ? "LONG" : "SHORT";
+
+            if (isBuying)
+            {
+                EnterLong(0, quantity, signal);
+            }
+            else
+            {
+                EnterShort(0, quantity, signal);
+            }
+
+            SetStopLoss(signal, CalculationMode.Ticks, stoplossInTicks, false);
+
+            SetProfitTarget(signal, CalculationMode.Ticks, targetInTicks);
+
+            LocalPrint($"Enter {text} for {quantity} contracts with signal [{signal}] at {priceToSet:N2}, stop loss ticks: {stoplossInTicks:N2}, target ticks: {targetInTicks:N2}");
+        }
+
+        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling)
+        {
+            // Vào lệnh theo ATM 
+            AtmStrategyId = GetAtmStrategyUniqueId();
+            OrderId = GetAtmStrategyUniqueId();
+
+            // Save to file, in case we need to pull [atmStrategyId] again
+            SaveAtmStrategyIdToFile(AtmStrategyId, OrderId);
+
+            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
+
+            FilledPrice = priceToSet;
+
+            // Enter a BUY/SELL order current price
+            AtmStrategyCreate(
+                action,
+                OrderType.Market,
+                0, // Enter market
+                0,
+                TimeInForce.Day,
+                OrderId,
+                atmStragtegyName,
+                AtmStrategyId,
+                (atmCallbackErrorCode, atmCallBackId) =>
+                {
+                    if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == AtmStrategyId)
+                    {
+                        tradingStatus = TradingStatus.PendingFill;
+                    }
+                    else if (atmCallbackErrorCode != ErrorCode.NoError)
+                    {
+                        LocalPrint($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
+                    }
+                });
+        }
+
         protected override double GetSetPrice(EMA2129OrderDetail tradeAction, AtmStrategy additionalInfo)
         {
-            var ans = EMA20Indicator_5m.Value[0];
+            double ans = -1;
+            LocalPrint($"EMA21: {EMA21Indicator_1m.Value[0]:N2}, AdjustmentPoint: {AdjustmentPoint}, tradeAction: {tradeAction.Action}");
+            /*
+             */
+            switch (tradeAction.Postition)
+            {
+                case EMA2129OrderPostition.AdjustedEMA21:
+                    ans = tradeAction.Action == GeneralTradeAction.Buy
+                        ? EMA21Indicator_1m.Value[0] + AdjustmentPoint
+                        : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
+                    break;
+
+                case EMA2129OrderPostition.EMA21:
+                    ans = EMA21Indicator_1m.Value[0];
+                    break;
+                // Note: Vẫn dùng EMA21 +/- AdjustmentPoint để vào lệnh
+                case EMA2129OrderPostition.EMA29:
+                    ans = EMA29Indicator_1m.Value[0];
+                    break;
+            }
 
             return StrategiesUtilities.RoundPrice(ans);
         }
@@ -418,14 +642,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     newPrice = updatedPrice - PointToMoveLoss;
                     allowMoving = true;
                 }
-                else if (updatedPrice - filledPrice >= 60 && stopOrderPrice - filledPrice < 40)
+                //else if (updatedPrice - filledPrice >= 60 && stopOrderPrice - filledPrice < 40)
+                //{
+                //    newPrice = filledPrice + 40; 
+                //    allowMoving = true;
+                //}
+                else if (updatedPrice - filledPrice >= 30 && stopOrderPrice - filledPrice < 25)
                 {
-                    newPrice = filledPrice + 40;
-                    allowMoving = true;
-                }
-                else if (updatedPrice - filledPrice >= 30 && stopOrderPrice - filledPrice < 10)
-                {
-                    newPrice = filledPrice + 10;
+                    newPrice = filledPrice + 25;
                     allowMoving = true;
                 }
                 else
@@ -448,7 +672,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         newPrice = TargetPrice_Half;                        
                     }
                     */
-                    #endregion                    
+                    #endregion
                 }
             }
             else if (isSelling)
@@ -459,14 +683,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                     newPrice = updatedPrice + PointToMoveLoss;
                     allowMoving = true;
                 }
-                else if (filledPrice - updatedPrice >= 60 && filledPrice - stopOrderPrice < 40)
+                //else if (filledPrice - updatedPrice>= 60 && filledPrice - stopOrderPrice < 40)
+                //{
+                //    newPrice = filledPrice - 40;
+                //    allowMoving = true;
+                //}
+                else if (filledPrice - updatedPrice >= 30 && filledPrice - stopOrderPrice < 25)
                 {
-                    newPrice = filledPrice - 40;
-                    allowMoving = true;
-                }
-                else if (filledPrice - updatedPrice >= 30 && filledPrice - stopOrderPrice < 10)
-                {
-                    newPrice = filledPrice - 10;
+                    newPrice = filledPrice - 25;
                     allowMoving = true;
                 }
                 else
@@ -498,6 +722,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 MoveTargetOrStopOrder(newPrice, stopOrder, false, IsBuying ? "BUY" : "SELL", stopOrder.FromEntrySignal);
             }
+        }
+
+        protected override void TransitionOrdersToLive()
+        {
+            base.TransitionOrdersToLive();
+
+            // Reset
+            EMA2129Status.ResetEnteredOrder();
         }
 
         protected override void AddCustomIndicators()

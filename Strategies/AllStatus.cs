@@ -399,13 +399,15 @@ namespace NinjaTrader.Custom.Strategies
 
             ResetEnteredOrder();
 
-            ResetAll();
+            ResetCounters();
         }
 
         public void ResetEnteredOrder()
         {
             SetAt_EMA21 = false;
             SetAt_EMA29 = false;
+            SetAt_EMA10_5m = false;
+            SetAt_EMA10_5m = false;
         }
         public EMA2129Position Position { get; private set; }
 
@@ -442,6 +444,8 @@ namespace NinjaTrader.Custom.Strategies
             if (resetEnterOrder && (position == EMA2129Position.Below || position == EMA2129Position.Above))
             {
                 ResetEnteredOrder();
+
+                ResetCounters();
             }    
         }
 
@@ -459,16 +463,22 @@ namespace NinjaTrader.Custom.Strategies
             {
                 SetAt_EMA29 = true;
             }
+            else if (postition == EMA2129OrderPostition.EMA10_5m)
+            {
+                SetAt_EMA10_5m = true;
+            }    
         }
 
-        private void ResetAll()
+        private void ResetCounters()
         {
             CountTouch_EMA21 = 0;
-            CountTouch_EMA29 = 0;            
+            CountTouch_EMA29 = 0;
+            CountTouch_EMA10_5m = 0;
         }
 
         public int CountTouch_EMA21 { get; set; }
         public int CountTouch_EMA29 { get; set; }
+        public int CountTouch_EMA10_5m { get; set; }
 
         /// <summary>
         /// Set order ở EMA21 +/- Adjust
@@ -479,6 +489,8 @@ namespace NinjaTrader.Custom.Strategies
         /// Set order ở EMA29 +/- Adjust
         /// </summary>
         private bool SetAt_EMA29 { get; set; }
+
+        private bool SetAt_EMA10_5m { get; set; }
 
         private bool SetAt_Adjusted_EMA29 { get; set; }
 
@@ -500,6 +512,10 @@ namespace NinjaTrader.Custom.Strategies
             else if (position == EMA2129OrderPostition.EMA29)
             {
                 CountTouch_EMA29++;  
+            }
+            else if (position == EMA2129OrderPostition.EMA10_5m)
+            {
+                CountTouch_EMA10_5m++;
             }
         }        
     }    

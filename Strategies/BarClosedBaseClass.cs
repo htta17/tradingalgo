@@ -577,7 +577,7 @@ namespace NinjaTrader.Custom.Strategies
             }
             else if (State == State.Historical)
             {
-                double todaysPnL = BackTestDailyPnL;
+                double todaysPnL = 0; // BackTestDailyPnL;
 
                 reachMaxDayLossOrDayTarget = todaysPnL <= -MaximumDailyLoss || todaysPnL >= DailyTargetProfit;
 
@@ -634,13 +634,12 @@ namespace NinjaTrader.Custom.Strategies
                     {
                         if (order.OrderType == OrderType.StopMarket) // Filled Stop --> Loss
                         {
-                            BackTestDailyPnL -= AlgQuantity * TickSize * StopLossInTicks;
+                            BackTestDailyPnL = BackTestDailyPnL - AlgQuantity * TickSize * StopLossInTicks;
                         }
-                        else if (order.OrderType == OrderType.StopMarket) // Filled Stop --> Win
+                        else if (order.OrderType == OrderType.Limit) // Filled Limit --> Win
                         {
-                            BackTestDailyPnL += AlgQuantity * TickSize * Target2InTicks;
-                        }
-                        LocalPrint($"New daily PnL: {BackTestDailyPnL:N2}");
+                            BackTestDailyPnL = BackTestDailyPnL + AlgQuantity * TickSize * Target2InTicks;
+                        }                        
                     }
                 }
                 else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
@@ -676,6 +675,8 @@ namespace NinjaTrader.Custom.Strategies
                 LocalPrint(
                     $"[OnOrderUpdate] - key: [{key}], quantity: {quantity}, filled: {filled}, orderType: {order.OrderType}, orderState: {orderState}, " +
                     $"limitPrice: {limitPrice:N2}, stop: {stopPrice:N2}. Current number of active orders: {ActiveOrders.Count}");
+
+                LocalPrint($"New daily PnL: {BackTestDailyPnL:N2}");
             }
         }
 
@@ -696,7 +697,7 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
         
-        protected void EnterOrderPureUsingPrice(double priceToSet, double targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
+        protected virtual void EnterOrderPureUsingPrice(double priceToSet, double targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
         {
             var text = isBuying ? "LONG" : "SHORT";
             

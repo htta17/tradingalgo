@@ -234,13 +234,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 CurrentLow_BEAR_Trend = Low[0];
 
                 Draw.HorizontalLine(this, "CurrentKey", CurrentLow_BEAR_Trend, Brushes.Orange, DashStyleHelper.Dash, 1);                
-            }
-
-            // Reset counters
-            for (int i = 1; i <= CountReverseCandles; i++)
-            {
-                RemoveDrawObject($"Reverse_{i}");
-            }
+            }            
             CountReverseCandles = 0;
         }
 
@@ -282,6 +276,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     LocalPrint($"Reset daily PnL for back test");
                     BackTestDailyPnL = 0;
+                    Draw.Text(this, "NewDay_" + CurrentBar, $"{Time[0]:MM/dd}", 0, High[0] + 120 * TickSize, Brushes.Blue);
+                    Draw.VerticalLine(this, $"Day {Time[0]:yyyy-MM-dd}", Time[0], Brushes.Red, DashStyleHelper.Dot, 2);
+
+                    EMA2129Status.ResetEnteredOrder();
+
+                    EMA2129Status.ResetCounters();
                 }
 
                 try
@@ -296,34 +296,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     var ema10_5m_Val = EMA10Indicator_5m.Value[0];
 
                     var minValue = StrategiesUtilities.MinOfArray(ema21Val, ema29Val, ema10_5m_Val);
-                    var maxValue = StrategiesUtilities.MaxOfArray(ema21Val, ema29Val, ema10_5m_Val);
+                    var maxValue = StrategiesUtilities.MaxOfArray(ema21Val, ema29Val, ema10_5m_Val);                    
 
                     /*
-                     * Kiểm tra điều kiện "bùng nhùng". 
-                     *      Có 3 cây nến liền nhau, điểm highest của 3 cây nến, và lowest của 3 cây nến sẽ cover 3 đường EMA21, EMA29 và EMA10 khung 5 phút
-                     *      tính là 1 lần "bùng nhùng" (CountContinueCrossing++) 
-                     * Nếu 3 lần bùng nhùng thì reset
+                     * SUPER IMPORTANT starts here
                      */
-                    /*
-                    var highest = StrategiesUtilities.MaxOfArray(High[0], High[1], High[2]);
-                    var lowest = StrategiesUtilities.MaxOfArray(High[0], High[1], High[2]);
-
-                    var highestEMAs = StrategiesUtilities.MaxOfArray(
-                        EMA21Indicator_1m.Value[0], EMA21Indicator_1m.Value[1], EMA21Indicator_1m.Value[2], 
-                        EMA29Indicator_1m.Value[0], EMA29Indicator_1m.Value[1], EMA29Indicator_1m.Value[2],
-                        EMA10Indicator_5m.Value[0], EMA10Indicator_5m.Value[1], EMA10Indicator_5m.Value[2]);
-
-                    var lowestEMAs = StrategiesUtilities.MinOfArray(
-                        EMA21Indicator_1m.Value[0], EMA21Indicator_1m.Value[1], EMA21Indicator_1m.Value[2],
-                        EMA29Indicator_1m.Value[0], EMA29Indicator_1m.Value[1], EMA29Indicator_1m.Value[2],
-                        EMA10Indicator_5m.Value[0], EMA10Indicator_5m.Value[1], EMA10Indicator_5m.Value[2]);
-
-                    if (highest >= highestEMAs && lowest < lowestEMAs)
-                    {
-                        //CountContinueCrossing
-                    } 
-                    */
-
                     BasicActionForTrading(TimeFrameToTrade.OneMinute);                    
 
                     if (high < minValue && minValue - high > 5 && EMA2129Status.Position != EMA2129Position.Below)
@@ -364,7 +341,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             {
                                 CountReverseCandles++;
                                 // Draw Number 
-                                Draw.Text(this, $"Reverse_{CountReverseCandles}", $"{CountReverseCandles}", 0, High[0] + 5, Brushes.Red);
+                                Draw.Text(this, $"Reverse_{CurrentBar}", $"{CountReverseCandles}", 0, High[0] + 5, Brushes.Red);
                             }
                         }
                         else if (EMA2129Status.Position == EMA2129Position.Below)
@@ -378,7 +355,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             {
                                 CountReverseCandles++;
                                 // Draw Number 
-                                Draw.Text(this, $"Reverse_{CountReverseCandles}", $"{CountReverseCandles}", 0, Low[0] - 5,  Brushes.Green);                                
+                                Draw.Text(this, $"Reverse_{CurrentBar}", $"{CountReverseCandles}", 0, Low[0] - 5,  Brushes.Green);                                
                             }
                         }
 
@@ -387,6 +364,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                         {                        
                             LocalPrint($"Touch EMA21");
                             EMA2129Status.Touch(EMA2129OrderPostition.EMA21);
+
+                            //SetAndDrawTopOrBottom(EMA2129Status.Position);
                         }
 
                         if (high >= ema29Val && low <= ema29Val)
@@ -394,6 +373,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                          
                             LocalPrint($"Touch EMA29");
                             EMA2129Status.Touch(EMA2129OrderPostition.EMA29);
+
+                            //SetAndDrawTopOrBottom(EMA2129Status.Position);
                         }
 
                         if (high >= ema10_5m_Val && low <= ema10_5m_Val)
@@ -401,6 +382,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                          
                             LocalPrint($"Touch EMA10 (khung 5 phút)");
                             EMA2129Status.Touch(EMA2129OrderPostition.EMA10_5m);
+
+                            //SetAndDrawTopOrBottom(EMA2129Status.Position);
                         }
                         
                     }                    
@@ -509,8 +492,25 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (CountReverseCandles >= 4)
             {
-                LocalPrint($"Có nhiều hơn 4 cây nến {(EMA2129Status.Position == EMA2129Position.Above ? "ĐỎ" : "XANH")} --> No Trade");
+                LocalPrint($"Có 4+ cây nến {(EMA2129Status.Position == EMA2129Position.Above ? "ĐỎ" : "XANH")} --> No Trade");
                 return answer;
+            }    
+            else if (CountReverseCandles == 3) 
+            {
+                /*
+                 * Do hàm [ShouldTrade] được gọi trước khi check lại các cây nến, 
+                 * do đó phải kiểm tra cây nến hiện tại như thế nào
+                 */
+                if (EMA2129Status.Position == EMA2129Position.Above && CandleUtilities.IsRedCandle(Close[0], Open[0]))
+                {
+                    LocalPrint($"Có 4 cây nến XANH --> No Trade");
+                    return answer;
+                }
+                else if (EMA2129Status.Position == EMA2129Position.Below && CandleUtilities.IsGreenCandle(Close[0], Open[0]))
+                {
+                    LocalPrint($"Có 4 cây nến ĐỎ --> No Trade");
+                    return answer;
+                }
             }    
 
             // Nếu đã có 4 cây nến đỏ hoặc xanh tính từ điểm cao (thấp) nhất khi bán (mua) 

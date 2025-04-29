@@ -44,7 +44,7 @@ namespace NinjaTrader.Custom.Strategies
 
     public class CandleUtilities
     {
-        public static bool IsRedCandle(double close, double open, double? minBody = 5, double? maxBody = 60, double? hi = null, double? low = null)
+        public static bool IsRedCandle(double close, double open, double? minBody = null, double? maxBody = null, double? hi = null, double? low = null)
         {
             var ans = close < open;
             if (minBody.HasValue)

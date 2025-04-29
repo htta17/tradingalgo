@@ -635,8 +635,9 @@ namespace NinjaTrader.Custom.Strategies
 
                     if (orderState == OrderState.Filled)
                     {
+                        LocalPrint($"{order.OrderType} {(order.OrderType == OrderType.StopMarket ? "THUA" : "THẮNG")} ");
                         if (order.OrderType == OrderType.StopMarket) // Filled Stop --> Loss
-                        {
+                        {   
                             BackTestDailyPnL = BackTestDailyPnL - AlgQuantity * TickSize * StopLossInTicks;
                         }
                         else if (order.OrderType == OrderType.Limit) // Filled Limit --> Win

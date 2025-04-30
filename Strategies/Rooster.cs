@@ -384,7 +384,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override EMA2129OrderDetail ShouldTrade()
         {
-            LocalPrint("[ShouldTrade]");
             var answer = new EMA2129OrderDetail
             {
                 Action = GeneralTradeAction.NoTrade,
@@ -415,6 +414,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             var low = Low[0];
             var allowTrade = false;
             var previousTouch = EMA2129Status.CountTouch_EMA10_5m + EMA2129Status.CountTouch_EMA21 + EMA2129Status.CountTouch_EMA29;
+
+            LocalPrint($"postionAngle: {postionAngle}, {EMA2129Status.CountTouch_EMA10_5m} {EMA2129Status.CountTouch_EMA21} {EMA2129Status.CountTouch_EMA29}");
 
             if (postionAngle != EMA2129OrderPostition.NoTrade && previousTouch == 0)
             {

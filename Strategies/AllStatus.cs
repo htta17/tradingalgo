@@ -389,7 +389,8 @@ namespace NinjaTrader.Custom.Strategies
     {
         Unknown,
         Above,
-        Below
+        Below,
+        Crossing
     }
     public class EMA2129Status
     {

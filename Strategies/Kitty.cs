@@ -82,6 +82,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         #region Indicators
         protected EMA EMA29Indicator_1m { get; set; }
         protected EMA EMA21Indicator_1m { get; set; }
+
+        protected EMA EMA89Indicator_1m { get; set; }
         protected EMA EMA46Indicator_5m { get; set; }
         protected EMA EMA20Indicator_5m { get; set; }
         protected EMA EMA10Indicator_5m { get; set; }       
@@ -193,6 +195,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA21Indicator_1m = EMA(BarsArray[2], 21);
             EMA21Indicator_1m.Plots[0].Brush = Brushes.Blue;
 
+            EMA89Indicator_1m = EMA(BarsArray[2], 89);
+            EMA89Indicator_1m.Plots[0].Brush = Brushes.Gray;
+
             EMA46Indicator_5m = EMA(BarsArray[1], 46);
             EMA20Indicator_5m = EMA(BarsArray[1], 20);
             EMA10Indicator_5m = EMA(BarsArray[1], 10);
@@ -203,6 +208,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 AddChartIndicator(EMA29Indicator_1m);
                 AddChartIndicator(EMA21Indicator_1m);
+                AddChartIndicator(EMA89Indicator_1m);
 
                 AddChartIndicator(Falcon_1m);
             }
@@ -303,69 +309,95 @@ namespace NinjaTrader.NinjaScript.Strategies
                      */
                     BasicActionForTrading(TimeFrameToTrade.OneMinute);                    
 
-                    if (high < minValue && minValue - high > 5 && EMA2129Status.Position != EMA2129Position.Below)
+                    /*
+                     * SUPER IMPORTANT
+                     */
+                    if (minValue > high && minValue - high >= 2)
                     {
-                        var resetOrder = PreviousPosition != EMA2129Position.Below;
+                        // Nến đang ở DƯỚI cả 3 đường EMA
+                        // Nếu trạng thái hiện tại không phải là BELOW thì cần reset
+                        if (EMA2129Status.Position != EMA2129Position.Below)
+                        {
+                            var resetOrder = PreviousPosition != EMA2129Position.Below;
 
-                        LocalPrint($"New status: BELOW - Current status: {PreviousPosition}, Reset order: {resetOrder}");
+                            LocalPrint($"New status: BELOW - Current status: {PreviousPosition}, Reset order: {resetOrder}");
 
-                        EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, resetOrder);
+                            EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, resetOrder);
 
-                        PreviousPosition = EMA2129Position.Below;
+                            PreviousPosition = EMA2129Position.Below;
 
-                        SetAndDrawTopOrBottom(EMA2129Position.Below);
+                            SetAndDrawTopOrBottom(EMA2129Position.Below);
+                        }    
+                        else // Nếu không cần phải Reset
+                        {
+                            
+                            if (CurrentLow_BEAR_Trend > Low[0])
+                            {
+                                // Cập nhật lại current high low
+                                SetAndDrawTopOrBottom(EMA2129Position.Below);
+                            }
+                            
+                            if (CandleUtilities.IsRedCandle(Close[0], Open[0]))
+                            {
+                                CountReverseCandles = 0;
+                            }
+                            else if (CandleUtilities.IsGreenCandle(Close[0], Open[0]))
+                            {
+                                CountReverseCandles++;
+                                // Draw Number 
+                                Draw.Text(this, $"Reverse_{CurrentBar}", $"{CountReverseCandles}", 0, Low[0] - 5, Brushes.Green);
+                            }
+                        }   
                     }
-                    else if (low > maxValue && low - maxValue > 5 && EMA2129Status.Position != EMA2129Position.Above)
+                    else if (low > maxValue && low - maxValue >= 2)
                     {
-                        var resetOrder = PreviousPosition != EMA2129Position.Above;
+                        if (EMA2129Status.Position != EMA2129Position.Above)
+                        {
+                            var resetOrder = PreviousPosition != EMA2129Position.Above;
 
-                        LocalPrint($"New status: ABOVE - Current status: {PreviousPosition}, Reset order: {resetOrder}");
+                            LocalPrint($"New status: ABOVE - Current status: {PreviousPosition}, Reset order: {resetOrder}");
 
-                        EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, resetOrder);
+                            EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, resetOrder);
 
-                        PreviousPosition = EMA2129Position.Above;
+                            PreviousPosition = EMA2129Position.Above;
 
-                        SetAndDrawTopOrBottom(EMA2129Position.Above);
-                    }
-                    else
-                    {
-                        // Cập nhật lại các đường Key
-                        if (EMA2129Status.Position == EMA2129Position.Above)
+                            SetAndDrawTopOrBottom(EMA2129Position.Above);
+                        }
+                        else 
                         {
                             if (CurrentHigh_BULL_Trend < High[0])
                             {
                                 // Cập nhật lại current high
-                                SetAndDrawTopOrBottom(EMA2129Position.Above);                                
-                            }                            
+                                SetAndDrawTopOrBottom(EMA2129Position.Above);
+                            }
+                            
+                            if (CandleUtilities.IsGreenCandle(Close[0], Open[0]))
+                            {
+                                CountReverseCandles = 0;
+                            }
                             else if (CandleUtilities.IsRedCandle(Close[0], Open[0]))
                             {
                                 CountReverseCandles++;
                                 // Draw Number 
                                 Draw.Text(this, $"Reverse_{CurrentBar}", $"{CountReverseCandles}", 0, High[0] + 5, Brushes.Red);
-                            }
-                        }
-                        else if (EMA2129Status.Position == EMA2129Position.Below)
-                        {
-                            if (CurrentLow_BEAR_Trend > Low[0])
-                            {
-                                // Cập nhật lại current high low
-                                SetAndDrawTopOrBottom(EMA2129Position.Below);                                
                             }                            
-                            else if (CandleUtilities.IsGreenCandle(Close[0], Open[0]))
-                            {
-                                CountReverseCandles++;
-                                // Draw Number 
-                                Draw.Text(this, $"Reverse_{CurrentBar}", $"{CountReverseCandles}", 0, Low[0] - 5,  Brushes.Green);                                
-                            }
-                        }
+                        } 
+                    }
+                    else 
+                    {
+                        /*
+                         * Sẽ có 2 trường hợp ở đây. 
+                         * - CROSSING: Khi 1 cây nến băng qua cả 3 đường (EMA21, EMA29 và EMA10 khung 5 phút) 
+                         * 
+                         * - JUST touch: 
+                         * 
+                         */                        
 
                         // Touches cac đường
                         if (high >= ema21Val && low <= ema21Val) 
                         {                        
                             LocalPrint($"Touch EMA21");
                             EMA2129Status.Touch(EMA2129OrderPostition.EMA21);
-
-                            //SetAndDrawTopOrBottom(EMA2129Status.Position);
                         }
 
                         if (high >= ema29Val && low <= ema29Val)
@@ -717,11 +749,15 @@ namespace NinjaTrader.NinjaScript.Strategies
                     break;
 
                 case EMA2129OrderPostition.EMA21:
-                    ans = EMA21Indicator_1m.Value[0];
+                    ans = tradeAction.Action == GeneralTradeAction.Buy
+                        ? EMA21Indicator_1m.Value[0] + 3
+                        : EMA21Indicator_1m.Value[0] - 3;
                     break;
                 // Note: Vẫn dùng EMA21 +/- AdjustmentPoint để vào lệnh
                 case EMA2129OrderPostition.EMA29:
-                    ans = EMA29Indicator_1m.Value[0];
+                    ans = tradeAction.Action == GeneralTradeAction.Buy
+                        ? EMA29Indicator_1m.Value[0] + 3
+                        : EMA29Indicator_1m.Value[0] - 3;
                     break;               
             }
 

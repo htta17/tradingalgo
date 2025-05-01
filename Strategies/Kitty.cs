@@ -136,9 +136,14 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected double LastLow_BEAR_Trend { get; set; }
 
         /// <summary>
-        /// Đếm số cây nến khác màu với trend hiện tai
+        /// Đếm số cây nến liên tiếp khác màu với trend hiện tai
         /// </summary>
         protected int CountReverseCandles { get; set; }
+
+        /// <summary>
+        /// Đánh dấu cây nến có thân nhỏ, râu nến dài (trên hoặc dưới). <br/>        
+        /// </summary>
+        protected bool HammerCandle { get; set; }
 
         protected override void OnStateChange_Configure()
         {
@@ -184,6 +189,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             LastLow_BEAR_Trend = int.MaxValue;
 
             CountReverseCandles = 0;
+            HammerCandle = false;
         }
 
         protected override void OnStateChange_DataLoaded()
@@ -229,14 +235,20 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Set lại Current High
                 CurrentHigh_BULL_Trend = High[0];
 
-                Draw.HorizontalLine(this, "CurrentKey", CurrentHigh_BULL_Trend, Brushes.Orange, DashStyleHelper.Dash, 1);                
+                Draw.HorizontalLine(this, "CurrentKey", CurrentHigh_BULL_Trend, Brushes.Orange, DashStyleHelper.Dash, 1);
+
+                // Cập nhật lại xem đây có phải là cây nến rút râu (Inverted Hammer không)
+                HammerCandle = CandleUtilities.IsGreenCandle(Close[0], Open[0]) && CandleUtilities.TopToBodyPercentage(Close[0], Open[0], High[0], Low[0]) > 70;
             }   
             else if (position == EMA2129Position.Below)
             {
                 // Set lại Current High
                 CurrentLow_BEAR_Trend = Low[0];
 
-                Draw.HorizontalLine(this, "CurrentKey", CurrentLow_BEAR_Trend, Brushes.Orange, DashStyleHelper.Dash, 1);                
+                Draw.HorizontalLine(this, "CurrentKey", CurrentLow_BEAR_Trend, Brushes.Orange, DashStyleHelper.Dash, 1);
+
+                // Cập nhật lại xem đây có phải là cây nến rút râu (Inverted Hammer không)
+                HammerCandle = CandleUtilities.IsRedCandle(Close[0], Open[0]) && CandleUtilities.BottomToBodyPercentage(Close[0], Open[0], High[0], Low[0]) > 70;
             }            
             CountReverseCandles = 0;
         }
@@ -309,6 +321,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     /*
                      * SUPER IMPORTANT
                      */
+
+                    // Trạng thái hiện tại của nến: Phía DƯỚI các đường EMA
                     if (minValue > high && minValue - high >= 2)
                     {
                         // Nến đang ở DƯỚI cả 3 đường EMA
@@ -346,6 +360,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                             }
                         }   
                     }
+
+                    // Trạng thái hiện tại của nến: Phía TRÊN các đường EMA
                     else if (low > maxValue && low - maxValue >= 2)
                     {
                         if (EMA2129Status.Position != EMA2129Position.Above)
@@ -519,9 +535,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 LocalPrint($"Status: {EMA2129Status.Position} --> No Trade");
                 return answer;
             }
+            else if (HammerCandle)
+            {
+                LocalPrint($"Có nến rút râu với cây nến {(EMA2129Status.Position == EMA2129Position.Above ? "XANH cao nhất" : "ĐỎ thấp nhất")}");
+                return answer;
+            }    
             else if (CountReverseCandles >= 4)
             {
-                LocalPrint($"Có 4+ cây nến {(EMA2129Status.Position == EMA2129Position.Above ? "ĐỎ" : "XANH")} --> No Trade");
+                LocalPrint($"Có 4+ cây nến {(EMA2129Status.Position == EMA2129Position.Above ? "ĐỎ" : "XANH")} (ngược hướng) --> No Trade");
                 return answer;
             }    
             else if (CountReverseCandles == 3) 
@@ -577,13 +598,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // EMA 21 nằm trên cả EMA10 và EMA46 khung 5 phút
                 if (ema21_Above_EMA10_5m && ema21_Above_EMA46_5m)
-                {
+                {                    
                     answer.Action = GeneralTradeAction.Buy;
                 }
                 
                 // EMA 21 nằm trên EMA10 nhưng dưới EMA46
                 else if (ema21_Above_EMA10_5m && ema21_BelowAndNear_EM46_5m)
-                {
+                {                 
                     answer.Action = GeneralTradeAction.Buy;
                 }
 
@@ -600,7 +621,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 // EMA 21 nằm dưới cả EMA10 và EMA46 khung 5 phút
                 if (ema21_Below_EMA10_5m && ema21_Below_EMA46_5m)
-                {
+                {   
                     answer.Action = GeneralTradeAction.Sell;
                 }
                 

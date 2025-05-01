@@ -403,6 +403,7 @@
     <Compile Include="Strategies\Roses.cs" />
     <Compile Include="Strategies\GeneralUtilities.cs" />
     <Compile Include="Indicators\Falcon.cs" />
+    <Compile Include="Strategies\Kitty_Backup.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resource.resx">

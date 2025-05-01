@@ -28,9 +28,16 @@ using System.IO;
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class Kitty : BarClosedATMBase<EMA2129OrderDetail>, IATMStrategy
+    /// <summary>
+    /// Logic của Kitty đến thời điểm hiện tại (Vào lệnh khi): <br/>
+    /// - Góc ABS(Falcon) > 45 <br/>
+    /// - Góc Falcon > 0 nếu đánh lên, &lt; 0 nếu đánh xuống <br/>
+    /// - Vị trí của 3 đường EMAs : <br/>
+    /// - (1) Hoặc đúng thứ tự: EMA21 > EMA29 và EMA21 > EMA50 (5 phút) cho đánh lên (Xuống tương tự) <br/>    
+    /// </summary>    
+    public class Kitty_Backup : BarClosedATMBase<EMA2129OrderDetail>, IATMStrategy
     {
-        public Kitty() : base("KITTY")
+        public Kitty_Backup() : base("KITTY")
         {
             FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyKitty.txt");
             Configured_TimeFrameToTrade = TimeFrameToTrade.OneMinute;
@@ -83,7 +90,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected EMA EMA29Indicator_1m { get; set; }
         protected EMA EMA21Indicator_1m { get; set; }
         protected EMA EMA89Indicator_1m { get; set; }
-        protected EMA EMA50Indicator_5m { get; set; }
+        protected EMA EMA46Indicator_5m { get; set; }
         protected EMA EMA20Indicator_5m { get; set; }
         protected EMA EMA10Indicator_5m { get; set; }       
 
@@ -156,7 +163,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             base.SetDefaultProperties();
 
-            Name = "Kitty";
+            Name = "Kitty_BACKUP";
             Description = "[Kitty] là giải thuật được viết riêng cho my love, Phượng Phan.";
 
             FullSizeATMName = "Kitty_Default_4cts";
@@ -202,7 +209,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             EMA89Indicator_1m = EMA(BarsArray[2], 89);
             EMA89Indicator_1m.Plots[0].Brush = Brushes.Gray;
-            EMA50Indicator_5m = EMA(BarsArray[1], 50);
+            EMA46Indicator_5m = EMA(BarsArray[1], 46);
             EMA20Indicator_5m = EMA(BarsArray[1], 20);
             EMA10Indicator_5m = EMA(BarsArray[1], 10);
 
@@ -265,7 +272,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 try
                 {   
                     Values[0][0] = EMA10Indicator_5m.Value[0];
-                    Values[1][0] = EMA50Indicator_5m.Value[0];
+                    Values[1][0] = EMA46Indicator_5m.Value[0];
 
                     //Values[2][0] = EMA20Indicator_5m.Value[0];
                 }
@@ -567,7 +574,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var ema21Val = EMA21Indicator_1m.Value[0];
             var ema10_5mVal = EMA10Indicator_5m.Value[0];
-            var ema46_5mVal = EMA50Indicator_5m.Value[0];            
+            var ema46_5mVal = EMA46Indicator_5m.Value[0];            
 
             const int MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 = 10;
             const int MAX_DISTANCE_BETWEEN_EMA10_5m_AND_EMA21 = 7;

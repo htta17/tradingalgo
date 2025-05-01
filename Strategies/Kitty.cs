@@ -399,38 +399,29 @@ namespace NinjaTrader.NinjaScript.Strategies
                     else 
                     {
                         /*
-                         * Sẽ có 2 trường hợp ở đây. 
-                         * - CROSSING: Khi 1 cây nến băng qua cả 3 đường (EMA21, EMA29 và EMA10 khung 5 phút) 
-                         * 
-                         * - JUST touch: 
-                         * 
-                         */                        
-
-                        // Touches cac đường
-                        if (high >= ema21Val && low <= ema21Val) 
-                        {                        
-                            LocalPrint($"Touch EMA21");
-                            EMA2129Status.Touch(EMA2129OrderPostition.EMA21);
-                        }
-
-                        if (high >= ema29Val && low <= ema29Val)
+                         * Chỉ tính "Touch" khi 
+                         */
+                        if (Falcon_1m.Value[0] >= MINIMUM_ANGLE_TO_TRADE)
                         {
-                         
-                            LocalPrint($"Touch EMA29");
-                            EMA2129Status.Touch(EMA2129OrderPostition.EMA29);
+                            // Touches cac đường
+                            if (high >= ema21Val && low <= ema21Val)
+                            {
+                                LocalPrint($"Touch EMA21");
+                                EMA2129Status.Touch(EMA2129OrderPostition.EMA21);
+                            }
 
-                            //SetAndDrawTopOrBottom(EMA2129Status.Position);
+                            if (high >= ema29Val && low <= ema29Val)
+                            {
+                                LocalPrint($"Touch EMA29");
+                                EMA2129Status.Touch(EMA2129OrderPostition.EMA29);
+                            }
+
+                            if (high >= ema10_5m_Val && low <= ema10_5m_Val)
+                            {
+                                LocalPrint($"Touch EMA10 (khung 5 phút)");
+                                EMA2129Status.Touch(EMA2129OrderPostition.EMA10_5m);
+                            }
                         }
-
-                        if (high >= ema10_5m_Val && low <= ema10_5m_Val)
-                        {
-                         
-                            LocalPrint($"Touch EMA10 (khung 5 phút)");
-                            EMA2129Status.Touch(EMA2129OrderPostition.EMA10_5m);
-
-                            //SetAndDrawTopOrBottom(EMA2129Status.Position);
-                        }
-                        
                     }                    
                 }
                 catch (Exception ex)
@@ -469,10 +460,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 
                 if (shouldTrade.Action != GeneralTradeAction.NoTrade) // Nếu chưa enter order thì mới enter order
                 {                   
-                    if ((shouldTrade.Postition == EMA2129OrderPostition.EMA21 && !EMA2129Status.EnteredOrder21) || 
-                        (shouldTrade.Postition == EMA2129OrderPostition.EMA29 && !EMA2129Status.EnteredOrder29)) 
+                    if (EMA2129Status.CountTouch_EMA21 == 0 && EMA2129Status.CountTouch_EMA29 == 0) 
                     {
-                        EMA2129Status.SetEnteredOrder(shouldTrade.Postition);
+                        // EMA2129Status.SetEnteredOrder(shouldTrade.Postition);
 
                         EnterOrder(shouldTrade);
                     }
@@ -749,7 +739,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Ngược lại thì update điểm vào lệnh
                 else 
                 {
-                    EMA2129Status.SetEnteredOrder(checkShouldTradeAgain.Postition);
+                    // EMA2129Status.SetEnteredOrder(checkShouldTradeAgain.Postition);
 
                     UpdatePendingOrderPure(newPrice, stopLossPrice, targetPrice_Full, targetPrice_Half);                    
                 }
@@ -758,10 +748,17 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetSetPrice(EMA2129OrderDetail tradeAction, AtmStrategy additionalInfo)
         {
-            double ans = -1;
-            LocalPrint($"EMA21: {EMA21Indicator_1m.Value[0]:N2}, AdjustmentPoint: {AdjustmentPoint}, tradeAction: {tradeAction.Action}");
+            double ans = tradeAction.Action == GeneralTradeAction.Buy
+                        ? EMA21Indicator_1m.Value[0] + AdjustmentPoint
+                        : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
+            // LocalPrint($"EMA21: {EMA21Indicator_1m.Value[0]:N2}, AdjustmentPoint: {AdjustmentPoint}, tradeAction: {tradeAction.Action}");
             /*
+             * Sửa lại từ May, 1st, 2025:
+             * - Tất cả đều vào lệnh ở [EMA21] +/- [AdjustmentPoint]
+             * 
              */
+            #region Code cũ, tham khảo thêm bên Kitty_Backup 
+            /*
             switch (tradeAction.Postition)
             {
                 case EMA2129OrderPostition.AdjustedEMA21:
@@ -772,16 +769,18 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 case EMA2129OrderPostition.EMA21:
                     ans = tradeAction.Action == GeneralTradeAction.Buy
-                        ? EMA21Indicator_1m.Value[0] + 3
-                        : EMA21Indicator_1m.Value[0] - 3;
+                        ? EMA21Indicator_1m.Value[0] + AdjustmentPoint
+                        : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
                     break;
                 // Note: Vẫn dùng EMA21 +/- AdjustmentPoint để vào lệnh
                 case EMA2129OrderPostition.EMA29:
                     ans = tradeAction.Action == GeneralTradeAction.Buy
-                        ? EMA29Indicator_1m.Value[0] + 3
-                        : EMA29Indicator_1m.Value[0] - 3;
+                        ? EMA21Indicator_1m.Value[0] + AdjustmentPoint
+                        : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
                     break;               
             }
+            */
+            #endregion
 
             return StrategiesUtilities.RoundPrice(ans);
         }

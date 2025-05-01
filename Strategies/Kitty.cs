@@ -253,6 +253,30 @@ namespace NinjaTrader.NinjaScript.Strategies
             CountReverseCandles = 0;
         }
 
+        private bool IsTouched(double high, double low, EMA2129OrderPostition postition)
+        {
+            // Touches cac đường
+            if (postition == EMA2129OrderPostition.EMA21 && high >= EMA21Indicator_1m.Value[0] && low <= EMA21Indicator_1m.Value[0])
+            {
+                LocalPrint($"Touch EMA21");
+                //EMA2129Status.Touch(EMA2129OrderPostition.EMA21);
+                return true;
+            }
+            else if (postition == EMA2129OrderPostition.EMA29 && high >= EMA29Indicator_1m.Value[0] && low <= EMA29Indicator_1m.Value[0])
+            {
+                LocalPrint($"Touch EMA29");
+                return true;
+                //EMA2129Status.Touch(EMA2129OrderPostition.EMA29);
+            }
+            else if (postition == EMA2129OrderPostition.EMA10_5m && high >= EMA10Indicator_5m.Value[0] && low <= EMA10Indicator_5m.Value[0])
+            {
+                LocalPrint($"Touch EMA10 (khung 5 phút)");
+                // EMA2129Status.Touch(EMA2129OrderPostition.EMA10_5m);
+                return true;
+            }
+            return false; 
+        }
+
         protected override void OnBarUpdate()
         {
             // Cập nhật lại status 
@@ -398,27 +422,20 @@ namespace NinjaTrader.NinjaScript.Strategies
                     }
                     else 
                     {
-                        /*
-                         * Chỉ tính "Touch" khi 
-                         */
                         if (Falcon_1m.Value[0] >= MINIMUM_ANGLE_TO_TRADE)
                         {
-                            // Touches cac đường
-                            if (high >= ema21Val && low <= ema21Val)
+                            if (IsTouched(high, low, EMA2129OrderPostition.EMA21))
                             {
-                                LocalPrint($"Touch EMA21");
                                 EMA2129Status.Touch(EMA2129OrderPostition.EMA21);
                             }
 
-                            if (high >= ema29Val && low <= ema29Val)
+                            if (IsTouched(high, low, EMA2129OrderPostition.EMA29))
                             {
-                                LocalPrint($"Touch EMA29");
                                 EMA2129Status.Touch(EMA2129OrderPostition.EMA29);
                             }
 
-                            if (high >= ema10_5m_Val && low <= ema10_5m_Val)
+                            if (IsTouched(high, low, EMA2129OrderPostition.EMA10_5m))
                             {
-                                LocalPrint($"Touch EMA10 (khung 5 phút)");
                                 EMA2129Status.Touch(EMA2129OrderPostition.EMA10_5m);
                             }
                         }
@@ -459,13 +476,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 LocalPrint($"Check trading condition, result: {shouldTrade.Action}, EnteredOrder21: {EMA2129Status.EnteredOrder21}, EnteredOrder29: {EMA2129Status.EnteredOrder29}");
                 
                 if (shouldTrade.Action != GeneralTradeAction.NoTrade) // Nếu chưa enter order thì mới enter order
-                {                   
-                    if (EMA2129Status.CountTouch_EMA21 == 0 && EMA2129Status.CountTouch_EMA29 == 0) 
-                    {
-                        // EMA2129Status.SetEnteredOrder(shouldTrade.Postition);
-
-                        EnterOrder(shouldTrade);
-                    }
+                {
+                    EnterOrder(shouldTrade);                    
                 }
             }
             else if (TradingStatus == TradingStatus.PendingFill)
@@ -515,6 +527,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 Sizing = EMA2129SizingEnum.Small
             };
 
+            var falcon1mVal = Falcon_1m.Value[0];
+            var absolutedAngle = Math.Abs(falcon1mVal);
+            var niceAngleToTrade = absolutedAngle >= MINIMUM_ANGLE_TO_TRADE; 
+
             if (Time[0].TimeOfDay < StartDayTradeTime || Time[0].TimeOfDay > EndDayTradeTime)
             {
                 LocalPrint($"Thời gian trade được thiết lập từ {StartDayTradeTime} to {EndDayTradeTime} --> No Trade.");
@@ -529,13 +545,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 LocalPrint($"Có nến rút râu với cây nến {(EMA2129Status.Position == EMA2129Position.Above ? "XANH cao nhất" : "ĐỎ thấp nhất")}");
                 return answer;
-            }    
+            }
             else if (CountReverseCandles >= 4)
             {
                 LocalPrint($"Có 4+ cây nến {(EMA2129Status.Position == EMA2129Position.Above ? "ĐỎ" : "XANH")} (ngược hướng) --> No Trade");
                 return answer;
-            }    
-            else if (CountReverseCandles == 3) 
+            }
+            else if (CountReverseCandles == 3)
             {
                 /*
                  * Do hàm [ShouldTrade] được gọi trước khi check lại các cây nến, 
@@ -551,7 +567,32 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Có 4 cây nến ĐỎ --> No Trade");
                     return answer;
                 }
+            }
+            else if (EMA2129Status.CountTouch_EMA29 > 0 || EMA2129Status.CountTouch_EMA21 > 0 || EMA2129Status.CountTouch_EMA10_5m > 0)
+            {
+                LocalPrint("Đã chạm đường EMA29 hoặc EMA21, hoặc EMA10 (5m) trước đó rồi --> No Trade");
+                return answer;
+            }
+            else if (!niceAngleToTrade)
+            {
+                LocalPrint($"Góc = {absolutedAngle} < {MINIMUM_ANGLE_TO_TRADE} --> No Trade");
+                return answer;
             }    
+            else if (IsTouched(High[0], Low[0], EMA2129OrderPostition.EMA21))
+            {
+                LocalPrint("Mới chạm đường EMA21 --> No Trade");
+                return answer;
+            }
+            else if (IsTouched(High[0], Low[0], EMA2129OrderPostition.EMA29))
+            {
+                LocalPrint("Mới chạm đường EMA29 --> No Trade");
+                return answer;
+            }
+            else if (IsTouched(High[0], Low[0], EMA2129OrderPostition.EMA10_5m))
+            {
+                LocalPrint("Mới chạm đường EMA10_5m --> No Trade");
+                return answer;
+            }
 
             // Nếu đã có 4 cây nến đỏ hoặc xanh tính từ điểm cao (thấp) nhất khi bán (mua) 
 
@@ -578,10 +619,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             var ema21_AboveAndNear_EM46_5m = ema21Val > ema46_5mVal && 
                 (ema21Val - ema46_5mVal < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 || ema21Val - ema46_5mVal >= 50);
 
-            var falcon1mVal = Falcon_1m.Value[0]; 
-            var absolutedAngle = Math.Abs(falcon1mVal);
             
-            if (EMA2129Status.Position == EMA2129Position.Above && absolutedAngle >= MINIMUM_ANGLE_TO_TRADE && falcon1mVal > 0)
+            
+            if (EMA2129Status.Position == EMA2129Position.Above && falcon1mVal > 0)
             {
                 answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
                 answer.Sizing = EMA2129SizingEnum.Big;
@@ -605,7 +645,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 // Không có trường hợp EMA21 nằm dưới EMA46 nhưng lại nằm trên EMA10                
             }
-            else if (EMA2129Status.Position == EMA2129Position.Below && absolutedAngle >= MINIMUM_ANGLE_TO_TRADE && falcon1mVal < 0)
+            else if (EMA2129Status.Position == EMA2129Position.Below && falcon1mVal < 0)
             {
                 answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
 

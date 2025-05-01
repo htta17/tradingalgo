@@ -221,7 +221,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     Values[0][0] = EMA10Indicator_5m.Value[0];
                     Values[1][0] = EMA46Indicator_5m.Value[0];
-                    Values[2][0] = EMA20Indicator_5m.Value[0];
+                    
+                    Values[2][0] = DisplayEMA20_5m ? EMA20Indicator_5m.Value[0] : double.NaN;
+                    
                 }
                 catch (Exception ex)
                 {

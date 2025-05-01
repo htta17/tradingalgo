@@ -82,7 +82,6 @@ namespace NinjaTrader.NinjaScript.Strategies
         #region Indicators
         protected EMA EMA29Indicator_1m { get; set; }
         protected EMA EMA21Indicator_1m { get; set; }
-
         protected EMA EMA89Indicator_1m { get; set; }
         protected EMA EMA46Indicator_5m { get; set; }
         protected EMA EMA20Indicator_5m { get; set; }
@@ -197,7 +196,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             EMA89Indicator_1m = EMA(BarsArray[2], 89);
             EMA89Indicator_1m.Plots[0].Brush = Brushes.Gray;
-
             EMA46Indicator_5m = EMA(BarsArray[1], 46);
             EMA20Indicator_5m = EMA(BarsArray[1], 20);
             EMA10Indicator_5m = EMA(BarsArray[1], 10);
@@ -207,8 +205,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (DisplayIndicators)
             {
                 AddChartIndicator(EMA29Indicator_1m);
-                AddChartIndicator(EMA21Indicator_1m);
-                AddChartIndicator(EMA89Indicator_1m);
+                AddChartIndicator(EMA21Indicator_1m);                
 
                 AddChartIndicator(Falcon_1m);
             }
@@ -564,12 +561,16 @@ namespace NinjaTrader.NinjaScript.Strategies
             var ema21_Above_EMA46_5m = ema21Val >= ema46_5mVal;
             var ema21_Below_EMA46_5m = ema21Val <= ema46_5mVal;
 
-            var ema21_BelowAndNear_EM46_5m = ema21Val < ema46_5mVal && ema46_5mVal - ema21Val < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21;
-            var ema21_AboveAndNear_EM46_5m = ema21Val > ema46_5mVal && ema21Val - ema46_5mVal < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21;
+            var ema21_BelowAndNear_EM46_5m = ema21Val < ema46_5mVal && 
+                (ema46_5mVal - ema21Val < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 || ema46_5mVal - ema21Val >= 50);
 
-            var absolutedAngle = Math.Abs(Falcon_1m.Value[0]);            
+            var ema21_AboveAndNear_EM46_5m = ema21Val > ema46_5mVal && 
+                (ema21Val - ema46_5mVal < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 || ema21Val - ema46_5mVal >= 50);
+
+            var falcon1mVal = Falcon_1m.Value[0]; 
+            var absolutedAngle = Math.Abs(falcon1mVal);
             
-            if (EMA2129Status.Position == EMA2129Position.Above && absolutedAngle >= MINIMUM_ANGLE_TO_TRADE)// && volume.HasBULLVolume)
+            if (EMA2129Status.Position == EMA2129Position.Above && absolutedAngle >= MINIMUM_ANGLE_TO_TRADE && falcon1mVal > 0)
             {
                 answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
                 answer.Sizing = EMA2129SizingEnum.Big;
@@ -593,7 +594,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 // Không có trường hợp EMA21 nằm dưới EMA46 nhưng lại nằm trên EMA10                
             }
-            else if (EMA2129Status.Position == EMA2129Position.Below && absolutedAngle >= MINIMUM_ANGLE_TO_TRADE)// && volume.HasBEARVolume)
+            else if (EMA2129Status.Position == EMA2129Position.Below && absolutedAngle >= MINIMUM_ANGLE_TO_TRADE && falcon1mVal < 0)
             {
                 answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
 
@@ -768,7 +769,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             double newPrice = -1;
             var allowMoving = false;
-            var stopOrderPrice = stopOrder.StopPrice;            
+            var stopOrderPrice = stopOrder.StopPrice;
             
             if (isBuying)
             {
@@ -805,7 +806,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Giá lên 37 điểm thì di chuyển stop loss lên 30 điểm
                     if (allowMoving)
                     {
-                        newPrice = TargetPrice_Half;                        
+                        newPrice = TargetPrice_Half;
                     }
                     */
                     #endregion

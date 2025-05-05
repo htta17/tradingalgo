@@ -140,7 +140,7 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Giá hiện tại cách stop loss > [PointToMoveLoss] thì di chuyển stop loss.
         /// </summary>
-        protected const double PointToMoveLoss = 7.0;
+        protected const double PointToMoveLoss = 4.0;
         #endregion
 
         /// <summary>

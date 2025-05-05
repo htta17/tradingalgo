@@ -366,7 +366,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             
             FilledPrice = priceToSet;
             FilledTime = Time[0];
-            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}");
+            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}, tradeAction");
+
+            var stopLossInTicks = GetStopLossPrice(tradeAction, priceToSet, atmStrategy);
+            var target2InTicks = GetTargetPrice_Full(tradeAction, priceToSet, atmStrategy);
 
             try
             {
@@ -374,7 +377,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 //EnterOrderPureUsingPrice(priceToSet, Target1InTicks, StopLossInTicks, signalHalf, 2, IsBuying, IsSelling);
 
                 var signalFull = StrategiesUtilities.SignalEntry_TrendingFull;
-                EnterOrderPureUsingPrice(priceToSet, Target2InTicks, StopLossInTicks, signalFull, AlgQuantity, IsBuying, IsSelling);
+                EnterOrderPureUsingPrice(priceToSet, target2InTicks, stopLossInTicks, signalFull, AlgQuantity, IsBuying, IsSelling);
             }
             catch (Exception ex)
             {
@@ -609,9 +612,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetStopLossPrice(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
-            var stopLossTick = State == State.Historical 
-                ? StopLossInTicks 
-                : atmStrategy.Brackets[0].StopLoss;
+            if (State == State.Historical)
+            {
+                return StopLossInTicks; 
+            }
+            var stopLossTick = atmStrategy.Brackets[0].StopLoss;
 
             return IsBuying ?
                 setPrice - stopLossTick * TickSize :
@@ -620,9 +625,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetTargetPrice_Half(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
-            var targetTick_Half = State == State.Historical 
-                ? Target1InTicks 
-                : (IsBuying ? atmStrategy.Brackets.Min(c => c.Target) : atmStrategy.Brackets.Max(c => c.Target));
+            if (State == State.Historical)
+            {
+                return Target1InTicks;
+            }
+            var targetTick_Half = IsBuying ? atmStrategy.Brackets.Min(c => c.Target) : atmStrategy.Brackets.Max(c => c.Target);
 
             return IsBuying ?
                 setPrice + targetTick_Half * TickSize :
@@ -631,9 +638,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetTargetPrice_Full(T1 tradeAction, double setPrice, AtmStrategy atmStrategy)
         {
-            var targetTick_Full = State == State.Historical
-                ? Target2InTicks
-                : (IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target));
+            if (State == State.Historical)
+            {
+                return Target2InTicks;
+            }
+
+            var targetTick_Full = IsBuying ? atmStrategy.Brackets.Max(c => c.Target) : atmStrategy.Brackets.Min(c => c.Target);
 
             return IsBuying ?
                 setPrice + targetTick_Full * TickSize :

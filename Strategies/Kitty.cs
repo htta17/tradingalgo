@@ -258,19 +258,19 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Touches cac đường
             if (postition == EMA2129OrderPostition.EMA21 && high >= EMA21Indicator_1m.Value[0] && low <= EMA21Indicator_1m.Value[0])
             {
-                LocalPrint($"Touch EMA21");
+                LocalPrint($"Touch EMA21 - Current Count: {EMA2129Status.CountTouch_EMA21}");
                 //EMA2129Status.Touch(EMA2129OrderPostition.EMA21);
                 return true;
             }
             else if (postition == EMA2129OrderPostition.EMA29 && high >= EMA29Indicator_1m.Value[0] && low <= EMA29Indicator_1m.Value[0])
             {
-                LocalPrint($"Touch EMA29");
+                LocalPrint($"Touch EMA29 - Current Count: {EMA2129Status.CountTouch_EMA29}");
                 return true;
                 //EMA2129Status.Touch(EMA2129OrderPostition.EMA29);
             }
             else if (postition == EMA2129OrderPostition.EMA10_5m && high >= EMA10Indicator_5m.Value[0] && low <= EMA10Indicator_5m.Value[0])
             {
-                LocalPrint($"Touch EMA10 (khung 5 phút)");
+                LocalPrint($"Touch EMA10 (khung 5 phút) - Current Count: {EMA2129Status.CountTouch_EMA29}");
                 // EMA2129Status.Touch(EMA2129OrderPostition.EMA10_5m);
                 return true;
             }
@@ -430,16 +430,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                             if (IsTouched(high, low, EMA2129OrderPostition.EMA21))
                             {
                                 EMA2129Status.Touch(EMA2129OrderPostition.EMA21);
+
+                                LocalPrint($"New count EMA21: {EMA2129Status.CountTouch_EMA21}");
                             }
 
                             if (IsTouched(high, low, EMA2129OrderPostition.EMA29))
                             {
                                 EMA2129Status.Touch(EMA2129OrderPostition.EMA29);
+
+                                LocalPrint($"New count EMA29: {EMA2129Status.CountTouch_EMA29}");
                             }
 
                             if (IsTouched(high, low, EMA2129OrderPostition.EMA10_5m))
                             {
                                 EMA2129Status.Touch(EMA2129OrderPostition.EMA10_5m);
+
+                                LocalPrint($"New count EMA10_5m: {EMA2129Status.CountTouch_EMA10_5m}");
                             }
                         }
                     }                    
@@ -532,7 +538,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             var falcon1mVal = Falcon_1m.Value[0];
             var absolutedAngle = Math.Abs(falcon1mVal);
-            var niceAngleToTrade = absolutedAngle >= MINIMUM_ANGLE_TO_TRADE; 
+            var niceAngleToTrade = absolutedAngle >= MINIMUM_ANGLE_TO_TRADE;
+
+            var sumTocuhes = EMA2129Status.CountTouch_EMA29 + EMA2129Status.CountTouch_EMA21 + EMA2129Status.CountTouch_EMA10_5m;
 
             if (Time[0].TimeOfDay < StartDayTradeTime || Time[0].TimeOfDay > EndDayTradeTime)
             {
@@ -571,9 +579,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                     return answer;
                 }
             }
-            else if (EMA2129Status.CountTouch_EMA29 > 0 || EMA2129Status.CountTouch_EMA21 > 0 || EMA2129Status.CountTouch_EMA10_5m > 0)
+            else if (sumTocuhes > 0)
             {
-                LocalPrint("Đã chạm đường EMA29 hoặc EMA21, hoặc EMA10 (5m) trước đó rồi --> No Trade");
+                LocalPrint($"Đã chạm đường EMA29 hoặc EMA21, hoặc EMA10 (5m) trước đó rồi. Sum touches: {sumTocuhes} --> No Trade");
                 return answer;
             }
             else if (!niceAngleToTrade)
@@ -623,10 +631,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                 (ema46_5mVal - ema21Val < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 || ema46_5mVal - ema21Val >= 50);
 
             var ema21_AboveAndNear_EM46_5m = ema21Val > ema46_5mVal && 
-                (ema21Val - ema46_5mVal < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 || ema21Val - ema46_5mVal >= 50);
+                (ema21Val - ema46_5mVal < MAX_DISTANCE_BETWEEN_EMA46_5m_AND_EMA21 || ema21Val - ema46_5mVal >= 50);            
             
-            
-            if (EMA2129Status.Position == EMA2129Position.Above && falcon1mVal > 0 &&  Close[0] > maxValue)
+            if (EMA2129Status.Position == EMA2129Position.Above && falcon1mVal > 0 &&  Close[0] > maxValue && sumTocuhes == 0)
             {
                 answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
                 answer.Sizing = EMA2129SizingEnum.Big;
@@ -634,14 +641,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // EMA 21 nằm trên cả EMA10 và EMA46 khung 5 phút
                 if (ema21_Above_EMA10_5m && ema21_Above_EMA46_5m)
                 {
-                    LocalPrint("[CONFIRM] Đủ điều kiện vào BUY");
+                    LocalPrint($"[CONFIRM] Đủ điều kiện vào BUY, count: {sumTocuhes}");
                     answer.Action = GeneralTradeAction.Buy;
                 }
                 
                 // EMA 21 nằm trên EMA10 nhưng dưới EMA46
                 else if (ema21_Above_EMA10_5m && ema21_BelowAndNear_EM46_5m)
                 {
-                    LocalPrint("[CONFIRM] Đủ điều kiện vào BUY");
+                    LocalPrint($"[CONFIRM] Đủ điều kiện vào BUY, count: {sumTocuhes}");
                     answer.Action = GeneralTradeAction.Buy;
                 }
                 
@@ -652,21 +659,21 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }                
                 // Không có trường hợp EMA21 nằm dưới EMA46 nhưng lại nằm trên EMA10                
             }
-            else if (EMA2129Status.Position == EMA2129Position.Below && falcon1mVal < 0 && Close[0] < minValue)
+            else if (EMA2129Status.Position == EMA2129Position.Below && falcon1mVal < 0 && Close[0] < minValue && sumTocuhes == 0)
             {
                 answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
 
                 // EMA 21 nằm dưới cả EMA10 và EMA46 khung 5 phút
                 if (ema21_Below_EMA10_5m && ema21_Below_EMA46_5m)
                 {
-                    LocalPrint("[CONFIRM] Đủ điều kiện vào SELL");
+                    LocalPrint($"[CONFIRM] Đủ điều kiện vào SELL, count: {sumTocuhes}");
                     answer.Action = GeneralTradeAction.Sell;
                 }
                 
                 // EMA 21 nằm dưới EMA10 nhưng trên EMA46
                 else if (ema21_Below_EMA10_5m && ema21_AboveAndNear_EM46_5m)
                 {
-                    LocalPrint("[CONFIRM] Đủ điều kiện vào SELL");
+                    LocalPrint($"[CONFIRM] Đủ điều kiện vào SELL, count: {sumTocuhes}");
                     answer.Action = GeneralTradeAction.Sell;
                 }
                 

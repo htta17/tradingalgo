@@ -509,7 +509,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // - Đã chạm đường XANH                 
                 var angle = Falcon_1m.Value[0];
                 var noTradeAngle = angle < MininumAngleToTrade;
-                var alreadyTouchEMA_10_5m = EMA2129Status.CountTouch_EMA10_5m > 0; 
+                var alreadyTouchEMA_10_5m = EMA2129Status.CountTouch_EMA10_5m > 0;
+
+                var buySell = "";
+                var newPrice = -1.0; 
 
                 if (CurrentTradeAction.Action == GeneralTradeAction.Buy && Close[0] > FilledPrice + 5 && noTradeAngle && alreadyTouchEMA_10_5m)
                 {
@@ -518,8 +521,8 @@ namespace NinjaTrader.NinjaScript.Strategies
     - Giá hiện tại lời được 5pts: {Close[0]:N2}, giá vào lệnh: {FilledPrice:N2}
     - Đã chạm EMA10 khung 5 phút. 
                     ");
-                    CloseExistingOrders();
-                    //var stopOrders = Account.Orders.Where(c => c.S)
+                    buySell = "BUY";
+                    newPrice = FilledPrice + 5;                    
                 }
                 else if (CurrentTradeAction.Action == GeneralTradeAction.Sell && Close[0] < FilledPrice - 5 && noTradeAngle && alreadyTouchEMA_10_5m)
                 {
@@ -527,9 +530,31 @@ namespace NinjaTrader.NinjaScript.Strategies
     - Góc suy giảm: {angle:N2} < {MininumAngleToTrade}
     - Giá hiện tại lời được 5pts: {Close[0]:N2}, giá vào lệnh: {FilledPrice:N2}
     - Đã chạm EMA10 khung 5 phút. 
-                    ");
-                    CloseExistingOrders();
+                    ");                    
+                    buySell = "SELL";
+                    newPrice = FilledPrice - 5;
                 }
+
+                if (!string.IsNullOrEmpty(buySell))
+                {
+                    if (State == State.Realtime)
+                    {
+                        var stopOrders = Account.Orders.Where(c => (c.OrderType == OrderType.StopLimit || c.OrderType == OrderType.StopMarket) && c.OrderState == OrderState.Accepted).ToList();
+
+                        for (int i = 0; i < stopOrders.Count; i++)
+                        {
+                            var stopOrder = stopOrders[i];                            
+
+                            MoveTargetOrStopOrder(newPrice, stopOrder, false, buySell, stopOrder.FromEntrySignal);
+                        }
+                    }
+                    else
+                    {
+                        CloseExistingOrders();
+                    }
+                   
+                }
+               
 
             }
         }

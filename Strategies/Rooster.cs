@@ -149,9 +149,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             Name = "Rooster";
             Description = "[Rooster] là giải thuật trade on First touch";
 
-            FullSizeATMName = "Kitty_Default_4cts";
-            HalfSizefATMName = "Kitty_Default_2cts";
-            RiskyAtmStrategyName = "Kitty_Risky";
+            FullSizeATMName = "Kitty_Big";
+            HalfSizefATMName = "Kitty_Big";
+            RiskyAtmStrategyName = "Kitty_Big";
 
             DailyTargetProfit = 500;
             MaximumDailyLoss = 350;

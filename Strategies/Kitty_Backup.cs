@@ -166,9 +166,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             Name = "Kitty_BACKUP";
             Description = "[Kitty] là giải thuật được viết riêng cho my love, Phượng Phan.";
 
-            FullSizeATMName = "Kitty_Default_4cts";
-            HalfSizefATMName = "Kitty_Default_2cts"; 
-            RiskyAtmStrategyName = "Kitty_Risky"; 
+            FullSizeATMName = "Kitty_Big";
+            HalfSizefATMName = "Kitty_Big"; 
+            RiskyAtmStrategyName = "Kitty_Big"; 
 
             DailyTargetProfit = 500;
             MaximumDailyLoss = 350;

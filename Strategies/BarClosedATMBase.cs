@@ -579,6 +579,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void MoveTargetOrStopOrder(double newPrice, Cbi.Order order, bool isGainStop, string buyOrSell, string fromEntrySignal)
         {
+            if (State == State.Historical)
+            {
+                base.MoveTargetOrStopOrder(newPrice, order, isGainStop, buyOrSell, fromEntrySignal); 
+                return;
+            }
             try
             {
                 var text = isGainStop ? "TARGET" : "LOSS";

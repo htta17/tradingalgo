@@ -855,7 +855,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Số lượng contracts hiện tại
 
                 // Nếu ngược trend hoặc backtest thì vào cancel lệnh cũ và vào lệnh mới
-                if (CurrentTradeAction.Action != checkShouldTradeAgain.Action)
+                if (CurrentTradeAction.Action != checkShouldTradeAgain.Action || CurrentTradeAction.Sizing != checkShouldTradeAgain.Sizing)
                 {
 
                     #region Cancel current order and enter new one

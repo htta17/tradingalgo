@@ -511,6 +511,8 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             // Set global values
             CurrentTradeAction = tradeAction;
+            BackTestTargetInTicks = Target2InTicks;
+            BackTestStopLossInTicks = StopLossInTicks; 
 
             EnteredBarIndex_5m = CurrentBarIndex_5m;
 

@@ -172,8 +172,19 @@ namespace NinjaTrader.Custom.Strategies
         #region Properties
         protected int CurrentBarIndex_5m = 0;
         protected int EnteredBarIndex_5m = 0;
-
         protected T1 CurrentTradeAction { get; set; }
+
+        #region For BackTest
+        /// <summary>
+        /// Current stop loss in ticks, dùng để ghi lại stop loss và gain cho việc back test data
+        /// </summary>
+        protected double BackTestStopLossInTicks { get; set; }
+
+        /// <summary>
+        /// Current gain in ticks, dùng để ghi lại stop loss và gain cho việc back test data
+        /// </summary>
+        protected double BackTestTargetInTicks { get; set; }
+        #endregion
 
         /// <summary>
         /// Biến này dùng để di chuyển stop loss khi giá BẮT ĐẦU gần chạm đến target2 (để room cho chạy).
@@ -647,16 +658,22 @@ namespace NinjaTrader.Custom.Strategies
                         CountEntrySignal--; 
                     }
 
-                    if (orderState == OrderState.Filled)
+                    if (order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)
                     {
-                        LocalPrint($"{order.OrderType} {(order.OrderType == OrderType.StopMarket ? "THUA" : "THẮNG")} ");
-                        if (order.OrderType == OrderType.StopMarket) // Filled Stop --> Loss
-                        {   
-                            BackTestDailyPnL = BackTestDailyPnL - AlgQuantity * TickSize * StopLossInTicks;
-                        }
-                        else if (order.OrderType == OrderType.Limit) // Filled Limit --> Win
+                        LocalPrint($"{order.OrderType} {(orderState == OrderState.Filled ? "THUA" : "THẮNG")} ");
+                        if (orderState == OrderState.Filled) // Filled Stop --> Loss
                         {
-                            BackTestDailyPnL = BackTestDailyPnL + AlgQuantity * TickSize * Target2InTicks;
+                            var loss = AlgQuantity * TickSize * BackTestStopLossInTicks * 2; 
+                            BackTestDailyPnL -= loss;
+
+                            LocalPrint($"New daily PnL: {BackTestDailyPnL:N2} | loss = ({AlgQuantity:N2} x {TickSize:N2}) x {BackTestStopLossInTicks:N2} x 2 = {loss:N2}");
+                        }
+                        else if (orderState == OrderState.Cancelled) // Cancel stop Limit --> Win
+                        {
+                            var profit = AlgQuantity * TickSize * BackTestTargetInTicks * 2;
+                            BackTestDailyPnL += profit; 
+
+                            LocalPrint($"New daily PnL: {BackTestDailyPnL:N2} | profit = ({AlgQuantity:N2} x {TickSize:N2}) x {BackTestTargetInTicks:N2} x 2 = {profit:N2}");
                         }                        
                     }
                 }
@@ -693,8 +710,6 @@ namespace NinjaTrader.Custom.Strategies
                 LocalPrint(
                     $"[OnOrderUpdate] - key: [{key}], quantity: {quantity}, filled: {filled}, orderType: {order.OrderType}, orderState: {orderState}, " +
                     $"limitPrice: {limitPrice:N2}, stop: {stopPrice:N2}. Current number of active orders: {ActiveOrders.Count}");
-
-                LocalPrint($"New daily PnL: {BackTestDailyPnL:N2}");
             }
         }
 

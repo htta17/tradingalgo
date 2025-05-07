@@ -271,6 +271,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             CurrentTradeAction = action;
             CurrentFVGTradeDetail = NewFVGTradeDetail;
 
+            BackTestStopLossInTicks = StopLossInTicks;
+            BackTestTargetInTicks = Target2InTicks;
+
             // Chưa cho move stop loss
             StartMovingStoploss = false;
 

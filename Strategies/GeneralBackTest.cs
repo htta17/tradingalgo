@@ -287,7 +287,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void EnterOrder(GeneralTradeAction action)
         {
             // Set global values
-            CurrentTradeAction = action;            
+            CurrentTradeAction = action;
+
+            BackTestStopLossInTicks = StopLossInTicks;
+            BackTestTargetInTicks = Target2InTicks;
 
             // Chưa cho move stop loss
             StartMovingStoploss = false;

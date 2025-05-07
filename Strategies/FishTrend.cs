@@ -44,7 +44,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override bool IsSelling => throw new NotImplementedException();
 
         private double KeyLevel_15m_UP = -1;
-        private double KeyLevel_15m_DOWN = -1;        
+        private double KeyLevel_15m_DOWN = -1;
 
         private EMA EMA46Indicator_5m { get; set; }
         private EMA EMA50Indicator_5m { get; set; }       
@@ -57,6 +57,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void AddCustomDataSeries()
         {
             // Add data series
+            AddDataSeries(BarsPeriodType.Minute, 1);
             AddDataSeries(BarsPeriodType.Minute, 5);
             AddDataSeries(BarsPeriodType.Minute, 15);            
         }
@@ -66,7 +67,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA46Indicator_5m = EMA(46);
             EMA46Indicator_5m.Plots[0].Brush = Brushes.Green;
 
-            EMA50Indicator_5m = EMA(51);
+            EMA50Indicator_5m = EMA(50);
             EMA50Indicator_5m.Plots[0].Brush = Brushes.DeepSkyBlue;
             EMA50Indicator_5m.Plots[0].DashStyleHelper = DashStyleHelper.Dash;
 
@@ -85,15 +86,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             EndDayTradeTime = new TimeSpan(10, 30, 0); // 2:00:00 pm
         }
 
-        private double GetMaxFromValues(params double[] values)
-        { 
-            return values.Max(x => x);
-        }
-
-        private double GetMinFromValues(params double[] values)
-        {
-            return values.Min(x => x);
-        }
+       
 
         protected override void OnBarUpdate()
 		{
@@ -110,9 +103,40 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (!passTradeCondition)
             {
                 return;
-            }            
+            }
 
-            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 15) //15 minute
+            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1)
+            {
+
+            }
+            else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
+            {
+                StrategiesUtilities.CalculatePnL(this, Account, Print);
+
+                double highPrice_5m = High[0];
+                double lowPrice_5m = Low[0];
+                double openPrice_5m = Open[0];
+                double closePrice_5m = Close[0];
+
+                double pre_highPrice_5m = High[1];
+                double pre_lowPrice_5m = Low[1];
+                double pre_openPrice_5m = Open[1];
+                double pre_closePrice_5m = Close[1];
+
+                var maxEma_Current = StrategiesUtilities.MaxOfArray(EMA46Indicator_5m.Value[0], EMA50Indicator_5m.Value[0]);
+                var minEma_Current = StrategiesUtilities.MinOfArray(EMA46Indicator_5m.Value[0], EMA50Indicator_5m.Value[0]);
+
+                var maxEma_Previous = StrategiesUtilities.MaxOfArray(EMA46Indicator_5m.Value[1], EMA50Indicator_5m.Value[1]);
+                var minEma_Previous = StrategiesUtilities.MinOfArray(EMA46Indicator_5m.Value[1], EMA50Indicator_5m.Value[1]);
+
+                if (highPrice_5m > maxEma_Current && lowPrice_5m < minEma_Current &&
+                    ((pre_highPrice_5m < minEma_Previous && pre_lowPrice_5m < minEma_Previous) || (pre_highPrice_5m > maxEma_Previous && pre_lowPrice_5m > maxEma_Previous)))
+                {
+                    LocalPrint($"Thêm key level H:{highPrice_5m:N2}, L: {lowPrice_5m:N2} lúc {Time[0]:HH:mm} vào hệ thống ");
+                    KeyLevels5mins.Push(new FishTrendKeyLevel(Time[0], highPrice_5m, lowPrice_5m));
+                }
+            }
+            else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 15) //15 minute
             {
                 /*
                  * Điều kiện để chuyển Status sang Waiting. 
@@ -162,11 +186,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                     EMA50Indicator_5m.Value[5]
                 };
 
-                var maxEma_Current = GetMaxFromValues(emaValues_Current);
-                var minEma_Current = GetMinFromValues(emaValues_Current);
+                var maxEma_Current = StrategiesUtilities.MaxOfArray(emaValues_Current);
+                var minEma_Current = StrategiesUtilities.MinOfArray(emaValues_Current);
 
-                var maxEma_Previous = GetMaxFromValues(emaValues_Previous);
-                var minEma_Previous = GetMinFromValues(emaValues_Previous);
+                var maxEma_Previous = StrategiesUtilities.MaxOfArray(emaValues_Previous);
+                var minEma_Previous = StrategiesUtilities.MinOfArray(emaValues_Previous);
 
                 var shouldSetRange =
                     // Current - cross ema
@@ -188,33 +212,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 }                
             }
-            else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
-            {
-                StrategiesUtilities.CalculatePnL(this, Account, Print);
-
-                double highPrice_5m = High[0];
-                double lowPrice_5m = Low[0];
-                double openPrice_5m = Open[0];
-                double closePrice_5m = Close[0];
-
-                double pre_highPrice_5m = High[1];
-                double pre_lowPrice_5m = Low[1];
-                double pre_openPrice_5m = Open[1];
-                double pre_closePrice_5m = Close[1];
-
-                var maxEma_Current = GetMaxFromValues(EMA46Indicator_5m.Value[0], EMA50Indicator_5m.Value[0]);
-                var minEma_Current = GetMinFromValues(EMA46Indicator_5m.Value[0], EMA50Indicator_5m.Value[0]);
-
-                var maxEma_Previous = GetMaxFromValues(EMA46Indicator_5m.Value[1], EMA50Indicator_5m.Value[1]);
-                var minEma_Previous = GetMinFromValues(EMA46Indicator_5m.Value[1], EMA50Indicator_5m.Value[1]);
-
-                if (highPrice_5m > maxEma_Current && lowPrice_5m < minEma_Current &&
-                    ((pre_highPrice_5m < minEma_Previous && pre_lowPrice_5m < minEma_Previous) || (pre_highPrice_5m > maxEma_Previous && pre_lowPrice_5m > maxEma_Previous)))
-                {
-                    LocalPrint($"Thêm key level H:{highPrice_5m:N2}, L: {lowPrice_5m:N2} lúc {Time[0]:HH:mm} vào hệ thống ");
-                    KeyLevels5mins.Push(new FishTrendKeyLevel(Time[0], highPrice_5m, lowPrice_5m));
-                }
-            }            
+            
         }
 
         protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy additionalInfo)

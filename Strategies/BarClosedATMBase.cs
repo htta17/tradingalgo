@@ -378,6 +378,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             var stopLossInTicks = GetStopLossPrice(tradeAction, priceToSet, atmStrategy);
             var target2InTicks = GetTargetPrice_Full(tradeAction, priceToSet, atmStrategy);
 
+            BackTestStopLossInTicks = stopLossInTicks;
+            BackTestTargetInTicks = target2InTicks;
+
             try
             {
                 //var signalHalf = StrategiesUtilities.SignalEntry_TrendingHalf;

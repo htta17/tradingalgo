@@ -167,9 +167,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             Name = "Kitty";
             Description = "[Kitty] là giải thuật được viết riêng cho my love, Phượng Phan.";
 
-            FullSizeATMName = "Kitty_Default_4cts";
-            HalfSizefATMName = "Kitty_Default_2cts"; 
-            RiskyAtmStrategyName = "Kitty_Risky"; 
+            FullSizeATMName = "Kitty_Big";
+            HalfSizefATMName = "Kitty_Medium"; 
+            RiskyAtmStrategyName = "Kitty_Small"; 
 
             DailyTargetProfit = 500;
             MaximumDailyLoss = 350;
@@ -199,7 +199,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             CountReverseCandles = 0;
             HammerCandle = false;
 
-            MininumAngleToTrade = 45;
+            MininumAngleToTrade = 30;
         }
 
         protected override void OnStateChange_DataLoaded()
@@ -503,7 +503,34 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (TradingStatus == TradingStatus.OrderExists)
             {
-                
+                // Tìm các close lệnh nếu thấy có các dấu hiệu
+                // - Góc suy giảm ( < AllowToTradeAngle) 
+                // - Giá hiện tại được 5 pts
+                // - Đã chạm đường XANH                 
+                var angle = Falcon_1m.Value[0];
+                var noTradeAngle = angle < MininumAngleToTrade;
+                var alreadyTouchEMA_10_5m = EMA2129Status.CountTouch_EMA10_5m > 0; 
+
+                if (CurrentTradeAction.Action == GeneralTradeAction.Buy && Close[0] > FilledPrice + 5 && noTradeAngle && alreadyTouchEMA_10_5m)
+                {
+                    LocalPrint($@"Dịch Stop loss lên break even do có các điều kiện sau: 
+    - Góc suy giảm: {angle:N2} < {MininumAngleToTrade}
+    - Giá hiện tại lời được 5pts: {Close[0]:N2}, giá vào lệnh: {FilledPrice:N2}
+    - Đã chạm EMA10 khung 5 phút. 
+                    ");
+                    CloseExistingOrders();
+                    //var stopOrders = Account.Orders.Where(c => c.S)
+                }
+                else if (CurrentTradeAction.Action == GeneralTradeAction.Sell && Close[0] < FilledPrice - 5 && noTradeAngle && alreadyTouchEMA_10_5m)
+                {
+                    LocalPrint($@"Dịch Stop loss lên break even do có các điều kiện sau: 
+    - Góc suy giảm: {angle:N2} < {MininumAngleToTrade}
+    - Giá hiện tại lời được 5pts: {Close[0]:N2}, giá vào lệnh: {FilledPrice:N2}
+    - Đã chạm EMA10 khung 5 phút. 
+                    ");
+                    CloseExistingOrders();
+                }
+
             }
         }
         
@@ -564,7 +591,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var absolutedAngle = Math.Abs(falcon1mVal);
             var niceAngleToTrade = absolutedAngle >= MininumAngleToTrade;
 
-            var sumTocuhes = EMA2129Status.CountTouch_EMA29 + EMA2129Status.CountTouch_EMA21 + EMA2129Status.CountTouch_EMA10_5m;
+            var sumTouches = EMA2129Status.CountTouch_EMA29 + EMA2129Status.CountTouch_EMA21 + EMA2129Status.CountTouch_EMA10_5m;
 
             if (Time[0].TimeOfDay < StartDayTradeTime || Time[0].TimeOfDay > EndDayTradeTime)
             {
@@ -580,7 +607,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 LocalPrint($"Có nến rút râu với cây nến {(EMA2129Status.Position == EMA2129Position.Above ? "XANH cao nhất" : "ĐỎ thấp nhất")} --> No Trade");
                 return answer;
-            }
+            }            
             else if (CountReverseCandles >= 4)
             {
                 LocalPrint($"Có 4+ cây nến {(EMA2129Status.Position == EMA2129Position.Above ? "ĐỎ" : "XANH")} (ngược hướng) --> No Trade");
@@ -588,10 +615,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (CountReverseCandles == 3)
             {
-                /*
-                 * Do hàm [ShouldTrade] được gọi trước khi check lại các cây nến, 
-                 * do đó phải kiểm tra cây nến hiện tại như thế nào
-                 */
+              
                 if (EMA2129Status.Position == EMA2129Position.Above && CandleUtilities.IsRedCandle(Close[0], Open[0]))
                 {
                     LocalPrint($"Có 4 cây nến XANH --> No Trade");
@@ -602,10 +626,10 @@ namespace NinjaTrader.NinjaScript.Strategies
                     LocalPrint($"Có 4 cây nến ĐỎ --> No Trade");
                     return answer;
                 }
-            }
-            else if (sumTocuhes > 0)
+            }            
+            else if (sumTouches > 0)
             {
-                LocalPrint($"Đã chạm đường EMA29 hoặc EMA21, hoặc EMA10 (5m) trước đó rồi. Sum touches: {sumTocuhes} --> No Trade");
+                LocalPrint($"Đã chạm đường EMA29 hoặc EMA21, hoặc EMA10 (5m) trước đó rồi. Sum touches: {sumTouches} --> No Trade");
                 return answer;
             }
             else if (!niceAngleToTrade)
@@ -657,7 +681,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var ema21_AboveAndNear_EM46_5m = ema21Val > EMA50_5mVal && 
                 (ema21Val - EMA50_5mVal < MAX_DISTANCE_BETWEEN_EMA50_5m_AND_EMA21 || ema21Val - EMA50_5mVal >= 50);
 
-            if (EMA2129Status.Position == EMA2129Position.Above && falcon1mVal > 0 &&  Close[0] > maxValue && sumTocuhes == 0)
+            if (EMA2129Status.Position == EMA2129Position.Above && falcon1mVal > 0 &&  Close[0] > maxValue && sumTouches == 0 && absolutedAngle >= MininumAngleToTrade)
             {
                 answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
                 answer.Sizing = GetEMA2129Sizing(absolutedAngle);
@@ -665,14 +689,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // EMA 21 nằm trên cả EMA10 và EMA50 khung 5 phút
                 if (ema21_Above_EMA10_5m && ema21_Above_EMA50_5m)
                 {
-                    LocalPrint($"[CONFIRM] Đủ điều kiện vào BUY, count: {sumTocuhes}");
+                    LocalPrint($"[CONFIRM] Đủ điều kiện vào BUY, count: {sumTouches}");
                     answer.Action = GeneralTradeAction.Buy;
                 }
                 
                 // EMA 21 nằm trên EMA10 nhưng dưới EMA50
                 else if (ema21_Above_EMA10_5m && ema21_BelowAndNear_EM46_5m)
                 {
-                    LocalPrint($"[CONFIRM] Đủ điều kiện vào BUY, count: {sumTocuhes}");
+                    LocalPrint($"[CONFIRM] Đủ điều kiện vào BUY, count: {sumTouches}");
                     answer.Action = GeneralTradeAction.Buy;
                 }
                 
@@ -683,7 +707,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }                
                 // Không có trường hợp EMA21 nằm dưới EMA50 nhưng lại nằm trên EMA10                
             }
-            else if (EMA2129Status.Position == EMA2129Position.Below && falcon1mVal < 0 && Close[0] < minValue && sumTocuhes == 0)
+            else if (EMA2129Status.Position == EMA2129Position.Below && falcon1mVal < 0 && Close[0] < minValue && sumTouches == 0 && absolutedAngle >= MininumAngleToTrade)
             {
                 answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
                 answer.Sizing = GetEMA2129Sizing(absolutedAngle);
@@ -691,14 +715,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // EMA 21 nằm dưới cả EMA10 và EMA50 khung 5 phút
                 if (ema21_Below_EMA10_5m && ema21_Below_EMA50_5m)
                 {
-                    LocalPrint($"[CONFIRM] Đủ điều kiện vào SELL, count: {sumTocuhes}");
+                    LocalPrint($"[CONFIRM] Đủ điều kiện vào SELL, count: {sumTouches}");
                     answer.Action = GeneralTradeAction.Sell;
                 }
                 
                 // EMA 21 nằm dưới EMA10 nhưng trên EMA50
                 else if (ema21_Below_EMA10_5m && ema21_AboveAndNear_EM46_5m)
                 {
-                    LocalPrint($"[CONFIRM] Đủ điều kiện vào SELL, count: {sumTocuhes}");
+                    LocalPrint($"[CONFIRM] Đủ điều kiện vào SELL, count: {sumTouches}");
                     answer.Action = GeneralTradeAction.Sell;
                 }
                 
@@ -716,23 +740,21 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override (AtmStrategy, string) GetAtmStrategyByPnL(EMA2129OrderDetail tradeAction)
         {
-            var todaysPnL = Account.Get(AccountItem.RealizedProfitLoss, Currency.UsDollar);
+            var time = ToTime(Time[0]) ;
+            var isNightTime = time >= 17_00_00 || time <= 08_30_00;
 
-            var reachHalf =
-                (todaysPnL <= (-MaximumDailyLoss / 2)) || (todaysPnL >= (DailyTargetProfit / 2));
-
-            if (reachHalf)
-            {
-                return (HalfSizeAtmStrategy, HalfSizefATMName); 
-            }            
-            
             if (tradeAction.Sizing == EMA2129SizingEnum.Big)
             {
-                return (FullSizeAtmStrategy, FullSizeATMName);
+                return isNightTime 
+                    ? (HalfSizeAtmStrategy, HalfSizefATMName)
+                    : (FullSizeAtmStrategy, FullSizeATMName);
             }
             else if (tradeAction.Sizing == EMA2129SizingEnum.Medium)
             {
-                return (HalfSizeAtmStrategy, HalfSizefATMName);
+                return
+                    isNightTime 
+                    ? (RiskyAtmStrategy, RiskyAtmStrategyName)
+                    : (HalfSizeAtmStrategy, HalfSizefATMName);
             }
             else if (tradeAction.Sizing == EMA2129SizingEnum.Small)
             {
@@ -829,39 +851,36 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override double GetSetPrice(EMA2129OrderDetail tradeAction, AtmStrategy additionalInfo)
         {
-            double ans = tradeAction.Action == GeneralTradeAction.Buy
-                        ? EMA21Indicator_1m.Value[0] + AdjustmentPoint
-                        : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
-            // LocalPrint($"EMA21: {EMA21Indicator_1m.Value[0]:N2}, AdjustmentPoint: {AdjustmentPoint}, tradeAction: {tradeAction.Action}");
-            /*
-             * Sửa lại từ May, 1st, 2025:
-             * - Tất cả đều vào lệnh ở [EMA21] +/- [AdjustmentPoint]
-             * 
-             */
-            #region Code cũ, tham khảo thêm bên Kitty_Backup 
-            /*
+            var adjustment = AdjustmentPoint * 1.0;
+            var ans = -1.0; 
+            
             switch (tradeAction.Postition)
             {
                 case EMA2129OrderPostition.AdjustedEMA21:
-                    ans = tradeAction.Action == GeneralTradeAction.Buy
-                        ? EMA21Indicator_1m.Value[0] + AdjustmentPoint
-                        : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
+                    adjustment = AdjustmentPoint; 
                     break;
 
                 case EMA2129OrderPostition.EMA21:
-                    ans = tradeAction.Action == GeneralTradeAction.Buy
-                        ? EMA21Indicator_1m.Value[0] + AdjustmentPoint
-                        : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
+                    adjustment = AdjustmentPoint; 
                     break;
                 // Note: Vẫn dùng EMA21 +/- AdjustmentPoint để vào lệnh
                 case EMA2129OrderPostition.EMA29:
-                    ans = tradeAction.Action == GeneralTradeAction.Buy
-                        ? EMA21Indicator_1m.Value[0] + AdjustmentPoint
-                        : EMA21Indicator_1m.Value[0] - AdjustmentPoint;
+                    adjustment = 6;
                     break;               
             }
-            */
-            #endregion
+
+            var time = ToTime(Time[0]);
+            var isNightTime = time >= 17_00_00 || time <= 08_30_00;
+
+            if (isNightTime)
+            {
+                adjustment = adjustment * 0.7; 
+            }
+
+            ans = tradeAction.Action == GeneralTradeAction.Buy
+                       ? EMA21Indicator_1m.Value[0] + adjustment
+                       : EMA21Indicator_1m.Value[0] - adjustment;
+
 
             return StrategiesUtilities.RoundPrice(ans);
         }

@@ -47,15 +47,13 @@ namespace NinjaTrader.NinjaScript.Strategies
         private double KeyLevel_15m_DOWN = -1;        
 
         private EMA EMA46Indicator_5m { get; set; }
-        private EMA EMA51Indicator_5m { get; set; }       
+        private EMA EMA50Indicator_5m { get; set; }       
 
         protected int TradeCounter { get; set; } = 0;
 
         protected double currentEMA46_5m = -1;
-        protected double currentEMA51_5m = -1;
-
+        protected double currentEMA50_5m = -1;
         private Stack<FishTrendKeyLevel> KeyLevels5mins { get; set; }
-
         protected override void AddCustomDataSeries()
         {
             // Add data series
@@ -68,12 +66,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA46Indicator_5m = EMA(46);
             EMA46Indicator_5m.Plots[0].Brush = Brushes.Green;
 
-            EMA51Indicator_5m = EMA(51);
-            EMA51Indicator_5m.Plots[0].Brush = Brushes.DeepSkyBlue;
-            EMA51Indicator_5m.Plots[0].DashStyleHelper = DashStyleHelper.Dash;
+            EMA50Indicator_5m = EMA(51);
+            EMA50Indicator_5m.Plots[0].Brush = Brushes.DeepSkyBlue;
+            EMA50Indicator_5m.Plots[0].DashStyleHelper = DashStyleHelper.Dash;
 
             AddChartIndicator(EMA46Indicator_5m);
-            AddChartIndicator(EMA51Indicator_5m);
+            AddChartIndicator(EMA50Indicator_5m);
         }
 
         protected override void SetDefaultProperties()
@@ -146,9 +144,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                     EMA46Indicator_5m.Value[2],
 
                     //EMA51
-                    EMA51Indicator_5m.Value[0],
-                    EMA51Indicator_5m.Value[1],
-                    EMA51Indicator_5m.Value[2]
+                    EMA50Indicator_5m.Value[0],
+                    EMA50Indicator_5m.Value[1],
+                    EMA50Indicator_5m.Value[2]
                 };
 
                 var emaValues_Previous = new double[]
@@ -159,9 +157,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                     EMA46Indicator_5m.Value[5],
 
                     //EMA51
-                    EMA51Indicator_5m.Value[3],
-                    EMA51Indicator_5m.Value[4],
-                    EMA51Indicator_5m.Value[5]
+                    EMA50Indicator_5m.Value[3],
+                    EMA50Indicator_5m.Value[4],
+                    EMA50Indicator_5m.Value[5]
                 };
 
                 var maxEma_Current = GetMaxFromValues(emaValues_Current);
@@ -204,11 +202,11 @@ namespace NinjaTrader.NinjaScript.Strategies
                 double pre_openPrice_5m = Open[1];
                 double pre_closePrice_5m = Close[1];
 
-                var maxEma_Current = GetMaxFromValues(EMA46Indicator_5m.Value[0], EMA51Indicator_5m.Value[0]);
-                var minEma_Current = GetMinFromValues(EMA46Indicator_5m.Value[0], EMA51Indicator_5m.Value[0]);
+                var maxEma_Current = GetMaxFromValues(EMA46Indicator_5m.Value[0], EMA50Indicator_5m.Value[0]);
+                var minEma_Current = GetMinFromValues(EMA46Indicator_5m.Value[0], EMA50Indicator_5m.Value[0]);
 
-                var maxEma_Previous = GetMaxFromValues(EMA46Indicator_5m.Value[1], EMA51Indicator_5m.Value[1]);
-                var minEma_Previous = GetMinFromValues(EMA46Indicator_5m.Value[1], EMA51Indicator_5m.Value[1]);
+                var maxEma_Previous = GetMaxFromValues(EMA46Indicator_5m.Value[1], EMA50Indicator_5m.Value[1]);
+                var minEma_Previous = GetMinFromValues(EMA46Indicator_5m.Value[1], EMA50Indicator_5m.Value[1]);
 
                 if (highPrice_5m > maxEma_Current && lowPrice_5m < minEma_Current &&
                     ((pre_highPrice_5m < minEma_Previous && pre_lowPrice_5m < minEma_Previous) || (pre_highPrice_5m > maxEma_Previous && pre_lowPrice_5m > maxEma_Previous)))

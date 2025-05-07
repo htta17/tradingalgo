@@ -109,12 +109,19 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void CloseExistingOrders()
         {
-            LocalPrint($"[CloseExistingOrders]");
-            if (!string.IsNullOrEmpty(AtmStrategyId))
+            if (State == State.Historical)
             {
-                AtmStrategyClose(AtmStrategyId);
+                base.CloseExistingOrders();
             }
-            tradingStatus = TradingStatus.Idle;
+            else 
+            {
+                LocalPrint($"[CloseExistingOrders]");
+                if (!string.IsNullOrEmpty(AtmStrategyId))
+                {
+                    AtmStrategyClose(AtmStrategyId);
+                }
+                tradingStatus = TradingStatus.Idle;
+            }            
         }
 
         protected override Order GetPendingOrder()

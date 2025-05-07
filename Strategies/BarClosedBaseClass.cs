@@ -101,7 +101,7 @@ namespace NinjaTrader.Custom.Strategies
         /// </summary>
         [NinjaScriptProperty]
         [Display(Name = "Allow to move stop loss/profit target",
-            Order = 14,
+            Order = 1,
             GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
         public bool AllowToMoveStopLossGain { get; set; } = true;
 
@@ -135,12 +135,23 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// Giá hiện tại cách target &lt; [PointToMoveTarget] thì di chuyển target.
         /// </summary>
-        protected const double PointToMoveTarget = 5.0;
+        /// /// <summary>        
+        [NinjaScriptProperty]
+        [Display(Name = "Point to Move Target:",
+            Description = "Giá hiện tại cách target < [Giá trị] thì di chuyển target",
+            Order = 3,
+            GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
+        public double PointToMoveTarget { get; set; }
 
         /// <summary>
         /// Giá hiện tại cách stop loss > [PointToMoveLoss] thì di chuyển stop loss.
         /// </summary>
-        protected const double PointToMoveLoss = 4.0;
+        [NinjaScriptProperty]
+        [Display(Name = "Point to Move Stop loss:",
+            Description = "Giá hiện tại cách stop loss > [Giá trị] thì di chuyển stop loss (Same as trailing stop).",
+            Order = 4,
+            GroupName = StrategiesUtilities.Configuration_StopLossTarget_Name)]
+        public double PointToMoveLoss { get; set; }
         #endregion
 
         /// <summary>
@@ -312,6 +323,9 @@ namespace NinjaTrader.Custom.Strategies
 
             CountOrder = 0;
             CountEntrySignal = 0;
+
+            PointToMoveTarget = 3.0;
+            PointToMoveLoss = 4.0; 
         }
 
         protected abstract void UpdatePendingOrderPure(double newPrice, double stopLossPrice, double targetFull, double targetHalf);

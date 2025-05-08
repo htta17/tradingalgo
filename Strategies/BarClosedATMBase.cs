@@ -387,7 +387,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 //EnterOrderPureUsingPrice(priceToSet, Target1InTicks, StopLossInTicks, signalHalf, 2, IsBuying, IsSelling);
 
                 var signalFull = StrategiesUtilities.SignalEntry_TrendingFull;
-                EnterOrderPureUsingPrice(priceToSet, target2InTicks, stopLossInTicks, signalFull, AlgQuantity, IsBuying, IsSelling);
+                EnterOrderPureUsingTicks(priceToSet, target2InTicks, stopLossInTicks, signalFull, AlgQuantity, IsBuying, IsSelling);
             }
             catch (Exception ex)
             {

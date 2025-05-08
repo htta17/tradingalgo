@@ -106,7 +106,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// hoặc khi giá trị [PreviousPosition] là [Below], và cây nến hiện tại là [Above] thì mới reset việc EnteredOrder <br/>
         /// Trong trường hợp giá trị [PreviousPosition] == vị trí cây nến hiện tại thì không cần reset order.
         /// </summary>
-        private EMA2129Position PreviousPosition { get; set; } = EMA2129Position.Unknown;
+        private GeneralEMAsPosition PreviousPosition { get; set; } = GeneralEMAsPosition.Unknown;
         
         
 
@@ -238,9 +238,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             return barsPeriod == 5 ? 1 : 2;
         }
 
-        private void SetAndDrawTopOrBottom(EMA2129Position position)
+        private void SetAndDrawTopOrBottom(GeneralEMAsPosition position)
         {
-            if (position == EMA2129Position.Above)
+            if (position == GeneralEMAsPosition.Above)
             {
                 // Set lại Current High
                 CurrentHigh_BULL_Trend = High[0];
@@ -250,7 +250,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Cập nhật lại xem đây có phải là cây nến rút râu (Inverted Hammer không)
                 HammerCandle = CandleUtilities.IsGreenCandle(Close[0], Open[0]) && CandleUtilities.TopToBodyPercentage(Close[0], Open[0], High[0], Low[0]) > 70;
             }   
-            else if (position == EMA2129Position.Below)
+            else if (position == GeneralEMAsPosition.Below)
             {
                 // Set lại Current High
                 CurrentLow_BEAR_Trend = Low[0];
@@ -362,17 +362,17 @@ namespace NinjaTrader.NinjaScript.Strategies
                         //LocalPrint("[BELOW]");
                         // Nến đang ở DƯỚI cả 3 đường EMA
                         // Nếu trạng thái hiện tại không phải là BELOW thì cần reset
-                        if (EMA2129Status.Position != EMA2129Position.Below)
+                        if (EMA2129Status.Position != GeneralEMAsPosition.Below)
                         {
-                            var resetOrder = PreviousPosition != EMA2129Position.Below;
+                            var resetOrder = PreviousPosition != GeneralEMAsPosition.Below;
 
                             LocalPrint($"New status: BELOW - Current status: {PreviousPosition}, Reset order: {resetOrder}");
 
-                            EMA2129Status.SetPosition(EMA2129Position.Below, CurrentBar, resetOrder);
+                            EMA2129Status.SetPosition(GeneralEMAsPosition.Below, CurrentBar, resetOrder);
 
-                            PreviousPosition = EMA2129Position.Below;
+                            PreviousPosition = GeneralEMAsPosition.Below;
 
-                            SetAndDrawTopOrBottom(EMA2129Position.Below);
+                            SetAndDrawTopOrBottom(GeneralEMAsPosition.Below);
                         }    
                         else // Nếu không cần phải Reset
                         {
@@ -380,7 +380,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                             if (CurrentLow_BEAR_Trend > Low[0])
                             {
                                 // Cập nhật lại current high low
-                                SetAndDrawTopOrBottom(EMA2129Position.Below);
+                                SetAndDrawTopOrBottom(GeneralEMAsPosition.Below);
                             }
                             
                             if (CandleUtilities.IsRedCandle(Close[0], Open[0]))
@@ -400,24 +400,24 @@ namespace NinjaTrader.NinjaScript.Strategies
                     else if (low > maxValue && low - maxValue >= 2)
                     {
                         //LocalPrint("[ABOVE]");
-                        if (EMA2129Status.Position != EMA2129Position.Above)
+                        if (EMA2129Status.Position != GeneralEMAsPosition.Above)
                         {
-                            var resetOrder = PreviousPosition != EMA2129Position.Above;
+                            var resetOrder = PreviousPosition != GeneralEMAsPosition.Above;
 
                             LocalPrint($"New status: ABOVE - Current status: {PreviousPosition}, Reset order: {resetOrder}");
 
-                            EMA2129Status.SetPosition(EMA2129Position.Above, CurrentBar, resetOrder);
+                            EMA2129Status.SetPosition(GeneralEMAsPosition.Above, CurrentBar, resetOrder);
 
-                            PreviousPosition = EMA2129Position.Above;
+                            PreviousPosition = GeneralEMAsPosition.Above;
 
-                            SetAndDrawTopOrBottom(EMA2129Position.Above);
+                            SetAndDrawTopOrBottom(GeneralEMAsPosition.Above);
                         }
                         else 
                         {
                             if (CurrentHigh_BULL_Trend < High[0])
                             {
                                 // Cập nhật lại current high
-                                SetAndDrawTopOrBottom(EMA2129Position.Above);
+                                SetAndDrawTopOrBottom(GeneralEMAsPosition.Above);
                             }
                             
                             if (CandleUtilities.IsGreenCandle(Close[0], Open[0]))
@@ -588,19 +588,19 @@ namespace NinjaTrader.NinjaScript.Strategies
             }             
         }
 
-        private EMA2129SizingEnum GetEMA2129Sizing(double absolutedAngle)
+        private TradeSizingEnum GetEMA2129Sizing(double absolutedAngle)
         {
             if (absolutedAngle < Falcon_1m.RANGE_45_NO_TRD)
             {
-                return EMA2129SizingEnum.Small;
+                return TradeSizingEnum.Small;
             }
             else if (absolutedAngle >= Falcon_1m.RANGE_45_NO_TRD && absolutedAngle < Falcon_1m.RANGE_55_YES_TRD)
             {
-                return EMA2129SizingEnum.Medium;
+                return TradeSizingEnum.Medium;
             }
             else // >= 55
             {
-                return EMA2129SizingEnum.Big;
+                return TradeSizingEnum.Big;
             }
         }
 
@@ -610,7 +610,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 Action = GeneralTradeAction.NoTrade,
                 Postition = EMA2129OrderPostition.NoTrade,
-                Sizing = EMA2129SizingEnum.Small
+                Sizing = TradeSizingEnum.Small
             };
 
             var falcon1mVal = Falcon_1m.Value[0];
@@ -624,30 +624,30 @@ namespace NinjaTrader.NinjaScript.Strategies
                 LocalPrint($"Thời gian trade được thiết lập từ {StartDayTradeTime} to {EndDayTradeTime} --> No Trade.");
                 return answer;
             }
-            else if (EMA2129Status.Position != EMA2129Position.Above && EMA2129Status.Position != EMA2129Position.Below)
+            else if (EMA2129Status.Position != GeneralEMAsPosition.Above && EMA2129Status.Position != GeneralEMAsPosition.Below)
             {
                 LocalPrint($"Status: {EMA2129Status.Position} --> No Trade");
                 return answer;
             }
             else if (HammerCandle)
             {
-                LocalPrint($"Có nến rút râu với cây nến {(EMA2129Status.Position == EMA2129Position.Above ? "XANH cao nhất" : "ĐỎ thấp nhất")} --> No Trade");
+                LocalPrint($"Có nến rút râu với cây nến {(EMA2129Status.Position == GeneralEMAsPosition.Above ? "XANH cao nhất" : "ĐỎ thấp nhất")} --> No Trade");
                 return answer;
             }            
             else if (CountReverseCandles >= 4)
             {
-                LocalPrint($"Có 4+ cây nến {(EMA2129Status.Position == EMA2129Position.Above ? "ĐỎ" : "XANH")} (ngược hướng) --> No Trade");
+                LocalPrint($"Có 4+ cây nến {(EMA2129Status.Position == GeneralEMAsPosition.Above ? "ĐỎ" : "XANH")} (ngược hướng) --> No Trade");
                 return answer;
             }
             else if (CountReverseCandles == 3)
             {
               
-                if (EMA2129Status.Position == EMA2129Position.Above && CandleUtilities.IsRedCandle(Close[0], Open[0]))
+                if (EMA2129Status.Position == GeneralEMAsPosition.Above && CandleUtilities.IsRedCandle(Close[0], Open[0]))
                 {
                     LocalPrint($"Có 4 cây nến XANH --> No Trade");
                     return answer;
                 }
-                else if (EMA2129Status.Position == EMA2129Position.Below && CandleUtilities.IsGreenCandle(Close[0], Open[0]))
+                else if (EMA2129Status.Position == GeneralEMAsPosition.Below && CandleUtilities.IsGreenCandle(Close[0], Open[0]))
                 {
                     LocalPrint($"Có 4 cây nến ĐỎ --> No Trade");
                     return answer;
@@ -707,7 +707,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             var ema21_AboveAndNear_EM46_5m = ema21Val > EMA50_5mVal && 
                 (ema21Val - EMA50_5mVal < MAX_DISTANCE_BETWEEN_EMA50_5m_AND_EMA21 || ema21Val - EMA50_5mVal >= 50);
 
-            if (EMA2129Status.Position == EMA2129Position.Above && falcon1mVal > 0 &&  Close[0] > maxValue && sumTouches == 0 && absolutedAngle >= MininumAngleToTrade)
+            if (EMA2129Status.Position == GeneralEMAsPosition.Above && falcon1mVal > 0 &&  Close[0] > maxValue && sumTouches == 0 && absolutedAngle >= MininumAngleToTrade)
             {
                 answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
                 answer.Sizing = GetEMA2129Sizing(absolutedAngle);
@@ -733,7 +733,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }                
                 // Không có trường hợp EMA21 nằm dưới EMA50 nhưng lại nằm trên EMA10                
             }
-            else if (EMA2129Status.Position == EMA2129Position.Below && falcon1mVal < 0 && Close[0] < minValue && sumTouches == 0 && absolutedAngle >= MininumAngleToTrade)
+            else if (EMA2129Status.Position == GeneralEMAsPosition.Below && falcon1mVal < 0 && Close[0] < minValue && sumTouches == 0 && absolutedAngle >= MininumAngleToTrade)
             {
                 answer.Postition = GetPostitionBasedOnAngleValue(absolutedAngle);
                 answer.Sizing = GetEMA2129Sizing(absolutedAngle);
@@ -769,20 +769,20 @@ namespace NinjaTrader.NinjaScript.Strategies
             var time = ToTime(Time[0]) ;
             var isNightTime = time >= 17_00_00 || time <= 08_30_00;
 
-            if (tradeAction.Sizing == EMA2129SizingEnum.Big)
+            if (tradeAction.Sizing == TradeSizingEnum.Big)
             {
                 return isNightTime 
                     ? (HalfSizeAtmStrategy, HalfSizefATMName)
                     : (FullSizeAtmStrategy, FullSizeATMName);
             }
-            else if (tradeAction.Sizing == EMA2129SizingEnum.Medium)
+            else if (tradeAction.Sizing == TradeSizingEnum.Medium)
             {
                 return
                     isNightTime 
                     ? (RiskyAtmStrategy, RiskyAtmStrategyName)
                     : (HalfSizeAtmStrategy, HalfSizefATMName);
             }
-            else if (tradeAction.Sizing == EMA2129SizingEnum.Small)
+            else if (tradeAction.Sizing == TradeSizingEnum.Small)
             {
                 return (RiskyAtmStrategy, RiskyAtmStrategyName);
             }
@@ -916,9 +916,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (State == State.Historical)
             {
                 var stopLoss =
-                    tradeAction.Sizing == EMA2129SizingEnum.Big ? 120 : // 30 pts for BIG
-                    tradeAction.Sizing == EMA2129SizingEnum.Medium ? 100 : // 25 pts 
-                    tradeAction.Sizing == EMA2129SizingEnum.Small ? 80 :
+                    tradeAction.Sizing == TradeSizingEnum.Big ? 120 : // 30 pts for BIG
+                    tradeAction.Sizing == TradeSizingEnum.Medium ? 100 : // 25 pts 
+                    tradeAction.Sizing == TradeSizingEnum.Small ? 80 :
                     0;
 
                 LocalPrint($"[GetStopLossPrice] {tradeAction.Sizing} {stopLoss}");
@@ -938,9 +938,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (State == State.Historical)
             {
                 var targetFull =
-                    tradeAction.Sizing == EMA2129SizingEnum.Big ? 120 : // 30 pts for BIG
-                    tradeAction.Sizing == EMA2129SizingEnum.Medium ? 80 : // 20 pts 
-                    tradeAction.Sizing == EMA2129SizingEnum.Small ? 40 : // 10
+                    tradeAction.Sizing == TradeSizingEnum.Big ? 120 : // 30 pts for BIG
+                    tradeAction.Sizing == TradeSizingEnum.Medium ? 80 : // 20 pts 
+                    tradeAction.Sizing == TradeSizingEnum.Small ? 40 : // 10
                     0;
                 LocalPrint($"[GetTargetPrice_Full] {tradeAction.Sizing} {targetFull}");
                 return targetFull;
@@ -958,9 +958,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (State == State.Historical)
             {
                 var targetHalf =
-                    tradeAction.Sizing == EMA2129SizingEnum.Big ? 120 : // 30 pts for BIG
-                    tradeAction.Sizing == EMA2129SizingEnum.Medium ? 80 : // 20 pts 
-                    tradeAction.Sizing == EMA2129SizingEnum.Small ? 40 : // 10
+                    tradeAction.Sizing == TradeSizingEnum.Big ? 120 : // 30 pts for BIG
+                    tradeAction.Sizing == TradeSizingEnum.Medium ? 80 : // 20 pts 
+                    tradeAction.Sizing == TradeSizingEnum.Small ? 40 : // 10
                     0;
 
                 LocalPrint($"[GetTargetPrice_Half] {tradeAction.Sizing} {targetHalf}");

@@ -23,15 +23,17 @@ using NinjaTrader.NinjaScript.DrawingTools;
 using NinjaTrader.Custom.Strategies;
 using NinjaTrader.NinjaScript.SuperDomColumns;
 using System.Xml.Linq;
+using NinjaTrader.Gui.NinjaScript.Wizard;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class FishTrend : BarClosedATMBase<TradeAction>
+	public class FishTrend : BarClosedATMBase<FishTrendTradeDetail>
 	{
         public FishTrend() : base("FISHTREND")
-        { 
+        {
+            Configured_TimeFrameToTrade = TimeFrameToTrade.OneMinute;
         }
         protected override TradingStatus TradingStatus
         {
@@ -41,9 +43,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override bool IsBuying => throw new NotImplementedException();
+        protected TimeFrameToTrade Configured_TimeFrameToTrade { get; set; }
 
-        protected override bool IsSelling => throw new NotImplementedException();      
+        protected override bool IsBuying => CurrentTradeAction.Action == GeneralTradeAction.Buy;
+
+        protected override bool IsSelling => CurrentTradeAction.Action == GeneralTradeAction.Sell;      
 
         private double KeyLevel_5m_HIGH = -1;
         private double KeyLevel_5m_LOW = -1;
@@ -51,9 +55,18 @@ namespace NinjaTrader.NinjaScript.Strategies
         private EMA EMA46Indicator_5m { get; set; }
         private EMA EMA50Indicator_5m { get; set; }
 
-        private int Last5mBarTouchEMA50 { get; set; } = -1; 
+        private GeneralEMAsPosition Position_5m { get; set; }
 
-        protected int TradeCounter { get; set; } = 0;
+        /// <summary>
+        /// Số điểm cộng (hoặc trừ) so với đường EMA21 để vào lệnh MUA (hoặc BÁN).
+        /// </summary>
+        [NinjaScriptProperty]
+        [Display(Name = "Adjustment Point:",
+            Description = "Số điểm cộng (hoặc trừ) so với HIGH (hoặc LOW) khi MUA (hoặc BÁN).",
+            Order = 2, GroupName = StrategiesUtilities.Configuration_Entry)]
+        public int AdjustmentPoint { get; set; }
+
+        private int Last5mBarTouchEMA50 { get; set; } = -1;         
 
         protected double currentEMA46_5m = -1;
         protected double currentEMA50_5m = -1;        
@@ -84,18 +97,50 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.SetDefaultProperties();
 
             Name = "FishTrend";
-            Description = @"Use EMA46/51 khung 5 phút và các cây nến khung 5 phút";
+            Description = @"Use EMA46/50 khung 5 phút và các cây nến khung 5 phút";
 
             StartDayTradeTime = new TimeSpan(6, 59, 0); // 6:59:00 am 
-            EndDayTradeTime = new TimeSpan(10, 30, 0); // 2:00:00 pm
+            EndDayTradeTime = new TimeSpan(16, 0, 0); // 2:00:00 pm
 
             AddPlot(Brushes.Black, "EMA46_5m");
             AddPlot(Brushes.Red, "EMA50_5m");
-        }       
+
+            Position_5m = GeneralEMAsPosition.Unknown;
+
+            FullSizeATMName = "FishTrend_Reverse";
+            HalfSizefATMName = "FishTrend_Follow";
+        }
+
+        private void DrawKey(int barIndex, double high, double low)
+        {
+            Draw.Line(this, $"5m_HIGH_{CurrentBar}", false, 1, high, -1, high, Brushes.Green, DashStyleHelper.Solid, 2);
+            Draw.Line(this, $"5m_LOW_{CurrentBar}", false, 1, low, -1, low, Brushes.Green, DashStyleHelper.Solid, 2);
+            Draw.Line(this, $"5m_VERTICAL_{CurrentBar}", false, 0, low, 0, high, Brushes.Green, DashStyleHelper.Solid, 2);            
+
+            Draw.Line(this, $"1m_POINT_LOW_{CurrentBars[3]}", false,1, Lows[3][0], -1, Lows[3][0], Brushes.Gray, DashStyleHelper.Solid, 2);
+            Draw.Line(this, $"1m_POINT_High_{CurrentBars[3]}", false, 1, Highs[3][0], -1, Highs[3][0], Brushes.Gray, DashStyleHelper.Solid, 2);
+
+            Draw.Text(this, $"5m_TEXT_HIGH_{CurrentBar}", true, $"{high:N2}", 0, high + 0.5, 5, Brushes.Green,
+                new SimpleFont("Arial", 9),
+                TextAlignment.Left,
+                Brushes.Transparent,
+                Brushes.Transparent, 0);
+
+            Draw.Text(this, $"5m_TEXT_LOW_{CurrentBar}", true, $"{low:N2}", 0, low - 1, 5, Brushes.Green,
+                new SimpleFont("Arial", 9),
+                TextAlignment.Left,
+                Brushes.Transparent,
+                Brushes.Transparent, 0);
+
+            // Draw current line 
+            Draw.HorizontalLine(this, $"5m_HIGH_Current", high, Brushes.Orange, DashStyleHelper.Dot, 2);
+            Draw.HorizontalLine(this, $"5m_LOW_Current", low, Brushes.Orange, DashStyleHelper.Dot, 2);
+            
+        }
 
         protected override void OnBarUpdate()
-		{            
-            // Hiển thị indicators (Plot)
+		{
+            #region Hiển thị indicators (Plot)
             try
             {
                 Values[0][0] = EMA46Indicator_5m.Value[0];
@@ -111,6 +156,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 // Current View --> return
                 return;
             }
+            #endregion
 
             // Cập nhật lại status 
             tradingStatus = CheckCurrentStatusBasedOnOrders();
@@ -120,9 +166,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 StrategiesUtilities.CalculatePnL(this, Account, Print);
 
                 LocalPrint($"LOW KEY: {KeyLevel_5m_LOW:N2}, HIGH: {KeyLevel_5m_HIGH:N2}");
+
+                BasicActionForTrading(TimeFrameToTrade.OneMinute);
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
+                // Detect new keys
                 double highPrice_5m = High[0];
                 double lowPrice_5m = Low[0];
                 double openPrice_5m = Open[0];
@@ -140,37 +189,179 @@ namespace NinjaTrader.NinjaScript.Strategies
                         KeyLevel_5m_HIGH = highPrice_5m;
                         KeyLevel_5m_LOW = lowPrice_5m;
 
-                        Draw.Line(this, $"5m_HIGH_{CurrentBar}", false, 1, highPrice_5m, -1, highPrice_5m, Brushes.Green, DashStyleHelper.Solid, 2);
-                        Draw.Line(this, $"5m_LOW_{CurrentBar}", false, 1, lowPrice_5m, -1, lowPrice_5m, Brushes.Green, DashStyleHelper.Solid, 2);
-                        Draw.Line(this, $"5m_VERTICAL_{CurrentBar}", false, 0, lowPrice_5m, 0, highPrice_5m, Brushes.Green, DashStyleHelper.Solid, 2);
+                        DrawKey(CurrentBar, highPrice_5m, lowPrice_5m);
 
-                        // Draw current line 
-                        Draw.HorizontalLine(this, $"5m_HIGH_Current", highPrice_5m, Brushes.Orange, DashStyleHelper.Dot, 2);
-                        Draw.HorizontalLine(this, $"5m_LOW_Current", lowPrice_5m, Brushes.Orange, DashStyleHelper.Dot, 2);
-
-                        Last5mBarTouchEMA50 = CurrentBar; 
+                        Last5mBarTouchEMA50 = CurrentBar;
                     }
+                }
+                else if (lowPrice_5m > maxEma_Current)
+                {
+                    Position_5m = GeneralEMAsPosition.Above;
+                }
+                else if (highPrice_5m < minEma_Current)
+                {
+                    Position_5m = GeneralEMAsPosition.Below;
                 }
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 15) //15 minute
             {
-
+                // Do nothing for now
             }
         }
 
-        protected override double GetSetPrice(TradeAction tradeAction, AtmStrategy additionalInfo)
+        protected override void EnterOrder_Historial(FishTrendTradeDetail tradeAction)
         {
-            throw new NotImplementedException();
-        }
-
-        protected override TradeAction ShouldTrade()
-        {
-            throw new NotImplementedException();
+            base.EnterOrder_Historial(tradeAction);
         }
 
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)
         {
-            throw new NotImplementedException();
+            // Make sure each stratergy have each own time frame to trade
+            if (timeFrameToTrade != Configured_TimeFrameToTrade)
+            {
+                return;
+            }
+
+            if (TradingStatus == TradingStatus.Idle)
+            {
+                var passTradeCondition = CheckingTradeCondition();
+                if (!passTradeCondition)
+                {
+                    LocalPrint($"[BasicActionForTrading] Not Pass Condition to trade");
+                    return;
+                }
+
+                var shouldTrade = ShouldTrade();                
+
+                if (shouldTrade.Action != GeneralTradeAction.NoTrade) // Nếu chưa enter order thì mới enter order
+                {
+                    EnterOrder(shouldTrade);
+                }
+            }   
+            else if (TradingStatus == TradingStatus.PendingFill) 
+            {
+                UpdatePendingOrder();
+            } 
+            else if (TradingStatus == TradingStatus.OrderExists)
+            {
+
+            }   
+        }
+
+        protected override void UpdatePendingOrder()
+        {
+            if (TradingStatus != TradingStatus.PendingFill)
+            {
+                return;
+            }
+
+            // Cancel lệnh do đợi quá lâu
+            var firstOrder = GetPendingOrder();
+
+            if (firstOrder == null)
+            {
+                return;
+            }
+
+            var cancelOrderDueByTime = ShouldCancelPendingOrdersByTimeCondition(FilledTime);
+
+            if (cancelOrderDueByTime)
+            {
+                CancelAllPendingOrder();
+
+                return;
+            }
+
+            var checkShouldTradeAgain = ShouldTrade();
+
+            if (checkShouldTradeAgain.Action == GeneralTradeAction.NoTrade)
+            {
+                LocalPrint($"Check lại các điều kiện với [ShouldTrade], new answer: [{checkShouldTradeAgain.Action}] --> Cancel lệnh do không thỏa mãn các điều kiện trade");
+
+                CancelAllPendingOrder();
+
+                return;
+            }
+            else if (CurrentTradeAction.Action != checkShouldTradeAgain.Action)
+            {   
+                CancelAllPendingOrder();
+
+                EnterOrder(checkShouldTradeAgain);             
+            }
+        }
+
+        protected override void EnterOrderPureUsingTicks(double priceToSet, double targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
+        {
+            var text = isBuying ? "LONG" : "SHORT";
+
+            if (isBuying)
+            {
+                var stopPrice = priceToSet - stoplossInTicks * TickSize; 
+                EnterLongStopLimit(0, true, quantity, priceToSet, stopPrice, signal);
+            }
+            else
+            {
+                var stopPrice = priceToSet + stoplossInTicks * TickSize;
+                EnterShortStopLimit(0, true, quantity, priceToSet, stopPrice, signal);
+            }
+
+            SetStopLoss(signal, CalculationMode.Ticks, stoplossInTicks, false);
+
+            SetProfitTarget(signal, CalculationMode.Ticks, targetInTicks);
+
+            LocalPrint($"Enter {text} for {quantity} contracts with signal [{signal}] at {priceToSet:N2}, stop loss ticks: {stoplossInTicks:N2}, target ticks: {targetInTicks:N2}");
+        }
+
+        protected override double GetSetPrice(FishTrendTradeDetail tradeAction, AtmStrategy additionalInfo)
+        {
+            if (tradeAction.Action == GeneralTradeAction.Sell)
+            {
+                return tradeAction.Direction == TradeDirection.Reverse ? KeyLevel_5m_LOW : KeyLevel_5m_LOW - AdjustmentPoint;
+            }
+            else if (tradeAction.Action == GeneralTradeAction.Buy)
+            {
+                return tradeAction.Direction == TradeDirection.Reverse ? KeyLevel_5m_HIGH : KeyLevel_5m_HIGH + AdjustmentPoint;
+            }
+            return -1; 
+        }
+
+        protected override FishTrendTradeDetail ShouldTrade()
+        {
+            var close_1m = Close[0];
+            var open_1m = Open[0];
+
+            if (close_1m <= KeyLevel_5m_HIGH && close_1m >= KeyLevel_5m_LOW && CandleUtilities.IsRedCandle(close_1m, open_1m))
+            {
+                return new FishTrendTradeDetail
+                {
+                    Action = GeneralTradeAction.Sell,
+                    Sizing = TradeSizingEnum.Big,
+
+                    // Các cây nến từ dưới đi lên, chạm vào EMA50 và bật xuống lại. 
+                    // Như vậy trend đang là trend đi lên
+                    Direction = Position_5m == GeneralEMAsPosition.Below ? TradeDirection.Reverse : TradeDirection.Trending
+                };
+            }
+            else if (close_1m <= KeyLevel_5m_HIGH && close_1m >= KeyLevel_5m_LOW && CandleUtilities.IsGreenCandle(close_1m, open_1m))
+            {
+                return new FishTrendTradeDetail
+                {
+                    Action = GeneralTradeAction.Buy,
+                    Sizing = TradeSizingEnum.Big,
+
+                    // Các cây nến từ trên đi xuống, chạm vào EMA50 và bật lên lại. 
+                    // Như vậy trend đang là trend xuống
+                    Direction = Position_5m == GeneralEMAsPosition.Above ? TradeDirection.Reverse : TradeDirection.Trending
+                };
+            }
+            else
+            {
+                return new FishTrendTradeDetail
+                {
+                    Action = GeneralTradeAction.NoTrade,
+                    Sizing = TradeSizingEnum.Big
+                };
+            }
         }
     }
 }

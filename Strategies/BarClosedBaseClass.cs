@@ -730,7 +730,7 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
         
-        protected virtual void EnterOrderPureUsingPrice(double priceToSet, double targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
+        protected virtual void EnterOrderPureUsingTicks(double priceToSet, double targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
         {
             var text = isBuying ? "LONG" : "SHORT";
             
@@ -756,8 +756,7 @@ namespace NinjaTrader.Custom.Strategies
             
             if (isBuying)
             {
-                EnterLongLimit(0, true, quantity, priceToSet, signal);                
-
+                EnterLongLimit(0, true, quantity, priceToSet, signal);
             }
             else
             {

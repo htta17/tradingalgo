@@ -140,9 +140,9 @@ namespace NinjaTrader.Custom.Strategies
     }
 
     public enum ImplementedAlgorithm
-    { 
-        FVG, 
-        Kitty, 
+    {
+        FVG,
+        Kitty,
         Rooster
     }
 
@@ -152,13 +152,13 @@ namespace NinjaTrader.Custom.Strategies
     public class WAE_ValueSet
     {
         public WAE_ValueSet() : this(ImplementedAlgorithm.Rooster)
-        { 
+        {
         }
         /// <summary>
         /// Khởi tạo theo các Algorithm khác nhau để có [SafetyRatio] khác nhau
         /// </summary>
         /// <param name="algorithm">Mặc định là Rooster</param>
-        public WAE_ValueSet(ImplementedAlgorithm algorithm) 
+        public WAE_ValueSet(ImplementedAlgorithm algorithm)
         {
             if (algorithm == ImplementedAlgorithm.Kitty)
             {
@@ -369,23 +369,11 @@ namespace NinjaTrader.Custom.Strategies
         FifteenMinutes
     }
 
-    public class FishTrendKeyLevel
-    {
-        public FishTrendKeyLevel(DateTime time, double upper, double lower)
-        {
-            Time = time;
-            UpperValue = upper;
-            LowerValue = lower;
-        }
-
-        public DateTime Time { get; private set; }
-
-        public double UpperValue { get; private set; }
-
-        public double LowerValue { get; private set; }
-    }
-
-    public enum EMA2129Position
+    /// <summary>
+    /// Vị trí của nến so với (các) đường EMA(s) <br/>
+    /// 
+    /// </summary>
+    public enum GeneralEMAsPosition
     {
         Unknown,
         Above,
@@ -396,7 +384,7 @@ namespace NinjaTrader.Custom.Strategies
     {
         public EMA2129Status()
         {
-            Position = EMA2129Position.Unknown;
+            Position = GeneralEMAsPosition.Unknown;
 
             ResetEnteredOrder();
 
@@ -410,7 +398,7 @@ namespace NinjaTrader.Custom.Strategies
             SetAt_EMA10_5m = false;
             SetAt_EMA10_5m = false;
         }
-        public EMA2129Position Position { get; private set; }
+        public GeneralEMAsPosition Position { get; private set; }
 
         /// <summary>
         /// Dùng để đánh dấu đã enter order hay chưa <br/>
@@ -418,11 +406,11 @@ namespace NinjaTrader.Custom.Strategies
         /// Chỉ tính cho EMA21
         /// </summary>
         public bool EnteredOrder21
-        { 
-            get 
+        {
+            get
             {
                 return SetAt_EMA21;
-            } 
+            }
         }
 
         /// <summary>
@@ -438,16 +426,16 @@ namespace NinjaTrader.Custom.Strategies
             }
         }
 
-        public void SetPosition(EMA2129Position position, int? barIndex = null, bool resetEnterOrder = false) 
-        { 
+        public void SetPosition(GeneralEMAsPosition position, int? barIndex = null, bool resetEnterOrder = false)
+        {
             Position = position;
 
-            if (resetEnterOrder && (position == EMA2129Position.Below || position == EMA2129Position.Above))
+            if (resetEnterOrder && (position == GeneralEMAsPosition.Below || position == GeneralEMAsPosition.Above))
             {
                 ResetEnteredOrder();
 
                 ResetCounters();
-            }    
+            }
         }
 
         /// <summary>
@@ -467,7 +455,7 @@ namespace NinjaTrader.Custom.Strategies
             else if (postition == EMA2129OrderPostition.EMA10_5m)
             {
                 SetAt_EMA10_5m = true;
-            }    
+            }
         }
 
         public void ResetCounters()
@@ -501,29 +489,29 @@ namespace NinjaTrader.Custom.Strategies
         /// </summary>
         /// <param name="position"></param>
         public void Touch(EMA2129OrderPostition position, int? barIndex = null)
-        {            
+        {
             if (position == EMA2129OrderPostition.AdjustedEMA21)
             {
                 // Vị trí này không có touch LoL
-            }    
+            }
             else if (position == EMA2129OrderPostition.EMA21)
             {
                 CountTouch_EMA21++;
             }
             else if (position == EMA2129OrderPostition.EMA29)
             {
-                CountTouch_EMA29++;  
+                CountTouch_EMA29++;
             }
             else if (position == EMA2129OrderPostition.EMA10_5m)
             {
                 CountTouch_EMA10_5m++;
             }
-        }        
-    }    
+        }
+    }
 
-    public enum EMA2129SizingEnum
-    { 
-        Small, 
+    public enum TradeSizingEnum
+    {
+        Small,
         Medium,
         Big
     }
@@ -545,25 +533,39 @@ namespace NinjaTrader.Custom.Strategies
         /// <summary>
         /// EMA 29 khung 1 phút
         /// </summary>        
-        EMA29,       
-        
+        EMA29,
+
         /// <summary>
         /// EMA 10 khung 5 phút
         /// </summary>
         EMA10_5m
     }
 
-    public class EMA2129OrderDetail
+    public class EMA2129OrderDetail : TradeOrderDetail
     {
         public EMA2129OrderDetail()
-        { 
+        {
             Postition = EMA2129OrderPostition.NoTrade;
         }
 
-        public GeneralTradeAction Action { get; set; }  
-
-        public EMA2129SizingEnum Sizing { get; set; }
-
         public EMA2129OrderPostition Postition { get; set; }
+    }
+
+    public enum TradeDirection
+    {
+        Reverse,
+
+        Trending
+    }
+
+    public class TradeOrderDetail
+    {
+        public GeneralTradeAction Action { get; set; }
+        public TradeSizingEnum Sizing { get; set; }
+    }
+
+    public class FishTrendTradeDetail : TradeOrderDetail
+    { 
+        public TradeDirection Direction { get; set; }
     }
 }

@@ -308,7 +308,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var targetHalf = GetTargetPrice_Half(action, priceToSet, action);
                 var targetFull = GetTargetPrice_Full(action, priceToSet, action);                
 
-                EnterOrderPureUsingPrice(priceToSet, targetHalf, stopLossPrice,
+                EnterOrderPureUsingTicks(priceToSet, targetHalf, stopLossPrice,
                     SignalHalf, 2,
                     IsBuying, IsSelling);
 

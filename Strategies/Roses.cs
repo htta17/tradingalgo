@@ -166,16 +166,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 if (high < minValue)
                 {
-                    if (EMA2129Status.Position == EMA2129Position.Unknown || EMA2129Status.Position == EMA2129Position.Above)
+                    if (EMA2129Status.Position == GeneralEMAsPosition.Unknown || EMA2129Status.Position == GeneralEMAsPosition.Above)
                     {
-                        EMA2129Status.SetPosition(EMA2129Position.Below);                        
+                        EMA2129Status.SetPosition(GeneralEMAsPosition.Below);                        
                     }
                 }
                 else if (low > maxValue)
                 {
-                    if (EMA2129Status.Position == EMA2129Position.Unknown || EMA2129Status.Position == EMA2129Position.Below)
+                    if (EMA2129Status.Position == GeneralEMAsPosition.Unknown || EMA2129Status.Position == GeneralEMAsPosition.Below)
                     {
-                        EMA2129Status.SetPosition(EMA2129Position.Above);                        
+                        EMA2129Status.SetPosition(GeneralEMAsPosition.Above);                        
                     }
                 }
 
@@ -280,7 +280,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 Action = GeneralTradeAction.NoTrade,
                 Postition = EMA2129OrderPostition.NoTrade,
-                Sizing = EMA2129SizingEnum.Small
+                Sizing = TradeSizingEnum.Small
             };
             if (ADXandDI.Value[0] < ADXValueToCancelOrder)
             {
@@ -288,7 +288,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else // ADXandDI.Value[0] >= ADXValueToCancelOrder
             {
-                if (EMA2129Status.Position == EMA2129Position.Above)
+                if (EMA2129Status.Position == GeneralEMAsPosition.Above)
                 {
                     answer.Action = GeneralTradeAction.Buy;
                     if (ADXandDI.Value[0] > ADXValueToEnterOrder && EMA2129Status.CountTouch_EMA21 == 0)
@@ -299,13 +299,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     return answer;
                 }
-                else if (EMA2129Status.Position == EMA2129Position.Below)
+                else if (EMA2129Status.Position == GeneralEMAsPosition.Below)
                 {
                     answer.Action = GeneralTradeAction.Sell;
                     if (ADXandDI.Value[0] > ADXValueToEnterOrder && EMA2129Status.CountTouch_EMA21 == 0)
                     {
                         answer.Postition = EMA2129OrderPostition.EMA21;
-                        answer.Sizing = EMA2129SizingEnum.Big;
+                        answer.Sizing = TradeSizingEnum.Big;
                     }
                     FilledTime = Time[0];
 

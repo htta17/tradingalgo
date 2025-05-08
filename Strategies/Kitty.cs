@@ -514,7 +514,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var buySell = "";
                 var newPrice = -1.0; 
 
-                if (CurrentTradeAction.Action == GeneralTradeAction.Buy && Close[0] > FilledPrice + 5 && noTradeAngle && alreadyTouchEMA_10_5m)
+                if (CurrentTradeAction.Action == GeneralTradeAction.Buy && Close[0] > FilledPrice + 5 && noTradeAngle && alreadyTouchEMA_10_5m && StopLossPrice < FilledPrice)
                 {
                     LocalPrint($@"Dịch Stop loss lên break even do có các điều kiện sau: 
     - Góc suy giảm: {angle:N2} < {MininumAngleToTrade}
@@ -524,7 +524,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     buySell = "BUY";
                     newPrice = FilledPrice + 5;                    
                 }
-                else if (CurrentTradeAction.Action == GeneralTradeAction.Sell && Close[0] < FilledPrice - 5 && noTradeAngle && alreadyTouchEMA_10_5m)
+                else if (CurrentTradeAction.Action == GeneralTradeAction.Sell && Close[0] < FilledPrice - 5 && noTradeAngle && alreadyTouchEMA_10_5m && StopLossPrice > FilledPrice)
                 {
                     LocalPrint($@"Dịch Stop loss lên break even do có các điều kiện sau: 
     - Góc suy giảm: {angle:N2} < {MininumAngleToTrade}
@@ -552,7 +552,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                     {
                         CloseExistingOrders();
                     }
-                   
+
+                    StopLossPrice = newPrice;
                 }
                
 

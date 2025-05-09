@@ -90,15 +90,18 @@ namespace NinjaTrader.NinjaScript.Strategies
         #region Indicators
         protected EMA EMA29Indicator_1m { get; set; }
         protected EMA EMA21Indicator_1m { get; set; }
-        protected EMA EMA89Indicator_1m { get; set; }
+        //protected EMA EMA89Indicator_1m { get; set; }
         protected EMA EMA50Indicator_5m { get; set; }
-        protected EMA EMA20Indicator_5m { get; set; }
+        protected EMA EMA46Indicator_5m { get; set; }
+        //protected EMA EMA20Indicator_5m { get; set; }
         protected EMA EMA10Indicator_5m { get; set; }       
 
         protected Falcon Falcon_1m { get; set; }       
 
         #endregion
         private EMA2129Status EMA2129Status { get; set; }
+
+        private Queue<(int, int)> BarNumbers = new Queue<(int, int)>();
         
         /// <summary>
         /// Giá trị này chỉ nên lưu 2 giá trị là [Above] và [Below] <br/>
@@ -153,6 +156,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         /// </summary>
         protected bool HammerCandle { get; set; }
 
+        private double KeyLevel_5m_HIGH = -1;
+        private double KeyLevel_5m_LOW = -1;
+        private int Last5mBarTouchEMA50 { get; set; } = -1;
+
         protected override void OnStateChange_Configure()
         {
             base.OnStateChange_Configure();
@@ -180,8 +187,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             AddPlot(Brushes.Green, "EMA9_5m");
             AddPlot(Brushes.Red, "EMA50_5m");
-
-            //AddPlot(Brushes.Pink, "EMA20_5m");
+            AddPlot(Brushes.Black, "EMA46_5m");            
 
             DisplayIndicators = true;
             DisplayEMA20_5m = false;
@@ -210,10 +216,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA21Indicator_1m = EMA(BarsArray[2], 21);
             EMA21Indicator_1m.Plots[0].Brush = Brushes.Blue;
 
-            EMA89Indicator_1m = EMA(BarsArray[2], 89);
-            EMA89Indicator_1m.Plots[0].Brush = Brushes.Gray;
+            //EMA89Indicator_1m = EMA(BarsArray[2], 89);
+            //EMA89Indicator_1m.Plots[0].Brush = Brushes.Gray;
+
             EMA50Indicator_5m = EMA(BarsArray[1], 50);
-            EMA20Indicator_5m = EMA(BarsArray[1], 20);
+            EMA46Indicator_5m = EMA(BarsArray[1], 46);
+
+            //EMA20Indicator_5m = EMA(BarsArray[1], 20);
             EMA10Indicator_5m = EMA(BarsArray[1], 10);
 
             Falcon_1m = Falcon(BarsArray[2], 20, MininumAngleToTrade);
@@ -287,27 +296,65 @@ namespace NinjaTrader.NinjaScript.Strategies
             return false; 
         }
 
+        private void DrawKey(int barIndex, double high, double low)
+        {
+            LocalPrint("DrawKey - Stat");
+            BarNumbers.Enqueue((barIndex, CurrentBars[2])); // barIndex: Khung 5 phút, CurrentBar[2]: Khung 1 phút
+
+
+            Draw.Line(this, $"5m_HIGH_{barIndex}", false, 1, high, -1, high, Brushes.Gray, DashStyleHelper.Solid, 2);
+            Draw.Line(this, $"5m_LOW_{barIndex}", false, 1, low, -1, low, Brushes.Gray, DashStyleHelper.Solid, 2);
+            Draw.Line(this, $"5m_VERTICAL_{barIndex}", false, 0, low, 0, high, Brushes.Gray, DashStyleHelper.Dot, 2);            
+
+            Draw.Text(this, $"5m_TEXT_HIGH_{barIndex}", true, $"{high:N2}", 0, high + 1, 5, Brushes.Green,
+                new SimpleFont("Arial", 9.75),
+                TextAlignment.Center,
+                Brushes.Transparent,
+                Brushes.Transparent, 0);
+
+            Draw.Text(this, $"5m_TEXT_LOW_{barIndex}", true, $"{low:N2}", 0, low - 6, 5, Brushes.Green,
+                new SimpleFont("Arial", 9.75),
+                TextAlignment.Center,
+                Brushes.Transparent,
+                Brushes.Transparent, 0);
+
+            // Draw current line 
+            Draw.HorizontalLine(this, $"5m_HIGH_Current", high, Brushes.Orange, DashStyleHelper.Dot, 2);
+            Draw.HorizontalLine(this, $"5m_LOW_Current", low, Brushes.Orange, DashStyleHelper.Dot, 2);
+
+            if (BarNumbers.Count > 3)
+            {
+                var (removeKey5m, key1m)  = BarNumbers.Dequeue();
+
+                RemoveDrawObject($"5m_HIGH_{removeKey5m}");
+                RemoveDrawObject($"5m_LOW_{removeKey5m}");
+                RemoveDrawObject($"5m_VERTICAL_{removeKey5m}");
+
+                //RemoveDrawObject($"1m_POINT_LOW_{key1m}");
+                //RemoveDrawObject($"1m_POINT_High_{key1m}");
+
+                RemoveDrawObject($"5m_TEXT_LOW_{removeKey5m}");
+                RemoveDrawObject($"5m_TEXT_LOW_{removeKey5m}");
+            }
+            LocalPrint("DrawKey - End");
+        }
+
         protected override void OnBarUpdate()
         {
             // Cập nhật lại status 
             tradingStatus = CheckCurrentStatusBasedOnOrders();
-
-            // Hiển thị các đường indicators
-            if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 1) //1 minute
-            {
-                // Hiển thị indicators khung 5 phút 
-                try
-                {   
-                    Values[0][0] = EMA10Indicator_5m.Value[0];
-                    Values[1][0] = EMA50Indicator_5m.Value[0];
-
-                    //Values[2][0] = EMA20Indicator_5m.Value[0];
-                }
-                catch (Exception ex)
-                {
-                    LocalPrint("[OnBarUpdate]: ERROR:" + ex.Message);
-                }
+           
+            // Hiển thị indicators của 5 phút 
+            try
+            {   
+                Values[0][0] = EMA10Indicator_5m.Value[0];
+                Values[1][0] = EMA50Indicator_5m.Value[0];
+                Values[2][0] = EMA46Indicator_5m.Value[0];
             }
+            catch (Exception ex)
+            {
+                LocalPrint("[OnBarUpdate]: ERROR:" + ex.Message);
+            }            
             
             if (BarsInProgress == 0)
             {
@@ -467,7 +514,29 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
-                // Do nothing for now
+                // Detect new keys
+                double highPrice_5m = High[0];
+                double lowPrice_5m = Low[0];
+                double openPrice_5m = Open[0];
+                double closePrice_5m = Close[0];
+
+                var maxEma_Current = StrategiesUtilities.MaxOfArray(EMA46Indicator_5m.Value[0], EMA50Indicator_5m.Value[0]);
+                var minEma_Current = StrategiesUtilities.MinOfArray(EMA46Indicator_5m.Value[0], EMA50Indicator_5m.Value[0]);
+
+                if (highPrice_5m > maxEma_Current && lowPrice_5m < minEma_Current)
+                {
+                    if (Last5mBarTouchEMA50 != CurrentBar - 1)
+                    {
+                        LocalPrint($"[CONFIRM] Found new range to trade. Low: {lowPrice_5m:N2}, High: {highPrice_5m:N2}");
+
+                        KeyLevel_5m_HIGH = highPrice_5m;
+                        KeyLevel_5m_LOW = lowPrice_5m;
+
+                        DrawKey(CurrentBar, highPrice_5m, lowPrice_5m);
+
+                        Last5mBarTouchEMA50 = CurrentBar;
+                    }
+                }
             }
         }        
 

@@ -24,6 +24,7 @@ using NinjaTrader.Custom.Strategies;
 using NinjaTrader.NinjaScript.SuperDomColumns;
 using System.Xml.Linq;
 using NinjaTrader.Gui.NinjaScript.Wizard;
+using System.IO;
 #endregion
 
 //This namespace holds Strategies in this folder and is required. Do not change it. 
@@ -33,6 +34,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 	{
         public FishTrend() : base("FISHTREND")
         {
+            FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "atmStrategyFishTrend.txt");
+
             Configured_TimeFrameToTrade = TimeFrameToTrade.OneMinute;
         }
         protected override TradingStatus TradingStatus
@@ -212,6 +215,12 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected override void EnterOrder_Historial(FishTrendTradeDetail tradeAction)
         {
             base.EnterOrder_Historial(tradeAction);
+        }
+
+        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling, OrderType orderType = OrderType.Limit)
+        {
+            // Inherit base class with Order Type is StopLimit
+            base.EnterOrderPure(priceToSet, targetInTicks, stoplossInTicks, atmStragtegyName, quantity, isBuying, isSelling, OrderType.StopLimit);
         }
 
         protected override void BasicActionForTrading(TimeFrameToTrade timeFrameToTrade)

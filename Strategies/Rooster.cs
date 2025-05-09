@@ -590,40 +590,10 @@ namespace NinjaTrader.NinjaScript.Strategies
             LocalPrint($"Enter {text} for {quantity} contracts with signal [{signal}] at {priceToSet:N2}, stop loss ticks: {stoplossInTicks:N2}, target ticks: {targetInTicks:N2}");
         }
 
-        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling)
+        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling, OrderType orderType = OrderType.Limit)
         {
-            // Vào lệnh theo ATM 
-            AtmStrategyId = GetAtmStrategyUniqueId();
-            OrderId = GetAtmStrategyUniqueId();
-
-            // Save to file, in case we need to pull [atmStrategyId] again
-            SaveAtmStrategyIdToFile(AtmStrategyId, OrderId);
-
-            var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
-
-            FilledPrice = priceToSet;
-
-            // Enter a BUY/SELL order current price
-            AtmStrategyCreate(
-                action,
-                OrderType.Market,
-                0, // Enter market
-                0,
-                TimeInForce.Day,
-                OrderId,
-                atmStragtegyName,
-                AtmStrategyId,
-                (atmCallbackErrorCode, atmCallBackId) =>
-                {
-                    if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == AtmStrategyId)
-                    {
-                        tradingStatus = TradingStatus.PendingFill;
-                    }
-                    else if (atmCallbackErrorCode != ErrorCode.NoError)
-                    {
-                        LocalPrint($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
-                    }
-                });
+            // Inherit based class with Order Type is Maket
+            base.EnterOrderPure(priceToSet, targetInTicks, stoplossInTicks, atmStragtegyName, quantity, isBuying, isSelling, OrderType.Market);
         }
 
         protected override double GetSetPrice(EMA2129OrderDetail tradeAction, AtmStrategy additionalInfo)

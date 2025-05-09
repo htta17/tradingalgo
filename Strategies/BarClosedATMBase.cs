@@ -319,7 +319,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling)
+        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling, OrderType orderType = OrderType.Limit)
         {
             // Vào lệnh theo ATM 
             AtmStrategyId = GetAtmStrategyUniqueId();
@@ -335,7 +335,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             // Enter a BUY/SELL order current price
             AtmStrategyCreate(
                 action,
-                OrderType.Limit,
+                orderType,
                 priceToSet,
                 0,
                 TimeInForce.Day,

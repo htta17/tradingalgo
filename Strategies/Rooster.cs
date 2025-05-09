@@ -590,7 +590,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             LocalPrint($"Enter {text} for {quantity} contracts with signal [{signal}] at {priceToSet:N2}, stop loss ticks: {stoplossInTicks:N2}, target ticks: {targetInTicks:N2}");
         }
 
-        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling, OrderType orderType = OrderType.Limit)
+        protected override void EnterOrderPure(double priceToSet, int targetInTicks, int stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling, OrderType orderType = OrderType.Limit)
         {
             // Inherit based class with Order Type is Maket
             base.EnterOrderPure(priceToSet, targetInTicks, stoplossInTicks, atmStragtegyName, quantity, isBuying, isSelling, OrderType.Market);

@@ -319,7 +319,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
         }
 
-        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling, OrderType orderType = OrderType.Limit)
+        protected override void EnterOrderPure(double priceToSet, int targetInTicks, int stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling, OrderType orderType = OrderType.Limit)
         {
             // Vào lệnh theo ATM 
             AtmStrategyId = GetAtmStrategyUniqueId();
@@ -329,15 +329,16 @@ namespace NinjaTrader.NinjaScript.Strategies
             SaveAtmStrategyIdToFile(AtmStrategyId, OrderId);
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
+            var stopLossPrice = IsBuying ? (priceToSet - TickSize * stoplossInTicks) : (priceToSet + TickSize * stoplossInTicks );
 
-            FilledPrice = priceToSet;            
+            FilledPrice = priceToSet;
 
             // Enter a BUY/SELL order current price
             AtmStrategyCreate(
                 action,
                 orderType,
                 priceToSet,
-                0,
+                stopLossPrice,
                 TimeInForce.Day,
                 OrderId,
                 atmStragtegyName,
@@ -383,9 +384,6 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             try
             {
-                //var signalHalf = StrategiesUtilities.SignalEntry_TrendingHalf;
-                //EnterOrderPureUsingPrice(priceToSet, Target1InTicks, StopLossInTicks, signalHalf, 2, IsBuying, IsSelling);
-
                 var signalFull = StrategiesUtilities.SignalEntry_TrendingFull;
                 EnterOrderPureUsingTicks(priceToSet, target2InTicks, stopLossInTicks, signalFull, AlgQuantity, IsBuying, IsSelling);
             }
@@ -443,9 +441,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             LocalPrint($@"Enter {action}. Price to set: {priceToSet:N2}, StopLossPrice: {StopLossPrice:N2}, Target 1: {TargetPrice_Half:N2}, Target Full: {TargetPrice_Full:N2}");
 
+            var stopLossTicks = (int)(Math.Abs(stopLoss - priceToSet) / TickSize);
+            var targetTicks = (int)(Math.Abs(targetFull - priceToSet) / TickSize);
+
             try
             {
-                EnterOrderPure(priceToSet, 0, 0, atmStrategyName, 0, IsBuying, IsSelling);
+                EnterOrderPure(priceToSet, targetTicks, stopLossTicks, atmStrategyName, 0, IsBuying, IsSelling);
             }
             catch (Exception ex)
             {

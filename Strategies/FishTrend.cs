@@ -112,6 +112,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             FullSizeATMName = "FishTrend_Reverse";
             HalfSizefATMName = "FishTrend_Follow";
+
+            AdjustmentPoint = 7;
         }
 
         private void DrawKey(int barIndex, double high, double low)
@@ -217,7 +219,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             base.EnterOrder_Historial(tradeAction);
         }
 
-        protected override void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling, OrderType orderType = OrderType.Limit)
+        protected override void EnterOrderPure(double priceToSet, int targetInTicks, int stoplossInTicks, string atmStragtegyName, int quantity, bool isBuying, bool isSelling, OrderType orderType = OrderType.Limit)
         {
             // Inherit base class with Order Type is StopLimit
             base.EnterOrderPure(priceToSet, targetInTicks, stoplossInTicks, atmStragtegyName, quantity, isBuying, isSelling, OrderType.StopLimit);

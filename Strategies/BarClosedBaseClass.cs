@@ -750,7 +750,7 @@ namespace NinjaTrader.Custom.Strategies
             LocalPrint($"Enter {text} for {quantity} contracts with signal [{signal}] at {priceToSet:N2}, stop loss ticks: {stoplossInTicks:N2}, target ticks: {targetInTicks:N2}");            
         }
 
-        protected virtual void EnterOrderPure(double priceToSet, int targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling, OrderType orderType = OrderType.Limit)
+        protected virtual void EnterOrderPure(double priceToSet, int targetInTicks, int stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling, OrderType orderType = OrderType.Limit)
         {
             var text = isBuying ? "LONG" : "SHORT";
             

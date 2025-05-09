@@ -126,13 +126,13 @@ namespace NinjaTrader.NinjaScript.Strategies
             Draw.Line(this, $"1m_POINT_High_{CurrentBars[3]}", false, 1, Highs[3][0], -1, Highs[3][0], Brushes.Gray, DashStyleHelper.Solid, 2);
 
             Draw.Text(this, $"5m_TEXT_HIGH_{CurrentBar}", true, $"{high:N2}", 0, high + 0.5, 5, Brushes.Green,
-                new SimpleFont("Arial", 9),
+                new SimpleFont("Arial", 9.75),
                 TextAlignment.Left,
                 Brushes.Transparent,
                 Brushes.Transparent, 0);
 
             Draw.Text(this, $"5m_TEXT_LOW_{CurrentBar}", true, $"{low:N2}", 0, low - 1, 5, Brushes.Green,
-                new SimpleFont("Arial", 9),
+                new SimpleFont("Arial", 9.75),
                 TextAlignment.Left,
                 Brushes.Transparent,
                 Brushes.Transparent, 0);
@@ -327,21 +327,31 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             if (tradeAction.Action == GeneralTradeAction.Sell)
             {
-                return tradeAction.Direction == TradeDirection.Reverse ? KeyLevel_5m_LOW : KeyLevel_5m_LOW - AdjustmentPoint;
+                return tradeAction.Direction == TradeDirection.Reverse ? KeyLevel_5m_LOW - 3 : KeyLevel_5m_LOW - AdjustmentPoint;
             }
             else if (tradeAction.Action == GeneralTradeAction.Buy)
             {
-                return tradeAction.Direction == TradeDirection.Reverse ? KeyLevel_5m_HIGH : KeyLevel_5m_HIGH + AdjustmentPoint;
+                return tradeAction.Direction == TradeDirection.Reverse ? KeyLevel_5m_HIGH + 3 : KeyLevel_5m_HIGH + AdjustmentPoint;
             }
             return -1; 
         }
 
         protected override FishTrendTradeDetail ShouldTrade()
         {
-            var close_1m = Close[0];
+            var close_1m = Closes[3][0];
             var open_1m = Open[0];
 
-            if (close_1m <= KeyLevel_5m_HIGH && close_1m >= KeyLevel_5m_LOW && CandleUtilities.IsRedCandle(close_1m, open_1m))
+            var closeInRange = close_1m <= KeyLevel_5m_HIGH && close_1m >= KeyLevel_5m_LOW;
+            var isRedCandle = CandleUtilities.IsRedCandle(close_1m, open_1m);
+            var isGreenCandle = CandleUtilities.IsGreenCandle(close_1m, open_1m);
+
+            var distanceToTop = KeyLevel_5m_HIGH - close_1m;
+
+            var distanceToBottom = close_1m - KeyLevel_5m_LOW;
+
+            LocalPrint($"[ShouldTrade] - Open 1m: {open_1m:N2}, Close 1m: {close_1m:N2}, in Range: {closeInRange}, ");
+
+            if (closeInRange && distanceToTop > distanceToBottom)
             {
                 return new FishTrendTradeDetail
                 {
@@ -353,7 +363,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     Direction = Position_5m == GeneralEMAsPosition.Below ? TradeDirection.Reverse : TradeDirection.Trending
                 };
             }
-            else if (close_1m <= KeyLevel_5m_HIGH && close_1m >= KeyLevel_5m_LOW && CandleUtilities.IsGreenCandle(close_1m, open_1m))
+            else if (closeInRange && distanceToTop < distanceToBottom)
             {
                 return new FishTrendTradeDetail
                 {

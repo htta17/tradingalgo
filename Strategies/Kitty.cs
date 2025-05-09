@@ -322,7 +322,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             Draw.HorizontalLine(this, $"5m_HIGH_Current", high, Brushes.Orange, DashStyleHelper.Dot, 2);
             Draw.HorizontalLine(this, $"5m_LOW_Current", low, Brushes.Orange, DashStyleHelper.Dot, 2);
 
-            if (BarNumbers.Count > 3)
+            if (BarNumbers.Count > 10)
             {
                 var (removeKey5m, key1m)  = BarNumbers.Dequeue();
 

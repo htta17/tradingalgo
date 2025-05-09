@@ -329,31 +329,30 @@ namespace NinjaTrader.NinjaScript.Strategies
             SaveAtmStrategyIdToFile(AtmStrategyId, OrderId);
 
             var action = IsBuying ? OrderAction.Buy : OrderAction.Sell;
-            var stopLossPrice = IsBuying ? (priceToSet - TickSize * stoplossInTicks) : (priceToSet + TickSize * stoplossInTicks );
 
             FilledPrice = priceToSet;
+            // Enter a BUY/SELL order current price            
 
-            // Enter a BUY/SELL order current price
             AtmStrategyCreate(
-                action,
-                orderType,
-                priceToSet,
-                stopLossPrice,
-                TimeInForce.Day,
-                OrderId,
-                atmStragtegyName,
-                AtmStrategyId,
-                (atmCallbackErrorCode, atmCallBackId) =>
-                {
-                    if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == AtmStrategyId)
+                    action,
+                    orderType,
+                    priceToSet,
+                    orderType == OrderType.StopLimit ? priceToSet : 0,
+                    TimeInForce.Day,
+                    OrderId,
+                    atmStragtegyName,
+                    AtmStrategyId,
+                    (atmCallbackErrorCode, atmCallBackId) =>
                     {
-                        tradingStatus = TradingStatus.PendingFill;
-                    }
-                    else if (atmCallbackErrorCode != ErrorCode.NoError)
-                    {
-                        LocalPrint($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
-                    }
-                });
+                        if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == AtmStrategyId)
+                        {
+                            tradingStatus = TradingStatus.PendingFill;
+                        }
+                        else if (atmCallbackErrorCode != ErrorCode.NoError)
+                        {
+                            LocalPrint($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
+                        }
+                    });
         }
 
         protected virtual void EnterOrder_Historial(T1 tradeAction)
@@ -394,7 +393,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         protected override void EnterOrder(T1 tradeAction)
-        {
+        {   
             if (State == State.Historical)
             {
                 EnterOrder_Historial(tradeAction);

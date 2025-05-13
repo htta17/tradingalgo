@@ -90,7 +90,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         #region Indicators
         protected EMA EMA29Indicator_1m { get; set; }
         protected EMA EMA21Indicator_1m { get; set; }
-        //protected EMA EMA89Indicator_1m { get; set; }
+
+        protected EMA EMA89Indicator_1m { get; set; }
+        protected EMA EMA120Indicator_1m { get; set; }
+
+
         protected EMA EMA50Indicator_5m { get; set; }
         protected EMA EMA46Indicator_5m { get; set; }
         //protected EMA EMA20Indicator_5m { get; set; }
@@ -216,21 +220,27 @@ namespace NinjaTrader.NinjaScript.Strategies
             EMA21Indicator_1m = EMA(BarsArray[2], 21);
             EMA21Indicator_1m.Plots[0].Brush = Brushes.Blue;
 
-            //EMA89Indicator_1m = EMA(BarsArray[2], 89);
-            //EMA89Indicator_1m.Plots[0].Brush = Brushes.Gray;
+            EMA89Indicator_1m = EMA(BarsArray[2], 89);
+            EMA89Indicator_1m.Plots[0].Brush = Brushes.DarkCyan;
+
+            EMA120Indicator_1m = EMA(BarsArray[2], 120);
+            EMA120Indicator_1m.Plots[0].Brush = Brushes.DarkMagenta;
 
             EMA50Indicator_5m = EMA(BarsArray[1], 50);
             EMA46Indicator_5m = EMA(BarsArray[1], 46);
 
-            //EMA20Indicator_5m = EMA(BarsArray[1], 20);
-            EMA10Indicator_5m = EMA(BarsArray[1], 10);
+            
+            EMA10Indicator_5m = EMA(BarsArray[1], 9);
 
             Falcon_1m = Falcon(BarsArray[2], 20, MininumAngleToTrade);
 
             if (DisplayIndicators)
             {
                 AddChartIndicator(EMA29Indicator_1m);
-                AddChartIndicator(EMA21Indicator_1m);                
+                AddChartIndicator(EMA21Indicator_1m);
+
+                AddChartIndicator(EMA89Indicator_1m);
+                AddChartIndicator(EMA120Indicator_1m);
 
                 AddChartIndicator(Falcon_1m);
             }

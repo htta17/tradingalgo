@@ -555,7 +555,7 @@ namespace NinjaTrader.Custom.Strategies
     {
         Reverse,
 
-        Trending
+        TrendFollowing
     }
 
     public class TradeOrderDetail

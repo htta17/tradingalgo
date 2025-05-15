@@ -338,10 +338,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 RemoveDrawObject($"5m_HIGH_{removeKey5m}");
                 RemoveDrawObject($"5m_LOW_{removeKey5m}");
-                RemoveDrawObject($"5m_VERTICAL_{removeKey5m}");
-
-                //RemoveDrawObject($"1m_POINT_LOW_{key1m}");
-                //RemoveDrawObject($"1m_POINT_High_{key1m}");
+                RemoveDrawObject($"5m_VERTICAL_{removeKey5m}");               
 
                 RemoveDrawObject($"5m_TEXT_LOW_{removeKey5m}");
                 RemoveDrawObject($"5m_TEXT_LOW_{removeKey5m}");

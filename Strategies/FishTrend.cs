@@ -303,17 +303,20 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void EnterOrderPureUsingTicks(double priceToSet, double targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
         {
+            LocalPrint($"[EnterOrderPureUsingTicks] FishTrend");
             var text = isBuying ? "LONG" : "SHORT";
 
             if (isBuying)
             {
                 var stopPrice = priceToSet - stoplossInTicks * TickSize; 
                 EnterLongStopLimit(0, true, quantity, priceToSet, stopPrice, signal);
+                LocalPrint("EnterLongStopLimit");
             }
             else
             {
                 var stopPrice = priceToSet + stoplossInTicks * TickSize;
                 EnterShortStopLimit(0, true, quantity, priceToSet, stopPrice, signal);
+                LocalPrint("EnterShortStopLimit");
             }
 
             SetStopLoss(signal, CalculationMode.Ticks, stoplossInTicks, false);
@@ -341,7 +344,11 @@ namespace NinjaTrader.NinjaScript.Strategies
             var close_1m = Closes[3][0];
             var open_1m = Open[0];
 
-            var closeInRange = close_1m <= KeyLevel_5m_HIGH && close_1m >= KeyLevel_5m_LOW;
+            var addtionalPointForAbove = Position_5m == GeneralEMAsPosition.Above ? 3 : AdjustmentPoint; // Nếu đang ở trên xuống thì chỉ cần quay ngược lên trên 3 điểm thì vào lệnh
+
+            var addtionalPointForBelow = Position_5m == GeneralEMAsPosition.Below ? 3 : AdjustmentPoint; // Nếu đang ở dưới chạy lên thì chỉ cần quay ngược lên trên 3 điểm thì vào lệnh
+
+            var closeInRange = close_1m <= (KeyLevel_5m_HIGH + addtionalPointForAbove) && close_1m >= (KeyLevel_5m_LOW - addtionalPointForBelow);
             var isRedCandle = CandleUtilities.IsRedCandle(close_1m, open_1m);
             var isGreenCandle = CandleUtilities.IsGreenCandle(close_1m, open_1m);
 
@@ -360,7 +367,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     // Các cây nến từ dưới đi lên, chạm vào EMA50 và bật xuống lại. 
                     // Như vậy trend đang là trend đi lên
-                    Direction = Position_5m == GeneralEMAsPosition.Below ? TradeDirection.Reverse : TradeDirection.Trending
+                    Direction = Position_5m == GeneralEMAsPosition.Below ? TradeDirection.Reverse : TradeDirection.TrendFollowing
                 };
             }
             else if (closeInRange && distanceToTop < distanceToBottom)
@@ -372,7 +379,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     // Các cây nến từ trên đi xuống, chạm vào EMA50 và bật lên lại. 
                     // Như vậy trend đang là trend xuống
-                    Direction = Position_5m == GeneralEMAsPosition.Above ? TradeDirection.Reverse : TradeDirection.Trending
+                    Direction = Position_5m == GeneralEMAsPosition.Above ? TradeDirection.Reverse : TradeDirection.TrendFollowing
                 };
             }
             else

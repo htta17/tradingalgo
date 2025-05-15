@@ -637,6 +637,10 @@ namespace NinjaTrader.Custom.Strategies
         {
             var focusedOrderState = (orderState == OrderState.Filled || orderState == OrderState.Cancelled || orderState == OrderState.Working || orderState == OrderState.Accepted);
 
+            var currentStatus = TradingStatus;
+
+            LocalPrint($"[OnOrderUpdate], limitPrice: {limitPrice:N2}, stopPrice: {stopPrice:N2}, orderName: {order.Name}, IsLong: {order.IsLong} ");
+
             if (!focusedOrderState)
             {
                 return;
@@ -650,20 +654,15 @@ namespace NinjaTrader.Custom.Strategies
                     ActiveOrders.Remove(key);
                     SimpleActiveOrders.Remove(key);
 
-                    CountOrder--;
-
-                    // Nếu đang có signal 
-                    if (EntrySignals.Contains(key))
-                    {
-                        CountEntrySignal--; 
-                    }
-
-                    if (order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit)
+                    // Nếu có order trước đó thì mới biết là Thắng hay Thua
+                    // Nếu CountOrder: Lệnh này có thể là lệnh ENTRY
+                    LocalPrint($"[OnOrderUpdate]: Name = {order.Name} - CountOrder: {CountOrder} {order.OrderType}");
+                    if (!order.Name.StartsWith("Entry") && (order.OrderType == OrderType.StopMarket || order.OrderType == OrderType.StopLimit))
                     {
                         LocalPrint($"{order.OrderType} {(orderState == OrderState.Filled ? "THUA" : "THẮNG")} ");
                         if (orderState == OrderState.Filled) // Filled Stop --> Loss
                         {
-                            var loss = AlgQuantity * TickSize * BackTestStopLossInTicks * 2; 
+                            var loss = AlgQuantity * TickSize * BackTestStopLossInTicks * 2;
                             BackTestDailyPnL -= loss;
 
                             LocalPrint($"New daily PnL: {BackTestDailyPnL:N2} | loss = ({AlgQuantity:N2} x {TickSize:N2}) x {BackTestStopLossInTicks:N2} x 2 = {loss:N2}");
@@ -671,11 +670,19 @@ namespace NinjaTrader.Custom.Strategies
                         else if (orderState == OrderState.Cancelled) // Cancel stop Limit --> Win
                         {
                             var profit = AlgQuantity * TickSize * BackTestTargetInTicks * 2;
-                            BackTestDailyPnL += profit; 
+                            BackTestDailyPnL += profit;
 
                             LocalPrint($"New daily PnL: {BackTestDailyPnL:N2} | profit = ({AlgQuantity:N2} x {TickSize:N2}) x {BackTestTargetInTicks:N2} x 2 = {profit:N2}");
-                        }                        
+                        }
                     }
+
+                    CountOrder--;
+
+                    // Nếu đang có signal 
+                    if (EntrySignals.Contains(key))
+                    {
+                        CountEntrySignal--; 
+                    }                    
                 }
                 else if (orderState == OrderState.Working || orderState == OrderState.Accepted)
                 {
@@ -732,6 +739,7 @@ namespace NinjaTrader.Custom.Strategies
         
         protected virtual void EnterOrderPureUsingTicks(double priceToSet, double targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
         {
+            LocalPrint($"[EnterOrderPureUsingTicks]   BarClosedBaseClass BarClosedBaseClass");
             var text = isBuying ? "LONG" : "SHORT";
             
             if (isBuying)

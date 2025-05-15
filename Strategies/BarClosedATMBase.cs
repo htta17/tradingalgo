@@ -373,7 +373,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             
             FilledPrice = priceToSet;
             FilledTime = Time[0];
-            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}, tradeAction");
+            LocalPrint($"Enter {action} at {Time[0]}, price to set: {priceToSet:N2}, tradeAction. IsBuying:{IsBuying}, IsSelling: {IsSelling}");
 
             var stopLossInTicks = GetStopLossPrice(tradeAction, priceToSet, atmStrategy);
             var target2InTicks = GetTargetPrice_Full(tradeAction, priceToSet, atmStrategy);

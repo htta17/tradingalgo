@@ -521,6 +521,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == 5) // 5 minute
             {
+                /*
                 // Detect new keys
                 double highPrice_5m = High[0];
                 double lowPrice_5m = Low[0];
@@ -544,6 +545,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         Last5mBarTouchEMA50 = CurrentBar;
                     }
                 }
+                */
             }
         }        
 

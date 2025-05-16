@@ -61,6 +61,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         private GeneralEMAsPosition Position_5m { get; set; }
 
         /// <summary>
+        /// Đánh dấu xem đã vào lệnh LONG hay chưa
+        /// </summary>
+        private bool EnteredOrder { get; set; }        
+
+        /// <summary>
         /// Số điểm cộng (hoặc trừ) so với đường EMA21 để vào lệnh MUA (hoặc BÁN).
         /// </summary>
         [NinjaScriptProperty]
@@ -114,6 +119,8 @@ namespace NinjaTrader.NinjaScript.Strategies
             HalfSizefATMName = "FishTrend_Follow";
 
             AdjustmentPoint = 7;
+
+            EnteredOrder = false;
         }
 
         private void DrawKey(int barIndex, double high, double low)
@@ -194,6 +201,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                         KeyLevel_5m_HIGH = highPrice_5m;
                         KeyLevel_5m_LOW = lowPrice_5m;
 
+                        EnteredOrder = false;
+
                         DrawKey(CurrentBar, highPrice_5m, lowPrice_5m);
 
                         Last5mBarTouchEMA50 = CurrentBar;
@@ -244,7 +253,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 var shouldTrade = ShouldTrade();                
 
-                if (shouldTrade.Action != GeneralTradeAction.NoTrade) // Nếu chưa enter order thì mới enter order
+                if (shouldTrade.Action != GeneralTradeAction.NoTrade && !EnteredOrder) // Nếu chưa enter order thì mới enter order
                 {
                     EnterOrder(shouldTrade);
                 }
@@ -302,8 +311,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         }
 
         protected override void EnterOrderPureUsingTicks(double priceToSet, double targetInTicks, double stoplossInTicks, string signal, int quantity, bool isBuying, bool isSelling)
-        {
-            LocalPrint($"[EnterOrderPureUsingTicks] FishTrend");
+        {   
             var text = isBuying ? "LONG" : "SHORT";
 
             if (isBuying)
@@ -337,6 +345,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return tradeAction.Direction == TradeDirection.Reverse ? KeyLevel_5m_HIGH + 3 : KeyLevel_5m_HIGH + AdjustmentPoint;
             }
             return -1; 
+        }
+
+        protected override void OnMarketData_OrderExists(double updatedPrice)
+        {
+            if (!EnteredOrder)
+            {
+                EnteredOrder = true;
+            }            
         }
 
         protected override FishTrendTradeDetail ShouldTrade()

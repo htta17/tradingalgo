@@ -568,4 +568,11 @@ namespace NinjaTrader.Custom.Strategies
     { 
         public TradeDirection Direction { get; set; }
     }
+
+    public class AtmSavedInfo
+    { 
+        public string OrderId { get; set; }
+
+        public string AtmStrategyId { get; set; }
+    }
 }

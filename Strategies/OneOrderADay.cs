@@ -153,21 +153,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             AtmStrategyCancelEntryOrder(orderId);
         }
 
-        private void WriteText(string text)
-        {
-            Draw.TextFixed(
-                this,
-                "Distance",
-                text,
-                TextPosition.TopRight,
-                Brushes.DarkBlue,            // Text color
-                new SimpleFont("Arial", 12), // Font and size
-                Brushes.DarkBlue,      // Background color
-                Brushes.Transparent,      // Outline color
-                0                         // Opacity (0 is fully transparent)
-            );
-        }
-
         protected TradingStatus CheckCurrentStatusBasedOnOrders()
         {
             var activeOrders = Account.Orders
@@ -237,10 +222,6 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
 
             executionTime = DateTime.Now;
-
-            // var timeSpan = DateTime.Now - Times[1][0];
-
-            // WriteText(string.Format("{0:00}:{1:00}", timeSpan.Minutes, timeSpan.Seconds));
 
             if (TradingStatus == TradingStatus.PendingFill)
             {

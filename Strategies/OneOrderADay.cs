@@ -61,6 +61,12 @@ namespace NinjaTrader.NinjaScript.Strategies
             Order = 4, GroupName = StrategiesUtilities.Configuration_ATMStrategy_Group)]
         public int TimeToResetNewDay { get; set; }
 
+        [NinjaScriptProperty]
+        [Display(Name = "Cách thức đặt lệnh",
+           Description = "News - Stop Market, Open - Stop Limit",
+           Order = 5, GroupName = StrategiesUtilities.Configuration_ATMStrategy_Group)]
+        public OrderType SetOrderType { get; set; }
+
         protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -93,6 +99,8 @@ namespace NinjaTrader.NinjaScript.Strategies
                 TimeToResetNewDay = 08_00_00;
 
                 TradingStatus = TradingStatus.Idle;
+
+                SetOrderType = OrderType.StopLimit;
             }
 			else if (State == State.Configure)
 			{
@@ -120,7 +128,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			if (BarsPeriod.BarsPeriodType == BarsPeriodType.Minute && BarsPeriod.Value == DATA_SERIE_5m && !Finished) // 5 minute
 			{
-				if (ToTime(Times[1][0]) == TimeToEnterOrder) // Begin of 8:30:00 candle
+                var timeNow = ToTime(Times[1][0]);
+
+                Print($"{Times[1][0]} - {timeNow}");
+
+                if (ToTime(Times[1][0]) == TimeToEnterOrder) // Begin of 8:30:00 candle
 				{
 					// Xác định điểm trên và dưới để vào lệnh					
 
@@ -129,8 +141,8 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     Print($"[OnBarUpdate] Enter orders. High: {High_Value.Value:N2}, Low: {Low_Value.Value:N2}");
 
-                    BuyOrderInfo = EnterOrderPure(OrderAction.Buy, High_Value.Value, UpsideATMName, OrderType.StopLimit);
-                    SellOrderInfo = EnterOrderPure(OrderAction.Sell, Low_Value.Value, DownsideATMName, OrderType.StopLimit);
+                    BuyOrderInfo = EnterOrderPure(OrderAction.Buy, High_Value.Value, UpsideATMName, SetOrderType);
+                    SellOrderInfo = EnterOrderPure(OrderAction.Sell, Low_Value.Value, DownsideATMName, SetOrderType);
 
                     TradingStatus = TradingStatus.PendingFill;
                     Finished = true;

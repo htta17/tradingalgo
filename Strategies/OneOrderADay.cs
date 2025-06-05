@@ -69,6 +69,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected AtmStrategy UpsideATMStrategy { get; set; }
 
+        private double UpsideStoplossTicks { get; set; }
+        private double UpsideTargetTicks { get; set; }
+
+        private double DownsideStoplossTicks { get; set; }
+        private double DownsideTargetTicks { get; set; }
+
+
         protected AtmStrategy DownsideATMStrategy { get; set; }
 
         protected override void OnStateChange()
@@ -111,8 +118,12 @@ namespace NinjaTrader.NinjaScript.Strategies
                 AddDataSeries(BarsPeriodType.Minute, DATA_SERIE_5m);
 
                 UpsideATMStrategy = StrategiesUtilities.ReadStrategyData(UpsideATMName, Print).AtmStrategy;
+                UpsideStoplossTicks = UpsideATMStrategy.Brackets.Length > 0 ? UpsideATMStrategy.Brackets[0].StopLoss : 20; // Default 5 pts (20 ticks)
+                UpsideTargetTicks = UpsideATMStrategy.Brackets.Length > 0 ? UpsideATMStrategy.Brackets[0].Target : 24; // Default 6 pts (24 ticks)
 
                 DownsideATMStrategy = StrategiesUtilities.ReadStrategyData(DownsideATMName, Print).AtmStrategy;
+                DownsideStoplossTicks = DownsideATMStrategy.Brackets.Length > 0 ? DownsideATMStrategy.Brackets[0].StopLoss : 20; // Default 5 pts (20 ticks)
+                DownsideTargetTicks = DownsideATMStrategy.Brackets.Length > 0 ? DownsideATMStrategy.Brackets[0].Target : 24; // Default 6 pts (24 ticks)
             }
 		}
 
@@ -167,6 +178,11 @@ namespace NinjaTrader.NinjaScript.Strategies
         protected const string OrderEntryName = "Entry";
         protected const string OrderStopName = "Stop";
         protected const string OrderTargetName = "Target";
+
+        protected double FilledPrice = -1;
+        protected double StopLossPrice = -1; 
+        protected double TargetPrice = -1;
+        protected OrderAction CurOrderAction = OrderAction.Buy;
 
         private void CancelOtherSide(string orderId)
         {
@@ -277,7 +293,30 @@ namespace NinjaTrader.NinjaScript.Strategies
             };
         }
 
+        private void SetStopLossIfNotExist(OrderAction action)
+        {
+            var orderInfo = action == OrderAction.Buy ? BuyOrderInfo : SellOrderInfo;
+            {
+                var stopOrder = GetAtmStrategyStopTargetOrderStatus("Stop1", orderInfo.AtmStrategyId);
+                if (stopOrder?.Length == 0)
+                {
+                    Print($"Không tìm thấy Stop Loss order, add stop loss {UpsideStoplossTicks} ticks");
+                    // Vì 1 lý do nào đó mà ko có stop order
+                    SetStopLoss(CalculationMode.Ticks, UpsideStoplossTicks);
+                }
+
+                var targetOrder = GetAtmStrategyStopTargetOrderStatus("Target1", orderInfo.AtmStrategyId);
+                if (targetOrder?.Length == 0)
+                {
+                    // Vì 1 lý do nào đó mà ko có stop order
+                    Print($"Không tìm thấy Target order, add target {UpsideTargetTicks} ticks");
+                    SetProfitTarget(CalculationMode.Ticks, UpsideTargetTicks);
+                }
+            }    
+        }
+
         private DateTime executionTime = DateTime.MinValue;
+        private bool IsFirstData = true;
         protected override void OnMarketData(MarketDataEventArgs marketDataUpdate)
         {
             var updatedPrice = marketDataUpdate.Price;
@@ -287,7 +326,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 return;
             }
 
-            if (DateTime.Now.Subtract(executionTime).TotalSeconds < 1)
+            if (DateTime.Now.Subtract(executionTime).TotalMilliseconds < 500)
             {
                 return;
             }
@@ -298,20 +337,67 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 Print($"High: {High_Value.Value}, Low: {Low_Value.Value}, current price: {updatedPrice:N2}, status: {TradingStatus}");
 
-                if (updatedPrice > High_Value.Value) // Đã fill lệnh buy
-                {
-                    TradingStatus = TradingStatus.OrderExists; 
-                    // Cancel lệnh sell 
-                    CancelOtherSide(SellOrderInfo.OrderId);
-                    Print("Cancel 1 lệnh ngược hướng");
+                // Kiểm tra 2 lệnh Entry
+                var buyOrderStatus = GetAtmStrategyEntryOrderStatus(BuyOrderInfo.OrderId); // fill price, filled amount and order state
+                if (buyOrderStatus?.Length == 3 && buyOrderStatus[2] == "Filled")
+                {                    
+                    TradingStatus = TradingStatus.OrderExists;
+                    CurOrderAction = OrderAction.Buy;
+                    FilledPrice = double.Parse(buyOrderStatus[0]);
+
+                    Print($"Cancel lệnh SELL do đã vào lệnh Buy tại giá {FilledPrice:N2}");
+                    CancelOtherSide(SellOrderInfo.OrderId);                    
+
+                    StopLossPrice = FilledPrice - UpsideStoplossTicks * TickSize;
+                    TargetPrice = FilledPrice + UpsideTargetTicks * TickSize;
+
+                    SetStopLossIfNotExist(OrderAction.Buy);
                 }
-                else if (updatedPrice < Low_Value.Value) // Đã fill lệnh sell 
+
+                var sellOrderStatus = GetAtmStrategyEntryOrderStatus(SellOrderInfo.OrderId); // fill price, filled amount and order state
+
+                if (sellOrderStatus?.Length == 3 && sellOrderStatus[2] == "Filled")
                 {
                     TradingStatus = TradingStatus.OrderExists;
-                    // Cancel lệnh buy 
-                    CancelOtherSide(BuyOrderInfo.OrderId); 
+                    CurOrderAction = OrderAction.Sell;
+                    FilledPrice = double.Parse(sellOrderStatus[0]);
+
+                    Print($"Cancel lệnh BUY do đã vào lệnh Sell tại giá {FilledPrice:N2}");
+                    CancelOtherSide(BuyOrderInfo.OrderId);
+
+                    StopLossPrice = FilledPrice + DownsideStoplossTicks * TickSize;
+                    TargetPrice = FilledPrice - DownsideTargetTicks * TickSize;
+
+                    SetStopLossIfNotExist(OrderAction.Sell);
                 }
             }
+            else if (TradingStatus == TradingStatus.OrderExists)
+            {
+                if (IsFirstData)
+                {
+                    SetStopLossIfNotExist(CurOrderAction);
+
+                    IsFirstData = false;
+                }
+                else if (CurOrderAction == OrderAction.Buy && (updatedPrice >= TargetPrice || updatedPrice <= StopLossPrice))
+                {
+                    Print("Close lệnh BUY");
+
+                    AtmStrategyClose(BuyOrderInfo.AtmStrategyId);
+                    TradingStatus = TradingStatus.Idle;
+                }
+                else if (CurOrderAction == OrderAction.Sell && (updatedPrice <= TargetPrice || updatedPrice >= StopLossPrice))
+                {
+                    Print("Close lệnh SELL");
+
+                    AtmStrategyClose(SellOrderInfo.AtmStrategyId);
+                    TradingStatus = TradingStatus.Idle;
+                }
+
+            }    
+
+
+
         }
     }
 }

@@ -159,7 +159,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 {
                     TradingStatus = CheckCurrentStatusBasedOnOrders();
                     // Reset để trade cho ngày hôm đó.
-                    Finished = true;
+                    Finished = false;
                 }
 			}
 		}

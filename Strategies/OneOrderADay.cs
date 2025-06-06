@@ -149,7 +149,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 			{
                 var timeNow = ToTime(Times[1][0]);
 
-                Print($"{Times[1][0]} - {timeNow}");
+                LocalPrint($"{Times[1][0]} - {timeNow}");
 
                 if (ToTime(Times[1][0]) == TimeToEnterOrder) // Begin of 8:30:00 candle
 				{
@@ -158,7 +158,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 					High_Value = Highs[1][0];
 					Low_Value = Lows[1][0];
 
-                    Print($"[OnBarUpdate] Enter orders. High: {High_Value.Value:N2}, Low: {Low_Value.Value:N2}");
+                    LocalPrint($"[OnBarUpdate] Enter orders. High: {High_Value.Value:N2}, Low: {Low_Value.Value:N2}");
 
                     BuyOrderInfo = EnterOrderPure(OrderAction.Buy, High_Value.Value, UpsideATMName, SetOrderType);
                     SellOrderInfo = EnterOrderPure(OrderAction.Sell, Low_Value.Value, DownsideATMName, SetOrderType);
@@ -195,7 +195,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             catch (Exception e)
             {
-                Print(e.Message);
+                LocalPrint(e.Message);
             }            
         }
 
@@ -254,7 +254,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                         }
                         else if (atmCallbackErrorCode != ErrorCode.NoError)
                         {
-                            Print($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
+                            LocalPrint($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
                         }
                     });
             }
@@ -283,7 +283,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     });
             }
 
-            Print($"[EnterOrderPure] {action}, enter price: {priceToSet:N2}, stop price: {stopPrice:N2}. ");            
+            LocalPrint($"[EnterOrderPure] {action}, enter price: {priceToSet:N2}, stop price: {stopPrice:N2}. ");            
 
             
             return new AtmSavedInfo 
@@ -300,7 +300,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                 var stopOrder = GetAtmStrategyStopTargetOrderStatus("Stop1", orderInfo.AtmStrategyId);
                 if (stopOrder?.Length == 0)
                 {
-                    Print($"Không tìm thấy Stop Loss order, add stop loss {UpsideStoplossTicks} ticks");
+                    LocalPrint($"Không tìm thấy Stop Loss order, add stop loss {UpsideStoplossTicks} ticks");
                     // Vì 1 lý do nào đó mà ko có stop order
                     SetStopLoss(CalculationMode.Ticks, UpsideStoplossTicks);
                 }
@@ -309,10 +309,22 @@ namespace NinjaTrader.NinjaScript.Strategies
                 if (targetOrder?.Length == 0)
                 {
                     // Vì 1 lý do nào đó mà ko có stop order
-                    Print($"Không tìm thấy Target order, add target {UpsideTargetTicks} ticks");
+                    LocalPrint($"Không tìm thấy Target order, add target {UpsideTargetTicks} ticks");
                     SetProfitTarget(CalculationMode.Ticks, UpsideTargetTicks);
                 }
             }    
+        }
+
+        protected void LocalPrint(object val)
+        {
+            if (val.GetType() == typeof(string))
+            {
+                Print($"{Time?[0]}-" + val);
+            }
+            else
+            {
+                Print(val);
+            }
         }
 
         private DateTime executionTime = DateTime.MinValue;
@@ -335,7 +347,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (TradingStatus == TradingStatus.PendingFill)
             {
-                Print($"High: {High_Value.Value}, Low: {Low_Value.Value}, current price: {updatedPrice:N2}, status: {TradingStatus}");
+                LocalPrint($"High: {High_Value.Value}, Low: {Low_Value.Value}, current price: {updatedPrice:N2}, status: {TradingStatus}");
 
                 // Kiểm tra 2 lệnh Entry
                 var buyOrderStatus = GetAtmStrategyEntryOrderStatus(BuyOrderInfo.OrderId); // fill price, filled amount and order state
@@ -345,7 +357,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     CurOrderAction = OrderAction.Buy;
                     FilledPrice = double.Parse(buyOrderStatus[0]);
 
-                    Print($"Cancel lệnh SELL do đã vào lệnh Buy tại giá {FilledPrice:N2}");
+                    LocalPrint($"Cancel lệnh SELL do đã vào lệnh Buy tại giá {FilledPrice:N2}");
                     CancelOtherSide(SellOrderInfo.OrderId);                    
 
                     StopLossPrice = FilledPrice - UpsideStoplossTicks * TickSize;
@@ -362,7 +374,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     CurOrderAction = OrderAction.Sell;
                     FilledPrice = double.Parse(sellOrderStatus[0]);
 
-                    Print($"Cancel lệnh BUY do đã vào lệnh Sell tại giá {FilledPrice:N2}");
+                    LocalPrint($"Cancel lệnh BUY do đã vào lệnh Sell tại giá {FilledPrice:N2}");
                     CancelOtherSide(BuyOrderInfo.OrderId);
 
                     StopLossPrice = FilledPrice + DownsideStoplossTicks * TickSize;
@@ -381,14 +393,14 @@ namespace NinjaTrader.NinjaScript.Strategies
                 }
                 else if (CurOrderAction == OrderAction.Buy && (updatedPrice >= TargetPrice + 2 || updatedPrice <= StopLossPrice))
                 {
-                    Print($"Close lệnh BUY, giá đã ở ngoài vùng {StopLossPrice:n2} và {TargetPrice:n2}");
+                    LocalPrint($"Close lệnh BUY, giá hiện tại {updatedPrice:N2} đã ở ngoài vùng {StopLossPrice:N2} và {TargetPrice:N2}");
 
                     AtmStrategyClose(BuyOrderInfo.AtmStrategyId);
                     TradingStatus = TradingStatus.Idle;
                 }
                 else if (CurOrderAction == OrderAction.Sell && (updatedPrice <= TargetPrice -2 || updatedPrice >= StopLossPrice))
                 {
-                    Print($"Close lệnh SELL, giá đã ở ngoài vùng {StopLossPrice:n2} và {TargetPrice:n2}");
+                    LocalPrint($"Close lệnh SELL, giá hiện tại {updatedPrice:N2} đã ở ngoài vùng {StopLossPrice:N2} và {TargetPrice:N2}");
 
                     AtmStrategyClose(SellOrderInfo.AtmStrategyId);
                     TradingStatus = TradingStatus.Idle;

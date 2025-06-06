@@ -379,14 +379,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                     IsFirstData = false;
                 }
-                else if (CurOrderAction == OrderAction.Buy && (updatedPrice >= TargetPrice || updatedPrice <= StopLossPrice))
+                else if (CurOrderAction == OrderAction.Buy && (updatedPrice >= TargetPrice + 2 || updatedPrice <= StopLossPrice))
                 {
                     Print($"Close lệnh BUY, giá đã ở ngoài vùng {StopLossPrice:n2} và {TargetPrice:n2}");
 
                     AtmStrategyClose(BuyOrderInfo.AtmStrategyId);
                     TradingStatus = TradingStatus.Idle;
                 }
-                else if (CurOrderAction == OrderAction.Sell && (updatedPrice <= TargetPrice || updatedPrice >= StopLossPrice))
+                else if (CurOrderAction == OrderAction.Sell && (updatedPrice <= TargetPrice -2 || updatedPrice >= StopLossPrice))
                 {
                     Print($"Close lệnh SELL, giá đã ở ngoài vùng {StopLossPrice:n2} và {TargetPrice:n2}");
 

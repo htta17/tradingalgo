@@ -111,7 +111,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
                 TradingStatus = TradingStatus.Idle;
 
-                SetOrderType = OrderType.StopLimit;
+                SetOrderType = OrderType.StopMarket;
             }
 			else if (State == State.Configure)
 			{
@@ -232,55 +232,62 @@ namespace NinjaTrader.NinjaScript.Strategies
                 ? UpsideATMStrategy.Brackets[0].StopLoss
                 : DownsideATMStrategy.Brackets[0].StopLoss;
 
-            if (orderType == OrderType.StopMarket)
+            try
             {
-                stopPrice = action == OrderAction.Buy
-                    ? priceToSet - TickSize * UpsideATMStrategy.Brackets[0].StopLoss
-                    : priceToSet + TickSize * DownsideATMStrategy.Brackets[0].StopLoss;
+                if (orderType == OrderType.StopMarket)
+                {
+                    stopPrice = action == OrderAction.Buy
+                        ? priceToSet - TickSize * UpsideATMStrategy.Brackets[0].StopLoss
+                        : priceToSet + TickSize * DownsideATMStrategy.Brackets[0].StopLoss;
 
-                AtmStrategyCreate(
-                    action,
-                    orderType,
-                    priceToSet,
-                    stopPrice,
-                    TimeInForce.Day,
-                    orderId,
-                    atmStragtegyName,
-                    atmStrategyId,
-                    (atmCallbackErrorCode, atmCallBackId) =>
-                    {
-                        if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
+                    AtmStrategyCreate(
+                        action,
+                        orderType,
+                        priceToSet,
+                        stopPrice,
+                        TimeInForce.Day,
+                        orderId,
+                        atmStragtegyName,
+                        atmStrategyId,
+                        (atmCallbackErrorCode, atmCallBackId) =>
                         {
-                        }
-                        else if (atmCallbackErrorCode != ErrorCode.NoError)
+                            if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
+                            {
+                            }
+                            else if (atmCallbackErrorCode != ErrorCode.NoError)
+                            {
+                                LocalPrint($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
+                            }
+                        });
+                }
+                else if (orderType == OrderType.StopLimit)
+                {
+                    stopPrice = priceToSet;
+
+                    AtmStrategyCreate(
+                        action,
+                        orderType,
+                        priceToSet,
+                        stopPrice,
+                        TimeInForce.Day,
+                        orderId,
+                        atmStragtegyName,
+                        atmStrategyId,
+                        (atmCallbackErrorCode, atmCallBackId) =>
                         {
-                            LocalPrint($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
-                        }
-                    });
+                            if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
+                            {
+                            }
+                            else if (atmCallbackErrorCode != ErrorCode.NoError)
+                            {
+                                Print($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
+                            }
+                        });
+                }
             }
-            else if (orderType == OrderType.StopLimit)
+            catch (Exception ex)
             {
-                stopPrice = priceToSet;
-
-                AtmStrategyCreate(
-                    action,
-                    orderType,
-                    priceToSet,
-                    stopPrice,
-                    TimeInForce.Day,
-                    orderId,
-                    atmStragtegyName,
-                    atmStrategyId,
-                    (atmCallbackErrorCode, atmCallBackId) =>
-                    {
-                        if (atmCallbackErrorCode == ErrorCode.NoError && atmCallBackId == atmStrategyId)
-                        {
-                        }
-                        else if (atmCallbackErrorCode != ErrorCode.NoError)
-                        {
-                            Print($"[AtmStrategyCreate] ERROR : " + atmCallbackErrorCode);
-                        }
-                    });
+                LocalPrint($"[EnterOrderPure] - ERROR: {ex.Message}");
             }
 
             LocalPrint($"[EnterOrderPure] {action}, enter price: {priceToSet:N2}, stop price: {stopPrice:N2}. ");            
